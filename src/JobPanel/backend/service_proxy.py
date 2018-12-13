@@ -190,7 +190,7 @@ class ServiceProxy(JsonData):
         # todo: docasne ukladame vcetne hesla
         self.connection_config = service_data["service_host_connection"]
 
-        # update service data, remove password
+        # update service data, remove password, remove secret args
         service_data = service_data.copy()
         service_data["repeater_address"] = [self.child_id]
         service_data["parent_address"] = [service_data["service_host_connection"]["address"], remote_port]
@@ -209,6 +209,13 @@ class ServiceProxy(JsonData):
             logging.warning("Start service: Overwriting environment in service_data['process'].")
         service_data["process"]["environment"] = service_data["service_host_connection"]["environment"]
 
+        process_config = service_data["process"]
+        if "secret_args" in service_data["process"]["exec_args"] and \
+                    len(service_data["process"]["exec_args"]["secret_args"]) > 0:
+            service_data["process"] = service_data["process"].copy()
+            service_data["process"]["exec_args"] = service_data["process"]["exec_args"].copy()
+            service_data["process"]["exec_args"]["secret_args"] = []
+
         service_data["status"] = "queued"
 
         # save some permanent data
@@ -221,6 +228,7 @@ class ServiceProxy(JsonData):
             self._connection._local_service.get_analysis_workspace(),
             self.workspace,
             self.config_file_name)
+        os.makedirs(os.path.dirname(file), exist_ok=True)
         with open(file, 'w') as fd:
             json.dump(service_data, fd, indent=4, sort_keys=True)
 
@@ -232,10 +240,10 @@ class ServiceProxy(JsonData):
         files.append(os.path.join(self.workspace, self.config_file_name))
         self._connection.upload(files,
                                 self._connection._local_service.get_analysis_workspace(),
-                                self._connection.environment.geomop_analysis_workspace)
+                                self._connection.environment.geomop_analysis_workspace,
+                                follow_symlinks=False)
 
         # 4.
-        process_config = service_data["process"]
         delegator_proxy.call("request_process_start", process_config, self._results_process_start)
 
         # 5.

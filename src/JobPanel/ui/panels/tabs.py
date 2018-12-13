@@ -10,7 +10,7 @@ import PyQt5.QtWidgets as QtWidgets
 from PyQt5.QtCore import QUrl
 from PyQt5.QtGui import QDesktopServices
 
-from data.states import TaskStatus
+from JobPanel.data.states import TaskStatus
 from .overview import ERROR_BRUSH
 
 
@@ -24,12 +24,12 @@ class Tabs(QtWidgets.QTabWidget):
     def reload_view(self, mj):
         if mj is not None:
             self.ui.jobsTab.reload_view(mj.get_jobs())
-            self.ui.resultsTab.reload_view(mj.get_results())
+            #self.ui.resultsTab.reload_view(mj.get_results())
             self.ui.logsTab.reload_view(mj.get_logs())
             self.ui.confTab.reload_view(mj.get_configs())
         else:
             self.ui.jobsTab.reload_view([])
-            self.ui.resultsTab.reload_view([])
+            #self.ui.resultsTab.reload_view([])
             self.ui.logsTab.reload_view([])
             self.ui.confTab.reload_view([])
 
@@ -40,20 +40,20 @@ class UiTabs(object):
         tab_widget.setObjectName("tabs")
         # self.overviewTab = OverviewTab(tab_widget)
         self.jobsTab = JobsTab(tab_widget)
-        self.resultsTab = ResultsTab(tab_widget)
+        #self.resultsTab = ResultsTab(tab_widget)
         self.logsTab = LogsTab(tab_widget)
         self.confTab = ConfigTab(tab_widget)
 
         # tab_widget.addTab(self.overviewTab, "Overview")
         tab_widget.addTab(self.jobsTab, "Jobs")
-        tab_widget.addTab(self.resultsTab, "Results")
+        #tab_widget.addTab(self.resultsTab, "Results")
         tab_widget.addTab(self.logsTab, "Logs")
         tab_widget.addTab(self.confTab, "Config")
 
         # config tab hidden if not in --debug mode
         if True:  # cfg.config.DEBUG_MODE:
             # ToDo Implement as config
-            tab_widget.removeTab(3)
+            tab_widget.removeTab(2)
 
 
 class AbstractTab(QtWidgets.QWidget):

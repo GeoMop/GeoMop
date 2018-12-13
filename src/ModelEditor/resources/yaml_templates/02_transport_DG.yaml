@@ -1,0 +1,54 @@
+##################################################################
+###    !Coupling_OperatorSplitting - !Solute_AdvectionDiffusion_DG 
+##################################################################
+  solute_equation: !Coupling_OperatorSplitting
+    substances:
+      - name:
+        molar_mass:
+    balance:
+      times:
+      cumulative:
+    time:
+      start_time:
+      end_time:
+      min_dt:
+      max_dt:
+    output_stream:
+      format: !vtk
+        variant: ascii
+      precision:
+      observe_points:
+        - name:
+          point:
+    transport: !Solute_AdvectionDiffusion_DG
+      solvent_density:
+      input_fields:
+        - region: BULK
+          time: 0.0
+          init_conc:
+          porosity:
+          sources_density:
+          sources_sigma:
+          sources_conc:
+          disp_l:
+          disp_t:
+          diff_m:
+          rock_density:
+          fracture_sigma:
+        - region: .BOUNDARY
+          time: 0.0
+          bc_type: inflow
+          bc_conc:
+      solver:
+        r_tol:
+        a_tol:
+      output:
+        times:
+          - begin:
+            step:
+            end:
+        fields:
+            - conc
+            - field: init_conc 
+              times: [ 0.0 ] 
+        observe_fields: conc

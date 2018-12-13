@@ -7,6 +7,7 @@ from .executor import ProcessExec, ProcessPBS, ProcessDocker
 
 # import in code
 #from .service_proxy import ServiceProxy
+#import fcntl
 
 import logging
 import concurrent.futures
@@ -18,7 +19,6 @@ import threading
 import sys
 import traceback
 import socket
-import fcntl
 import struct
 import hashlib
 
@@ -202,6 +202,10 @@ class ServiceBase(JsonData):
 
         self.listen_address = ("", 0)
         """Socket address where service listening."""
+        self.requested_listen_port = 0
+        """Requested listen port."""
+        self.listen_address_substitute = ("", 0)
+        """Listen address will be substitute with this address. (Only if self.listen_address_substitute[0] != "".)"""
         self.status = ServiceStatus.queued
         """Service status"""
         self.wait_before_run = 0.0
@@ -216,6 +220,9 @@ class ServiceBase(JsonData):
 
         #self.repeater_max_client_id = 0
         """repeater max client id"""
+
+        self.log_all = False
+        """True mean log level INFO, False mean log level WARNING"""
 
         super().__init__(config)
 
@@ -233,10 +240,14 @@ class ServiceBase(JsonData):
         self._child_services_lock = threading.Lock()
         """Lock for _child_services"""
 
-        self._repeater = ar.AsyncRepeater(self.repeater_address, self.parent_address, repeater_max_client_id)
+        self._repeater = ar.AsyncRepeater(self.repeater_address, self.parent_address,
+                                          repeater_max_client_id, self.requested_listen_port)
         listen_port = self._repeater.listen_port
         if listen_port is not None:
-            self.listen_address = (self.get_ip_address(), listen_port)
+            if self.listen_address_substitute[0] != "":
+                self.listen_address = self.listen_address_substitute
+            else:
+                self.listen_address = (self.get_ip_address(), listen_port)
 
         self._closing = False
 
@@ -263,6 +274,7 @@ class ServiceBase(JsonData):
         file = os.path.join(self.get_analysis_workspace(),
                             self.workspace,
                             self.config_file_name)
+        os.makedirs(os.path.dirname(file), exist_ok=True)
         with open(file, 'w') as fd:
             json.dump(self.serialize(), fd, indent=4, sort_keys=True)
 
@@ -441,6 +453,8 @@ class ServiceBase(JsonData):
         If fails return 127.0.0.1.
         :return:
         """
+        import fcntl
+
         ifname = 'eth0'
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         try:
@@ -504,7 +518,6 @@ class ServiceBase(JsonData):
         """
         connection = self.get_connection(service_data["service_host_connection"])
 
-
         from .service_proxy import ServiceProxy
         proxy = ServiceProxy({})
         proxy.set_rep_con(self._repeater, connection)
@@ -548,12 +561,15 @@ class ServiceBase(JsonData):
         return executor.kill()
 
     @LongRequest
-    def request_get_executables_from_installation(self):
+    def request_get_executables_from_installation(self, geomop_root=None):
         """
         Return executables from installation where service running.
+        Parameter geomop_root is used because Delegator does not have set service_host_connection.
         :return:
         """
-        file = os.path.join(self.get_geomop_root(), "executables.json")
+        if geomop_root is None:
+            geomop_root = self.get_geomop_root()
+        file = os.path.join(geomop_root, "executables.json")
         try:
             with open(file, 'r') as fd:
                 executables = json.load(fd)

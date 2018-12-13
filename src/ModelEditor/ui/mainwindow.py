@@ -4,12 +4,14 @@
 """
 import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtCore as QtCore
+from PyQt5.QtGui import QKeySequence
+from PyQt5.QtWebEngineWidgets import QWebEngineView
 
 import gm_base.icon as icon
 from ModelEditor.helpers import LineAnalyzer
 from ModelEditor.meconfig import MEConfig as cfg
 from . import panels
-from .menus import MainEditMenu, MainFileMenu, MainSettingsMenu, AnalysisMenu
+from .menus import MainEditMenu, MainFileMenu, MainSettingsMenu
 from ModelEditor.util import CursorType
 from gm_base.geomop_util import Position
 
@@ -33,7 +35,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self._tab.setMinimumSize(600, 200)
         self._tab.sizeHint = lambda: QtCore.QSize(700, 250)
 
-        self.info = panels.InfoPanelWidget(self._tab)
+        self.info = QWebEngineView(self._tab)
+        self.info.setContextMenuPolicy(QtCore.Qt.NoContextMenu)
+        self.info_page = panels.InfoPanelPage()
+        self.info.setPage(self.info_page)
+
         """info panel"""
         self.err = panels.ErrorWidget(self._tab)
         """error message panel"""
@@ -61,10 +67,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.update_recent_files(0)
         self._edit_menu = MainEditMenu(self, self.editor)
         self._settings_menu = MainSettingsMenu(self, self._model_editor)
-        self._analysis_menu = AnalysisMenu(self, cfg.config, flow123d_versions=cfg.format_files)
         self._menu.addMenu(self._file_menu)
         self._menu.addMenu(self._edit_menu)
-        self._menu.addMenu(self._analysis_menu)
         self._menu.addMenu(self._settings_menu)
 
         # status bar
@@ -77,12 +81,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self._reload_icon_timer = QtCore.QTimer(self)
         self._reload_icon_timer.timeout.connect(lambda: self._reload_icon.setVisible(False))
 
-        self._analysis_label = QtWidgets.QLabel(self)
         cfg.config.observers.append(self)
 
         self._status = self.statusBar()
         self._status.addPermanentWidget(self._reload_icon)
-        self._status.addPermanentWidget(self._analysis_label)
         self._status.addPermanentWidget(self._column)
         self.setStatusBar(self._status)
         self._status.showMessage("Ready", 5000)
@@ -103,6 +105,12 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # set focus
         self.editor.setFocus()
+
+    def keyPressEvent(self, event):
+        if event.matches(QKeySequence.Copy) and self.info.selectedText() != "":
+            QtWidgets.QApplication.clipboard().setText(self.info.selectedText())
+        else:
+            super().keyReleaseEvent(event)
 
     def reload(self):
         """reload panels after structure changes"""
@@ -178,15 +186,15 @@ class MainWindow(QtWidgets.QMainWindow):
     def _update_info(self, cursor_type):
         """Update the info panel."""
         if self.editor.pred_parent is not None:
-            self.info.update_from_node(self.editor.pred_parent,
+            self.info_page.update_from_node(self.editor.pred_parent,
                                        CursorType.parent.value)
             return
         if self.editor.curr_node is not None:
-            self.info.update_from_node(self.editor.curr_node, cursor_type)
+            self.info_page.update_from_node(self.editor.curr_node, cursor_type)
             return
 
         # show root input type info by default
-        self.info.update_from_data({'record_id': cfg.root_input_type['id']}, True)
+        self.info_page.update_from_data({'record_id': cfg.root_input_type['id']}, True)
         return
 
     def _on_node_selected(self, line, column):
@@ -212,7 +220,5 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def config_changed(self):
         """Handle changes of config."""
-        analysis = cfg.config.analysis or '(No Analysis)'
-        self._analysis_label.setText(analysis)
         self.editor.set_line_endings(cfg.config.line_endings)
 

@@ -14,6 +14,7 @@ from JobPanel.backend.json_data import JsonData, ClassFactory, JsonDataNoConstru
 from JobPanel.backend.connection import ConnectionStatus, SSHError
 from Analysis.pipeline.pipeline_processor import Pipelineprocessor
 from Analysis.pipeline import *
+from gm_base.config import GEOMOP_INTERNAL_DIR_NAME
 
 
 class MJStatus(enum.IntEnum):
@@ -97,6 +98,9 @@ class MultiJob(ServiceBase):
         self.jobs_report = JsonDataNoConstruct()
         """jobs report information"""
 
+        self.reuse_mj = ""
+        """If not empty, base computation on this MJ."""
+
         super().__init__(config)
 
         # JsonData dict workaround
@@ -167,11 +171,29 @@ class MultiJob(ServiceBase):
             return
         action_types.__action_counter__ = 0
         loc = {}
-        exec(script_text, globals(), loc)
-        pipeline = loc[self.pipeline["pipeline_name"]]
+        try:
+            exec(script_text, globals(), loc)
+        except Exception as e:
+            logging.error("Error in analysis script: {0}: {1}".format(e.__class__.__name__, e))
+            self.mj_status == MJStatus.error
+            return
+        pipeline_name = self.pipeline["pipeline_name"]
+        if pipeline_name not in loc:
+            logging.error('Analysis script must create variable named "{}".'.format(pipeline_name))
+            self.mj_status == MJStatus.error
+            return
+        pipeline = loc[pipeline_name]
+
+        # copy files from reuse MJ
+        identical_list = None
+        if (self.reuse_mj != "") and self.copy_reuse_mj():
+            identical_list = os.path.join(GEOMOP_INTERNAL_DIR_NAME, "identical_list.json")
 
         # pipeline processor
-        self._pipeline_processor = Pipelineprocessor(pipeline)
+        log_level = logging.INFO if self.log_all else logging.WARNING
+        self._pipeline_processor = Pipelineprocessor(pipeline, log_level=log_level,
+                                                     save_path=GEOMOP_INTERNAL_DIR_NAME,
+                                                     identical_list=identical_list)
 
         # validation
         err = self._pipeline_processor.validate()
@@ -183,6 +205,39 @@ class MultiJob(ServiceBase):
 
         # run pipeline
         self._pipeline_processor.run()
+
+    # todo: it should be run in LongRequest
+    def copy_reuse_mj(self):
+        # test if identical list exist
+        if not os.path.isfile(os.path.join(GEOMOP_INTERNAL_DIR_NAME, "identical_list.json")):
+            return False
+
+        # test if reuse MJ exist
+        reuse_mj_dir = os.path.join("..", self.reuse_mj)
+        if not os.path.isdir(reuse_mj_dir):
+            return False
+
+        # test if reuse store dir exist
+        store_dir = os.path.join(GEOMOP_INTERNAL_DIR_NAME, "store")
+        reuse_store_dir = os.path.join(reuse_mj_dir, store_dir)
+        if not os.path.isdir(reuse_store_dir):
+            return False
+
+        # copy store dir
+        shutil.rmtree(store_dir, ignore_errors=True)
+        shutil.copytree(reuse_store_dir, store_dir)
+
+        # copy output dirs
+        for dir in os.listdir(reuse_mj_dir):
+            reuse_action_dir = os.path.join(reuse_mj_dir, dir)
+            if os.path.isdir(reuse_action_dir) and dir.startswith("action_"):
+                reuse_output_dir = os.path.join(reuse_action_dir, "output")
+                if os.path.isdir(reuse_output_dir):
+                    shutil.rmtree(dir, ignore_errors=True)
+                    os.makedirs(dir, exist_ok=True)
+                    shutil.copytree(reuse_output_dir, os.path.join(dir, "output"))
+
+        return True
 
     def run_job(self, runner):
         # job data
@@ -224,24 +279,28 @@ class MultiJob(ServiceBase):
         job_id = self._max_job_id
 
         # job workspace
-        job_dir = os.path.join(self.workspace, "job_{}".format(job_id))
+        #job_dir = os.path.join(self.workspace, "job_{}".format(job_id))
+        job_dir = os.path.join(self.workspace, runner.work_dir)
         analysis_workspace = self.service_host_connection.environment.geomop_analysis_workspace
-        os.makedirs(os.path.join(analysis_workspace, job_dir), exist_ok=True)
+        #os.makedirs(os.path.join(analysis_workspace, job_dir), exist_ok=True)
         service_data["workspace"] = job_dir
 
-        service_data["config_file_name"] = "job_service.conf"
+        service_data["config_file_name"] = GEOMOP_INTERNAL_DIR_NAME + "/job_service.conf"
 
         # copy action input files
-        for file in runner.input_files:
-            src = os.path.join(analysis_workspace, self.workspace, file)
-            dst = os.path.join(analysis_workspace, job_dir, file)
-            shutil.copyfile(src, dst)
+        # already prepared by analysis
+        # for file in runner.input_files:
+        #     src = os.path.join(analysis_workspace, self.workspace, file)
+        #     dst = os.path.join(analysis_workspace, job_dir, file)
+        #     shutil.copyfile(src, dst)
 
         # input_files
         if "input_files" in service_data:
             service_data["input_files"].append(runner.input_files)
         else:
             service_data["input_files"] = runner.input_files
+
+        # todo: in case that Job runs on remote it is needed to copy symlink targets
 
         # update service_host_connection
         if service_data["process"]["__class__"] == "ProcessPBS" and \
@@ -251,7 +310,7 @@ class MultiJob(ServiceBase):
             service_data["service_host_connection"]["address"] = self.listen_address[0]
 
         # start job
-        logging.info("Job {} starting".format(job_id))
+        logging.info("Job {} ({}) starting".format(job_id, runner.work_dir))
         answer = []
         self.call("request_start_child", service_data, answer)
         job_info = JobInfo(runner, answer, job_dir)
@@ -261,7 +320,8 @@ class MultiJob(ServiceBase):
         # update job report
         job_report = JobReport()
         job_report.status = job_info.status
-        job_report.name = "job_{}".format(job_id)
+        #job_report.name = "job_{}".format(job_id)
+        job_report.name = runner.work_dir
         job_report.insert_time = time.time()
         self.jobs_report[str(job_id)] = job_report
 
@@ -395,11 +455,11 @@ class MultiJob(ServiceBase):
         try:
             # output files
             con.download(self._jobs[job_id].runner.output_files,
-                         os.path.join(loc_an_work, self.workspace),
+                         os.path.join(loc_an_work, self._jobs[job_id].job_dir),
                          os.path.join(rem_an_work, self._jobs[job_id].job_dir))
 
             # log file
-            con.download([os.path.join(self._jobs[job_id].job_dir, "job_service.log")],
+            con.download([os.path.join(self._jobs[job_id].job_dir, GEOMOP_INTERNAL_DIR_NAME, "job_service.log")],
                          loc_an_work,
                          rem_an_work)
         except (SSHError, FileNotFoundError, PermissionError):
@@ -427,15 +487,23 @@ class MultiJob(ServiceBase):
 
 
 if __name__ == "__main__":
-    logging.basicConfig(filename='mj_service.log', filemode="w",
+    logging.basicConfig(filename=os.path.join(GEOMOP_INTERNAL_DIR_NAME, "mj_service.log"), filemode="w",
                         format='%(asctime)s %(levelname)-8s %(name)-12s %(message)s',
                         level=logging.INFO)
 
 
     try:
-        input_file = "mj_service.conf"
+        input_file = os.path.join(GEOMOP_INTERNAL_DIR_NAME, "mj_service.conf")
         with open(input_file, "r") as f:
             config = json.load(f)
+
+        # set log level
+        if "log_all" in config and config["log_all"]:
+            level = logging.INFO
+        else:
+            level = logging.WARNING
+        logging.root.setLevel(level)
+
         bs = MultiJob(config)
         bs.run()
     except:

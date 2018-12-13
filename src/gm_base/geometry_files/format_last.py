@@ -1,4 +1,16 @@
-"""Structures for Layer Geometry File"""
+"""
+This should be the last format of the  Layer Geometry File.
+Classes in this file should already be final data layer used by
+Layer Editor, Analysis (through a frontend), and Geometry.
+
+Format of these classes should be same as the last numbered version
+assuming default (copy) conversion.
+
+TODO:
+- combine polygons and these classes into definitive format data classes
+- introduce common Undo/Redo mechanism
+- modify Layer Editor to operate on this data Layer
+"""
 
 import sys
 import os
@@ -6,6 +18,7 @@ import os
 
 
 from gm_base.json_data import *
+import gm_base.geometry_files.layers_io as lfc
 
 
 class LayerType(IntEnum):
@@ -63,10 +76,18 @@ class Surface(JsonData):
     def __init__(self, config={}):
         self.grid_file = ""
         """File with approximated points (grid of 3D points). None for plane"""
+        self.file_skip_lines = 0
+        """Number of header lines to skip. """
+        self.file_delimiter = ' '
+        """ Delimiter of data fields on a single line."""
         self.name = ""
         """Surface name"""
         self.approximation = ClassFactory(SurfaceApproximation)
         """Serialization of the  Z_Surface."""
+        self.regularization = 1.0
+        """Regularization weight."""
+        self.approx_error = 0.0
+        """L-inf error of aproximation"""
         super().__init__(config)
         
     # @staticmethod
@@ -74,6 +95,17 @@ class Surface(JsonData):
     #     surf = Surface()
     #     surf.approximation = None
     #     return surf
+
+    @property
+    def quad(self):
+        return self.approximation.quad
+
+    @classmethod
+    def convert(cls, other):
+        new_surf = lfc.convert_json_data(sys.modules[__name__], other, cls)
+        new_surf.approx_error = 0.0
+        new_surf.regularization = 1.0
+        return new_surf
 
 class Interface(JsonData):
     
@@ -278,7 +310,7 @@ class FractureLayer(GeoLayer):
     def __init__(self, config={}):
         super().__init__(config)
         self.layer_type = LayerType.fracture
-        self.top_type = self.top.interface_type
+        #self.top_type = self.top.interface_type
 class StratumLayer(GeoLayer):
     _not_serialized_attrs_ = ['layer_type', 'top_type','bottom_type']
 
@@ -290,8 +322,8 @@ class StratumLayer(GeoLayer):
 
         super().__init__(config)
         self.layer_type = LayerType.stratum
-        self.top_type = self.top.interface_type
-        self.bottom_type = self.bottom.interface_type
+        #self.top_type = self.top.interface_type
+        #self.bottom_type = self.bottom.interface_type
 
 
 class ShadowLayer(GeoLayer):
@@ -336,3 +368,9 @@ class LayerGeometry(JsonData):
         """Addition data that is used for displaying in layer editor"""
         super().__init__(config)
 
+    @classmethod
+    def convert(cls, other):
+        basepath = getattr(other, 'base_path', os.getcwd())
+        lg = lfc.convert_json_data(sys.modules[__name__], other, cls)
+        lg.version = [0, 5, 5]
+        return lg

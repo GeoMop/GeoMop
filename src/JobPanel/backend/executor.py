@@ -21,6 +21,7 @@ Tests:
 from .json_data import JsonData
 from .environment import Environment
 from .pbs import PbsConfig, Pbs
+from gm_base.config import GEOMOP_INTERNAL_DIR_NAME
 
 # import in code
 #from .service_base import ServiceStatus
@@ -72,6 +73,8 @@ class ExecArgs(JsonData):
         """
         self.args = []
         """ Arguments passed to executable."""
+        self.secret_args = []
+        """Arguments passed to executable, but not saved to service config file."""
         self.pbs_args = PbsConfig()
         """
         Arguments passed to PBS system.
@@ -167,6 +170,7 @@ class ProcessExec(ProcessBase):
                 args.append(os.path.join(self.environment.geomop_root,
                                          self.executable.path))
             args.extend(self.exec_args.args)
+            args.extend(self.exec_args.secret_args)
             cwd = os.path.join(self.environment.geomop_analysis_workspace,
                                self.exec_args.work_dir)
             r, w = os.pipe()
@@ -175,7 +179,9 @@ class ProcessExec(ProcessBase):
                 try:
                     os.close(r)
                     os.setsid()
-                    with open(os.path.join(cwd, "out.txt"), 'w') as fd_out:
+                    conf_dir = os.path.join(cwd, GEOMOP_INTERNAL_DIR_NAME)
+                    os.makedirs(conf_dir, exist_ok=True)
+                    with open(os.path.join(conf_dir, "std_out.txt"), 'w') as fd_out:
                         p = psutil.Popen(args, stdout=fd_out, stderr=subprocess.STDOUT, cwd=cwd)
                     os.write(w, "{}@{}".format(p.pid, p.create_time()).encode())
                     os.close(w)
@@ -315,7 +321,8 @@ class ProcessPBS(ProcessBase):
             command = os.path.join(self.environment.geomop_root,
                                    self.executable.path)
 
-        pbs.prepare_file(command, interpreter, [], self.exec_args.args, self._get_limit_args())
+        pbs.prepare_file(command, interpreter, [], self.exec_args.args + self.exec_args.secret_args,
+                         self._get_limit_args())
         logging.debug("Qsub params: " + str(pbs.get_qsub_args()))
         process = subprocess.Popen(pbs.get_qsub_args(),
                         stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
@@ -434,29 +441,67 @@ class ProcessDocker(ProcessBase):
     the docker info (image in particular) part of the installation so accessible through the environment.
     """
 
+    def __init__(self, process_config):
+        self.docker_port_expose = (0, 0)
+        """Docker port expose (host_port, container_port)"""
+        super().__init__(process_config)
+
     def start(self):
         """
         See client_test_py for a docker starting process.
         :return: process_id - possibly hash of the running container.
         """
-        # ToDo: asi nebude fungovat ve Win
-        home = os.environ["HOME"]
-        cwd = os.path.join(self.environment.geomop_analysis_workspace,
-                           self.exec_args.work_dir)
-        uid = os.getuid()
-        gid = os.getgid()
-        args = ["docker", "run", "-d", "-v", home + ':' + home, "-w", cwd, "-u", "{}:{}".format(uid, gid), "geomop/jobpanel"]
+        # port expose
+        arg_p = ""
+        if self.docker_port_expose[1] > 0:
+            arg_p = str(self.docker_port_expose[1])
+            if self.docker_port_expose[0] > 0:
+                arg_p = "{}:".format(self.docker_port_expose[0]) + arg_p
+
+        cwd = self.environment.geomop_analysis_workspace + "/" + self.exec_args.work_dir
+
+        # wrapper
+        args = [self.environment.python, self.environment.geomop_root + "/JobPanel/backend/docker_wrapper.py"]
+
         args.extend(self._get_limit_args())
+
         if self.executable.script:
             args.append(self.environment.python)
-        if os.path.isabs(self.executable.path):
-            args.append(self.executable.path)
+
+        if self.executable.path.startswith("/"):
+            path = self.executable.path
         else:
-            args.append(os.path.join(self.environment.geomop_root,
-                                     self.executable.path))
+            path = self.environment.geomop_root + "/" + self.executable.path
+        if sys.platform == "win32":
+            path = "/" + path
+        args.append(path)
+
         args.extend(self.exec_args.args)
-        output = subprocess.check_output(args, universal_newlines=True)
-        self.process_id = output.strip()
+        args.extend(self.exec_args.secret_args)
+
+        if sys.platform == "win32":
+            flags = "-d"
+            if arg_p != "":
+                flags += " -p " + arg_p
+            base_args = ["fterm.bat", "--", flags, "/" + cwd]
+            output = subprocess.check_output(base_args + args, universal_newlines=True)
+            self.process_id = output.splitlines()[-1].strip()
+        else:
+            home = os.environ["HOME"]
+            uid = os.getuid()
+            gid = os.getgid()
+            base_args = ["docker", "run", "-d"]
+            if arg_p != "":
+                base_args.extend(["-p", arg_p])
+            base_args.extend(["-v", home + ":" + home, "-w", cwd,
+                              "-e", "uid={}".format(uid), "-e", "gui={}".format(gid),
+                              "flow123d/2.2.1-geomop"])
+            # When we want to use ssh keys, it is possible to add following arguments,
+            # then keys will be copied to docker.
+            # "-e", "home=/mnt//home/radek", "-v", "/home/radek:/mnt//home/radek"
+            output = subprocess.check_output(base_args + args, universal_newlines=True)
+            self.process_id = output.strip()
+
         return self.process_id
 
     def kill(self):
@@ -464,8 +509,12 @@ class ProcessDocker(ProcessBase):
         See client_test.py, BackedProxy.__del__
         :return:
         """
+        if sys.platform == "win32":
+            args = ["fdocker.bat"]
+        else:
+            args = ["docker"]
+        args.extend(["rm", "-f", self.process_id])
         try:
-            args = ['docker', 'rm', '-f', self.process_id]
             output = subprocess.check_output(args, stderr=subprocess.DEVNULL)
         except subprocess.CalledProcessError:
             pass

@@ -1,6 +1,6 @@
-from client_pipeline.mj_preparation import *
-from client_pipeline.parametrized_actions_preparation import *
-from pipeline.pipeline_processor import *
+from Analysis.client_pipeline.mj_preparation import *
+from Analysis.client_pipeline.parametrized_actions_preparation import Flow123dActionPreparation
+from Analysis.pipeline.pipeline_processor import *
 from gm_base.geomop_analysis import YamlSupportLocal
 
 import time
@@ -19,7 +19,14 @@ def load_pipeline(python_script="analysis.py", pipeline_name="pipeline"):
         return err, None
     action_types.__action_counter__ = 0
     loc = {}
-    exec(script_text, globals(), loc)
+    try:
+        exec(script_text, globals(), loc)
+    except Exception as e:
+        err.append("Error in analysis script: {0}: {1}".format(e.__class__.__name__, e))
+        return err, None
+    if pipeline_name not in loc:
+        err.append('Analysis script must create variable named "{}".'.format(pipeline_name))
+        return err, None
     pipeline = loc[pipeline_name]
     return err, pipeline
 
@@ -103,8 +110,9 @@ def run_pipeline(pipeline, executables):
         else:
             command = runner.command
             if command[0] in executables:
+                command = command.copy()
                 command[0] = executables[command[0]]
-            process = subprocess.Popen(command)
+            process = subprocess.Popen(command, cwd=runner.work_dir)
             process.wait()
             pp.set_job_finished(runner.id)
 
@@ -123,6 +131,7 @@ def _create_support_files(pipeline):
                 return err
             dir, name = os.path.split(yaml_file)
             s = name.rsplit(sep=".", maxsplit=1)
-            sprt_file = s[0] + ".sprt"
+            new_name = s[0] + ".sprt"
+            sprt_file = os.path.join(dir, new_name)
             ys.save(sprt_file)
     return err

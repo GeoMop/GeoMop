@@ -24,7 +24,7 @@ class Polygon(QtWidgets.QGraphicsPolygonItem):
         #self.setCursor(QtGui.QCursor(QtCore.Qt.UpArrowCursor))
         self.setZValue(self.MIN_ZVALUE+self.depth)
         self.update_brush()
-        
+
     def update_geometry(self):
         """Update geometry according to actual zoom"""
         self.update_brush()
@@ -59,6 +59,7 @@ class Polygon(QtWidgets.QGraphicsPolygonItem):
         """reload polygon.spolygon.gtpolygon"""
         self.setPolygon(self.polygon_data.qtpolygon)
 
+
     def select_polygon(self):
         """set selected and repaint polygon"""
         if self.state == ItemStates.standart:
@@ -78,3 +79,10 @@ class Polygon(QtWidgets.QGraphicsPolygonItem):
     def mouseReleaseEvent(self,event):
         """Standart mouse event"""
         event.gobject = self
+
+    def paint(self, painter, option, widget):
+        """Redefinition of standard paint function"""
+        painter.setRenderHints(painter.renderHints() | QtGui.QPainter.Antialiasing)
+        painter.setPen(self.pen())
+        painter.setBrush(self.brush())
+        painter.drawPath(self.polygon_data.drawpath)

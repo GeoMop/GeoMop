@@ -9,9 +9,9 @@ from PyQt5 import QtGui
 from PyQt5 import QtWidgets
 from PyQt5.QtCore import Qt
 
-from ui.data.preset_data import EnvPreset
-from ui.dialogs.dialogs import AFormContainer
-from ui.validators.validation import PresetsValidationColorizer
+from JobPanel.ui.data.preset_data import EnvPreset
+from JobPanel.ui.dialogs.dialogs import AFormContainer
+from JobPanel.ui.validators.validation import PresetsValidationColorizer
 
 
 class EnvDialog(AFormContainer):

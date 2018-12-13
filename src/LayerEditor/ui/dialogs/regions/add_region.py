@@ -151,7 +151,7 @@ class AddRegionDlg(QtWidgets.QDialog):
     @classmethod
     def is_unique_region_name(self, reg_name):
         """ Return False in the case of colision with an existing region name."""
-        for region in cfg.diagram.regions.regions:
+        for region in cfg.diagram.regions.regions.values():
             if reg_name == region.name:
                 return False
         return True
@@ -202,7 +202,7 @@ class AddRegionDlg(QtWidgets.QDialog):
         :return: None
         """
         error = None
-        for region in cfg.diagram.regions.regions:
+        for region in cfg.diagram.regions.regions.values():
             if self.region_name.text() == region.name:
                 error = "Region name already exist"
                 break

@@ -1,64 +1,62 @@
 import os
 import json
+import logging
 
 from Analysis.client_pipeline.mj_preparation import *
-from ui.dialogs import SshPasswordDialog
-from ui.imports.workspaces_conf import BASE_DIR
-from data.user_helper import Users
-from gm_base import config
+from JobPanel.ui.dialogs import SshPasswordDialog
+from JobPanel.data.secret import Secret
+from gm_base.geomop_analysis import Analysis, InvalidAnalysis
+from gm_base.config import GEOMOP_INTERNAL_DIR_NAME
+from .path_converter import if_win_win2lin_conv_path
 
 
 def build(data_app, mj_id):
     """Builds configuration for multijob running."""
+    err = []
 
     # multijob preset properties
     mj_preset = data_app.multijobs[mj_id].preset
     mj_name = mj_preset.name
     an_name = mj_preset.analysis
-    res_preset = data_app.resource_presets[mj_preset.resource_preset]
     mj_log_level = mj_preset.log_level
-    mj_number_of_processes = mj_preset.number_of_processes
+    if mj_preset.from_mj is not None:
+        reuse_mj = data_app.multijobs[mj_preset.from_mj].preset.name
+    else:
+        reuse_mj = None
 
     # resource preset
-    mj_execution_type = res_preset.mj_execution_type
-    mj_ssh_preset = data_app.ssh_presets.get(res_preset.mj_ssh_preset, None)
-    mj_remote_execution_type = res_preset.mj_remote_execution_type
-    mj_pbs_preset = data_app.pbs_presets.get(res_preset.mj_pbs_preset, None)
-    # if mj_ssh_preset is None:
-    #     mj_env = data_app.config.local_env
-    # else:
-    #     mj_env = mj_ssh_preset.env
-    # mj_env = data_app.env_presets[mj_env]
+    mj_ssh_preset = data_app.ssh_presets.get(mj_preset.mj_ssh_preset, None)
+    mj_pbs_preset = data_app.pbs_presets.get(mj_preset.mj_pbs_preset, None)
 
-    j_execution_type = res_preset.j_execution_type
-    j_ssh_preset = data_app.ssh_presets.get(res_preset.j_ssh_preset, None)
-    j_remote_execution_type = res_preset.j_remote_execution_type
-    j_pbs_preset = data_app.pbs_presets.get(res_preset.j_pbs_preset, None)
-    # if j_ssh_preset is None:
-    #     j_env = mj_env
-    # else:
-    #     j_env = j_ssh_preset.env
-    #     j_env = data_app.env_presets[j_env]
-
-
-
+    j_ssh_preset = data_app.ssh_presets.get(mj_preset.j_ssh_preset, None)
+    j_pbs_preset = data_app.pbs_presets.get(mj_preset.j_pbs_preset, None)
 
     # prepare mj
     workspace = data_app.workspaces.workspace
     analysis = an_name
     mj = mj_name
-    err, input_files = MjPreparation.prepare(workspace=workspace, analysis=analysis, mj=mj)
-    if len(err) > 0:
-        for e in err:
-            print(e)
-        #os.exit()
+    python_script = "analysis.py"
+    try:
+        an = Analysis.open(data_app.workspaces.get_path(), an_name)
+        for file in an.script_files:
+            if file.selected:
+                python_script = file.file_path
+                break
+    except InvalidAnalysis:
+        pass
+    e, input_files = MjPreparation.prepare(workspace=workspace, analysis=analysis, mj=mj,
+                                           python_script=python_script, reuse_mj=reuse_mj)
+    if len(e) > 0:
+        err.extend(e)
+        return err, None
 
     # mj_config_dir
-    mj_config_dir = os.path.join(workspace, analysis, "mj", mj, "mj_config")
+    mj_config_dir = os.path.join(workspace, analysis, "mj", mj)
 
     # ToDo: vyresit lepe
-    loc_geomop_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
-    loc_geomop_analysis_workspace = os.path.abspath(workspace)
+    loc_geomop_root = if_win_win2lin_conv_path(os.path.join(
+        os.path.dirname(os.path.realpath(__file__)), "..", ".."))
+    loc_geomop_analysis_workspace = if_win_win2lin_conv_path(os.path.abspath(workspace))
 
     # multi_job_service executable
     multi_job_service = {"__class__": "Executable",
@@ -80,9 +78,12 @@ def build(data_app, mj_id):
 
     # mj environment
     if mj_ssh_preset is not None:
+        workspace = mj_ssh_preset.workspace
+        if not os.path.isabs(workspace):
+            workspace = os.path.join(mj_ssh_preset.home_dir, workspace)
         env_mj = {"__class__": "Environment",
                   "geomop_root": mj_ssh_preset.geomop_root,
-                  "geomop_analysis_workspace": mj_ssh_preset.workspace,
+                  "geomop_analysis_workspace": workspace,
                   "executables": [],
                   "python": mj_ssh_preset.geomop_root + "/" + "bin/python"}
     else:
@@ -94,9 +95,12 @@ def build(data_app, mj_id):
 
     # job environment
     if j_ssh_preset is not None:
+        workspace = j_ssh_preset.workspace
+        if not os.path.isabs(workspace):
+            workspace = os.path.join(j_ssh_preset.home_dir, workspace)
         env_j = {"__class__": "Environment",
                  "geomop_root": j_ssh_preset.geomop_root,
-                 "geomop_analysis_workspace": j_ssh_preset.workspace,
+                 "geomop_analysis_workspace": workspace,
                  "executables": [job_service],
                  "python": j_ssh_preset.geomop_root + "/" + "bin/python"}
     else:
@@ -111,16 +115,15 @@ def build(data_app, mj_id):
               "name": "localhost"}
     else:
         if mj_ssh_preset.to_pc:
-            pwd = Users.get_reg(mj_ssh_preset.name,
-                                mj_ssh_preset.key,
-                                os.path.join(config.__config_dir__, BASE_DIR))
+            s = Secret()
+            pwd = s.demangle(mj_ssh_preset.pwd)
         else:
             dialog = SshPasswordDialog(None, mj_ssh_preset)
             if dialog.exec_():
                 pwd = dialog.password
             else:
-                # todo: asi by bylo lepsi spousteni MJ zrusit
-                pwd = ""
+                err.append("PasswordDialog: Password not entered.")
+                return err, None
         #u, pwd = get_passwords()["metacentrum"]
         mj_con = {"__class__": "ConnectionSSH",
               "address": mj_ssh_preset.host,
@@ -162,19 +165,23 @@ def build(data_app, mj_id):
                   "exec_args": {"__class__": "ExecArgs",
                                 "pbs_args": _get_pbs_conf(j_pbs_preset)}}
 
+    log_all = mj_log_level == logging.INFO
     job_service_data = {"service_host_connection": j_con,
-                        "process": job_pe}
+                        "process": job_pe,
+                        "log_all": log_all}
     service_data = {"service_host_connection": mj_con,
                     "process": pe,
-                    "workspace": analysis + "/mj/" + mj + "/mj_config",
-                    "config_file_name": "mj_service.conf",
-                    "pipeline": {"python_script": "analysis.py",
+                    "workspace": analysis + "/mj/" + mj,
+                    "config_file_name": GEOMOP_INTERNAL_DIR_NAME + "/mj_service.conf",
+                    "pipeline": {"python_script": python_script,
                                  "pipeline_name": "pipeline"},
                     "job_service_data": job_service_data,
-                    "input_files": input_files}
+                    "input_files": input_files,
+                    "log_all": log_all,
+                    "reuse_mj": reuse_mj if (reuse_mj is not None) else ""}
 
     #print(json.dumps(service_data, indent=4, sort_keys=True))
-    return service_data
+    return err, service_data
 
 
 
@@ -590,6 +597,25 @@ def build(data_app, mj_id):
     # return service_data
 
 
+
+
+def build_ssh_conf(ssh):
+    """Builds configuration for ssh test."""
+    # environment
+    env = {"__class__": "Environment",
+           "geomop_root": ssh.geomop_root,
+           "geomop_analysis_workspace": ssh.workspace,
+           "python": ssh.geomop_root + "/" + "bin/python"}
+
+    # connection
+    con = {"__class__": "ConnectionSSH",
+           "address": ssh.host,
+           "uid": ssh.uid,
+           "password": ssh.pwd,
+           "environment": env,
+           "name": ssh.name}
+
+    return con
 
 
 def _get_pbs_conf(preset, pbs_params=[]):

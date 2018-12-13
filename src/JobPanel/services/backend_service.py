@@ -11,8 +11,11 @@ from JobPanel.backend.service_base import ServiceBase, LongRequest, ServiceStatu
 from JobPanel.backend.json_data import JsonData, JsonDataNoConstruct
 from JobPanel.backend.service_proxy import ServiceProxy
 from JobPanel.services.multi_job_service import JobReport, JobStatus, MJStatus
-from JobPanel.data.states import TaskStatus as GuiTaskStatus
-from JobPanel.backend.connection import ConnectionStatus, SSHError
+from JobPanel.data.states import TaskStatus
+from JobPanel.backend.connection import (ConnectionStatus, SSHError, SSHAuthenticationError, SSHWorkspaceError,
+                                         SSHDelegatorError)
+from JobPanel.data.secret import Secret
+from gm_base.config import GEOMOP_INTERNAL_DIR_NAME
 
 
 class MJInfo(JsonData):
@@ -42,6 +45,9 @@ class MJInfo(JsonData):
         """jobs report save counter"""
 
         super().__init__(config)
+
+        self._results_download_files = []
+        """List of result list of download files request"""
 
         self._jobs_report = {}
         """jobs report information"""
@@ -95,7 +101,7 @@ class Backend(ServiceBase):
     """
     """
 
-    def __init__(self, config):
+    def __init__(self, config, secret_key):
         self.mj_info = JsonDataNoConstruct()
         """dict of managed MJ information"""
 
@@ -121,6 +127,35 @@ class Backend(ServiceBase):
         self._last_config_saved = 0.0
 
         self._proxies_resuscitated = False
+
+        self._secret = Secret(secret_key)
+        self._demangle_secret()
+
+    def serialize(self):
+        """
+        Serialize with mangle secret data.
+        :return:
+        """
+        # todo: chtelo by to vymyslet lepe, asi pouzit nejaky manazer hesel
+        conf = super().serialize().copy()
+        conf["mj_info"] = conf["mj_info"].copy()
+        for k in list(conf["mj_info"].keys()):
+            mj = conf["mj_info"][k] = conf["mj_info"][k].copy()
+            mj["proxy"] = mj["proxy"].copy()
+            con = mj["proxy"]["connection_config"] = mj["proxy"]["connection_config"].copy()
+            if "password" in con:
+                con["password"] = self._secret.mangle(con["password"])
+        return conf
+
+    def _demangle_secret(self):
+        """
+        Demangle deserialized secret data.
+        :return:
+        """
+        for mj in self.mj_info.values():
+            con = mj.proxy.connection_config = mj.proxy.connection_config.copy()
+            if "password" in con:
+                con["password"] = self._secret.demangle(con["password"])
 
     def _do_work(self):
         if not self._proxies_resuscitated:
@@ -215,7 +250,7 @@ class Backend(ServiceBase):
                 changed = True
 
                 if (v.status in [JobStatus.done, JobStatus.error]) and (v.name not in mj.job_log_planed_to_download):
-                    mj.files_to_download.append(os.path.join(v.name, "job_service.log"))
+                    mj.files_to_download.append(os.path.join(v.name, GEOMOP_INTERNAL_DIR_NAME, "job_service.log"))
                     mj.job_log_planed_to_download.append(v.name)
 
             # We need update run_interval
@@ -235,17 +270,17 @@ class Backend(ServiceBase):
         jobs_states = []
         for k, v in mj._jobs_report.items():
             # status
-            status = GuiTaskStatus.none
+            status = TaskStatus.none
             if v.status in [JobStatus.starting, JobStatus.queued]:
-                status = GuiTaskStatus.queued
+                status = TaskStatus.queued
             elif v.status in [JobStatus.running, JobStatus.downloading_result]:
-                status = GuiTaskStatus.running
+                status = TaskStatus.running
             elif v.status == JobStatus.done:
-                status = GuiTaskStatus.finished
+                status = TaskStatus.finished
             elif v.status == JobStatus.error:
-                status = GuiTaskStatus.error
+                status = TaskStatus.error
             elif v.status == JobStatus.stopped:
-                status = GuiTaskStatus.stopped
+                status = TaskStatus.stopped
 
             # run_interval
             run_interval = 0.0
@@ -263,11 +298,10 @@ class Backend(ServiceBase):
             jobs_states.append(d)
 
         # save to file
-        dir = os.path.join(self.get_analysis_workspace(),
-                           mj.proxy.workspace,
-                           "..", "res", "state")
-        os.makedirs(dir, exist_ok=True)
-        file = os.path.join(dir, "jobs_states.json")
+        file = os.path.join(self.get_analysis_workspace(),
+                            mj.proxy.workspace,
+                            GEOMOP_INTERNAL_DIR_NAME,
+                            "jobs_states.json")
         try:
             with open(file, 'w') as fd:
                 json.dump(jobs_states, fd, indent=4, sort_keys=True)
@@ -276,29 +310,66 @@ class Backend(ServiceBase):
 
     def _download_files(self):
         """
-        Download files which are in self.files_to_download.
+        Download files which are in self.mj_info[mj_id].files_to_download.
         :return:
         """
-        # todo: predelat tak, aby probihalo ve vlakne, kazdy MJ bude mit svoje stahovaci vlakno
         for mj in self.mj_info.values():
-            con = mj.proxy._connection
-            if (con is not None) and (con._status == ConnectionStatus.online):
-                while len(mj.files_to_download) > 0:
-                    try:
-                        con.download(
-                            [mj.files_to_download[0]],
-                            os.path.join(self.get_analysis_workspace(), mj.proxy.workspace),
-                            os.path.join(con.environment.geomop_analysis_workspace, mj.proxy.workspace))
-                        del mj.files_to_download[0]
-                        # todo: az bude ve vlakne, bude se muset pouzit zamek nebo resit pres queue - to je asi lepsi
+            if len(mj._results_download_files) > 0:
+                if len(mj._results_download_files[0]) > 0:
+                    res = mj._results_download_files[0][0]
+                    if "error" in res:
+                        logging.error("Error in request_download_files")
+                        # clear list to prevent infinite loop
+                        mj.files_to_download.clear()
                         self._config_changed = True
-                    except SSHError as e:
-                        logging.error("Downloading file error: {0}".format(e))
-                        break
-                    except (FileNotFoundError, PermissionError) as e:
-                        logging.error("Downloading file error: {0}".format(e))
-                        del mj.files_to_download[0]
-                        self._config_changed = True
+                    else:
+                        downloaded = res["data"]["downloaded"]
+                        error = res["data"]["error"]
+                        remove = downloaded.copy()
+                        remove.extend(error)
+                        for rem in remove:
+                            try:
+                                mj.files_to_download.remove(rem)
+                                self._config_changed = True
+                            except ValueError:
+                                pass
+                    mj._results_download_files.clear()
+            if (len(mj.files_to_download) > 0) and (len(mj._results_download_files) == 0):
+                con = mj.proxy._connection
+                if (con is not None) and (con._status == ConnectionStatus.online):
+                    answer = []
+                    self.call("request_download_files", {"mj": mj, "files": mj.files_to_download.copy()}, answer)
+                    mj._results_download_files.append(answer)
+
+    @LongRequest
+    def request_download_files(self, data):
+        """
+        Download files which are requested to download.
+        :param data: dict with keys "mj" and "files"
+        :return:
+        """
+        mj = data["mj"]
+        files = data["files"]
+
+        ret = {"downloaded": [],
+               "error": []}
+
+        con = mj.proxy._connection
+        for file in files:
+            try:
+                con.download(
+                    [file],
+                    os.path.join(self.get_analysis_workspace(), mj.proxy.workspace),
+                    os.path.join(con.environment.geomop_analysis_workspace, mj.proxy.workspace))
+                ret["downloaded"].append(file)
+            except SSHError as e:
+                logging.error("Downloading file error: {0}".format(e))
+                break
+            except (FileNotFoundError, PermissionError) as e:
+                logging.error("Downloading file error: {0}".format(e))
+                ret["error"].append(file)
+
+        return ret
 
     def _check_mj_status(self):
         """
@@ -307,7 +378,7 @@ class Backend(ServiceBase):
         """
         for mj in self.mj_info.values():
             if mj.proxy._status == ServiceStatus.done and not mj.log_planed_to_download:
-                mj.files_to_download.append("mj_service.log")
+                mj.files_to_download.append(os.path.join(GEOMOP_INTERNAL_DIR_NAME, "mj_service.log"))
                 mj.log_planed_to_download = True
 
     def _process_queues(self):
@@ -373,8 +444,8 @@ class Backend(ServiceBase):
         mj = self.mj_info[mj_id]
 
         mj_dir = mj.proxy.workspace
-        if os.path.basename(mj_dir) == "mj_config":
-            mj_dir = os.path.dirname(mj_dir)
+        # if os.path.basename(mj_dir) == "mj_config":
+        #     mj_dir = os.path.dirname(mj_dir)
 
         # delete MJ remote data
         con = mj.proxy._connection
@@ -467,21 +538,94 @@ class Backend(ServiceBase):
         """
         if mj_id not in self.mj_info:
             logging.warning("Attempt to download nonexistent MJ.")
-            return
+            return "Attempt to download nonexistent MJ."
         mj = self.mj_info[mj_id]
+
+        # wait for downloading logs finished
+        log_downloaded = False
+        for i in range(600):
+            # todo: potential race condition
+            # todo: not sure if job's logs already downloaded
+            if mj.log_planed_to_download and (len(mj.files_to_download) == 0):
+                log_downloaded = True
+                break
+            time.sleep(0.1)
+        if not log_downloaded:
+            logging.warning("Wait for downloading logs finished timeout.")
+
         con = mj.proxy._connection
-        if con._status == ConnectionStatus.online:
-            dir = os.path.join(self.get_analysis_workspace(),
-                               mj.proxy.workspace,
-                               "..", "downloaded_config")
-            os.makedirs(dir, exist_ok=True)
+        if (con is not None) and (con._status == ConnectionStatus.online):
             try:
                 con.download(
-                    ["mj_config"],
-                    dir,
-                    os.path.join(con.environment.geomop_analysis_workspace, mj.proxy.workspace, ".."))
+                    [os.path.basename(os.path.normpath(mj.proxy.workspace))],
+                    os.path.join(self.get_analysis_workspace(), mj.proxy.workspace, ".."),
+                    os.path.join(con.environment.geomop_analysis_workspace, mj.proxy.workspace, ".."),
+                    follow_symlinks=False)
             except (SSHError, FileNotFoundError, PermissionError):
-                pass
+                return "Error in downloading MJ data."
+        else:
+            return "Unable to download MJ data, connection is offline."
+
+        return None
+
+    @LongRequest
+    def request_ssh_test(self, ssh_conf):
+        """
+        Performs ssh test.
+        :param ssh_conf:
+        :return:
+        """
+        ret = {"executables": [],
+               "errors": [],
+               "home_dir": "",
+               "successful_steps": []}
+
+        try:
+            con = self.get_connection(ssh_conf)
+        except SSHAuthenticationError:
+            ret["errors"].append("Authentication error\n"
+                                 "Check your user name and password, edit boxes 'User' and 'Password'.")
+            return ret
+        except SSHWorkspaceError:
+            ret["errors"].append("Unable to write to workspace.\n"
+                                 "Check your workspace directory, edit box 'Analysis workspace directory'.")
+            return ret
+        except SSHDelegatorError as e:
+            ret["errors"].append("Unable to start or connect to delegator.\n"
+                                 "Check your GeoMop root directory, edit box 'GeoMop root directory'.\n"
+                                 "Delegator std output and error:\n{}\n{}".format(e.std_out, e.std_err))
+            return ret
+        except SSHError:
+            ret["errors"].append("Unable to connect to host.\nCheck the host address, edit box 'Host'.")
+            return ret
+        else:
+            ret["successful_steps"].append("Connected to host server.")
+
+        ret["home_dir"] = con.get_home_dir()
+
+        delegator_proxy = con.get_delegator()
+        answer = []
+        delegator_proxy.call("request_get_executables_from_installation", con.environment.geomop_root, answer)
+        for i in range(100):
+            time.sleep(0.1)
+            if len(answer) > 0:
+                res = answer[0]
+                if "error" in res:
+                    logging.error("Error in ssh test")
+                    ret["errors"].append("Error in communication with Delegator.\n"
+                                         "Check GeoMop root directory, edit box 'GeoMop root directory'")
+                else:
+                    ret["successful_steps"].append("Communication with Delegator.")
+                    if res["data"] is None:
+                        ret["errors"].append("Error in reading executables.")
+                    else:
+                        ret["successful_steps"].append("Executables were read.")
+                        for executable in res["data"]:
+                            ret["executables"].append(executable["name"])
+                return ret
+        ret["errors"].append("Timeout in communication with Delegator.\n"
+                             "Check GeoMop root directory, edit box 'GeoMop root directory'")
+        return ret
 
 
 ##########
@@ -490,16 +634,24 @@ class Backend(ServiceBase):
 
 
 if __name__ == "__main__":
-    logging.basicConfig(filename='backend_service.log', filemode="w",
+    logging.basicConfig(filename=os.path.join(GEOMOP_INTERNAL_DIR_NAME, "backend_service.log"), filemode="w",
                         format='%(asctime)s %(levelname)-8s %(name)-12s %(message)s',
                         level=logging.INFO)
 
 
     try:
-        input_file = "backend_service.conf"
+        input_file = os.path.join(GEOMOP_INTERNAL_DIR_NAME, "backend_service.conf")
         with open(input_file, "r") as f:
             config = json.load(f)
-        bs = Backend(config)
+
+        # set log level
+        if "log_all" in config and config["log_all"]:
+            level = logging.INFO
+        else:
+            level = logging.WARNING
+        logging.root.setLevel(level)
+
+        bs = Backend(config, sys.argv[1])
         bs.run()
     except:
         logging.error("Uncatch exception:\n" + "".join(traceback.format_exception(*sys.exc_info())))

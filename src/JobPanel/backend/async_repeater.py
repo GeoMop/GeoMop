@@ -45,21 +45,6 @@ def _exception_answer(e):
     """
     return { 'error': 'Exception', 'exception': repr(e), 'traceback': traceback.format_tb() }
 
-# def _close_request():
-#     """
-#     Auxiliary request to inform service about clossed server-side connection.
-#     Action should return no answer.
-#     :return:
-#     """
-#     return {'action': 'request_close'}
-
-# def _close_answer():
-#     """
-#     Auxiliary answer to inform service about clossed clinet-side connection.
-#     :return:
-#     """
-#     return {'action': 'on_answer_close'}
-
 class RequestData:
     """
     Format of request returned by the AsyncRepeater.
@@ -615,7 +600,7 @@ class AsyncRepeater():
     Repeater do not process requests itself.
     Only in the case of error it sends the error answer itself.
     """
-    def __init__(self, repeater_address, parent_address=("", 0), max_client_id=0):
+    def __init__(self, repeater_address, parent_address=("", 0), max_client_id=0, requested_listen_port=0):
         """
         :param repeater_address: Repeater address as a list of IDs for path from root repeater to self.
             last item is ID of self repeater. Empty list mean root repeater.
@@ -641,7 +626,7 @@ class AsyncRepeater():
         self._starter_client_thread = None
         self._starter_client_attempting = False
         if self.parent_address[0] != "":
-            self._server = Server(self, 0, self.clients, map=self._socket_map)
+            self._server = Server(self, requested_listen_port, self.clients, map=self._socket_map)
             self.listen_port = self._server.address[1]
             self._server_dispatcher = self._server.get_dispatcher()
 
@@ -767,19 +752,6 @@ class AsyncRepeater():
                     discard.append(self.clients.pop(k))
         for d in discard:
             d.close_forwarded_ports()
-
-
-    # def close_child_repeater(self, id):
-    #     """
-    #     Check that socket to child is closed. Delete the dispatcher.
-    #
-    #     TODO: thread safe?
-    #     :param id:
-    #     :return:
-    #     """
-    #     self.clients[id].close()
-    #     del self.clients[id]
-    #     return
 
     def send_request(self, target, data, on_answer):
         """

@@ -187,14 +187,14 @@ class Line():
         """Set line region to default region"""
         return Diagram.regions.set_default(1, self.id, True, "Set Default Region")
 
-        
     def get_regions(self):
         """Return polygon regions"""
         return Diagram.regions.get_regions(1, self.id)
 
+
 class Polygon():
     """
-    Class for graphic presentation of line
+    Class for graphic presentation of polygon
     """
     def __init__(self, lines, id=None):
         global __next_id__
@@ -215,6 +215,8 @@ class Polygon():
         """Polygon history id"""
         self.qtpolygon = None
         """Qt polygon for point localization"""
+        self.drawpath = None
+        """Qt path to be drawn (allows complex shapes as holes in polygons)"""
         if id is None:            
             self.id = __next_id__
             __next_id__ += 1
@@ -399,9 +401,9 @@ class Diagram():
     """zoom variable"""
     
     @classmethod
-    def add_region(cls, color, name, dim, step, boundary=False, not_used=False):
+    def add_region(cls, color, name, reg_id, dim, step, boundary=False, not_used=False):
         """Add region"""
-        cls.regions.add_region(color, name, dim, step, boundary, not_used)    
+        cls.regions.add_region(color, name, reg_id, dim, step, boundary, not_used)
         
     @classmethod
     def add_shapes_to_region(cls, is_fracture, layer_id, layer_name, topology_idx, regions):
@@ -422,7 +424,10 @@ class Diagram():
         """Get shapes from region""" 
         regions = cls.regions.get_shapes_from_region(is_fracture, layer_id)        
         remapped_regions = [[], [], []]
-        diagram = cls.topologies[cls.regions.find_top_id(layer_id)][0]
+        if is_fracture:
+            diagram = cls.topologies[cls.regions.find_top_id(-layer_id-1)][0]
+        else:
+            diagram = cls.topologies[cls.regions.find_top_id(layer_id)][0]
         tmp = {}
         for point in diagram.points:
             point_orig_id = diagram.po.get_point_origin_id(point.de_id)
@@ -432,11 +437,12 @@ class Diagram():
         for line in diagram.lines:
             line_orig_id = diagram.po.get_line_origin_id(line)
             tmp[line_orig_id]=regions[1][line.id]
-        remapped_regions[1] = [value for (key, value) in sorted(tmp.items())]    
-        for polygon in diagram.polygons:
-            tmp[diagram.po.get_polygon_origin_id(polygon)]=regions[2][polygon.id]
-        remapped_regions[2] = [value for (key, value) in sorted(tmp.items())]    
-        
+        remapped_regions[1] = [value for (key, value) in sorted(tmp.items())]
+
+        poly_id_to_reg = {diagram.po.get_polygon_origin_id(polygon) : regions[2][polygon.id] for polygon in diagram.polygons}
+        poly_id_to_reg[0] = 0 # outer polygon
+        remapped_regions[2] = [value for (key, value) in sorted(poly_id_to_reg.items())]
+
         return remapped_regions
                 
     def region_color_changed(self, region_idx):
@@ -452,16 +458,16 @@ class Diagram():
                 point.object.update_color()
 
     def layer_region_changed(self):
-        """Layer color is changed, refresh all region collors"""
+        """Layer color is changed, refresh all region colors"""
         for polygon in self.polygons:
             if polygon.object is not None:
                 polygon.object.update_color()
-            
-# TODO: Lines and points
-#            for i in range(0, len(diagram.lines)):                
-#                map[top_id][1][i] = diagram.lines[i].id
-#           for i in range(0, len(diagram.points)):
-#                map[top_id][0][i] = diagram.points[i].id
+        for line in self.lines:
+            if line.object is not None:
+                line.object.update_color()
+        for point in self.points:
+            if point.object is not None:
+                point.object.update_color()
                 
     def get_polygon_lines(self, id):
         """Return polygon lines ndexes"""
@@ -519,7 +525,7 @@ class Diagram():
     def get_diagram_all_rect(self, rect, layers, diagram_id):
         """Return init area as squads intersection"""
         quads = []
-        for surface in layers.surfaces.surfaces:
+        for surface in layers.surfaces:
             quads.append(surface.quad)
         if len(quads)==0:
             rect2 = self.get_area_rect(layers, diagram_id)
@@ -630,6 +636,10 @@ class Diagram():
         """canvas Rect"""
         self.points = []
         """list of points"""
+        self.lines = []
+        """list of lines"""
+        self.polygons = []
+        """list of polygons"""
         self.topology_owner = False
         """First diagram in topology is topology owner, and is 
         responsible for its saving"""
@@ -637,10 +647,6 @@ class Diagram():
             self.topology_owner = True
             self.topologies[topology_idx] = []
         self.topologies[topology_idx].append(self)
-        self.lines = []
-        """list of lines"""
-        self.polygons = []
-        """list of polygons"""
         self.new_polygons = []
         """list of polygons that has not still graphic object"""
         self.deleted_polygons = []
@@ -858,7 +864,7 @@ class Diagram():
                 self.regions.add_regions(2, polygon.id, not not_history, label)
         else:
             self.regions.add_regions(2, polygon.id, not not_history, label)
-        self.new_polygons.append(polygon)        
+        self.new_polygons.append(polygon)
         return polygon
         
     def del_polygon(self, polygon, label=None, not_history=True):

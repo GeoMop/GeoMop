@@ -69,9 +69,7 @@ class GlobalHistory():
     def remove_all(self):
         """Releas all histories"""
         for history in self.histories:
-            history.global_history = None
             history.release()
-        self.histories = []
         self.labels = []
         self.undo_labels = []
         
@@ -226,7 +224,9 @@ class History():
         
     def release(self):
         """Set or lins to none"""
-        pass
+        self.steps = []
+        self.undo_steps = []
+        self.multi = {}
 
     
 class DiagramHistory(History):
@@ -1180,7 +1180,7 @@ class SurfacesHistory(History):
         Return invert operation
         """
         surfaces = self.global_history.cfg.layers.surfaces
-        surfaces.surfaces.insert(id, surface)
+        surfaces.insert(id, surface)
         
         revert =  HistoryStep(self._delete_surface, [id])
         self._refresh_panel = True        
@@ -1203,8 +1203,8 @@ class SurfacesHistory(History):
         Return invert operation
         """
         surfaces = self.global_history.cfg.layers.surfaces
-        del_surface = surfaces.surfaces[id]
-        del surfaces.surfaces[id]
+        del_surface = surfaces[id]
+        surfaces.pop(id)
         
         revert =  HistoryStep(self._insert_surface, [del_surface, id])
         self._refresh_panel = True
@@ -1228,8 +1228,8 @@ class SurfacesHistory(History):
         Return invert operation
         """
         surfaces = self.global_history.cfg.layers.surfaces
-        old_surface = surfaces.surfaces[id]
-        surfaces.surfaces[id] = surface
+        old_surface = surfaces[id]
+        surfaces[id] = surface
         
         revert =  HistoryStep(self._change_surface, [old_surface, id])
         self._refresh_panel = True

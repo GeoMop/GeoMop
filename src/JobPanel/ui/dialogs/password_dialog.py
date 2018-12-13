@@ -14,7 +14,8 @@ class SshPasswordDialog(QtWidgets.QDialog):
 
         self.ssh = ssh
 
-        message = "Please enter password for {name} ssh connection\n({user}@{host}:{port})"  .format(
+        message = ("Please enter password for {name} ssh connection\n({user}@{host}:{port})\n"
+                   "Warning: password may be stored on your computer").format(
             name=ssh.name,
             user=ssh.uid,
             host=ssh.host,

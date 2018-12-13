@@ -47,6 +47,7 @@ versions=[
     ([0,4,0], "format_0_4_0"),
     ([0,4,9], "format_0_4_9"),
     ([0,5,0], "format_0_5_0"),
+    ([0,5,5], "format_last"),
     ([9,9,9], "format_last")
 ]
 
@@ -138,8 +139,8 @@ def convert_file_to_actual_format(json_obj, base_path=""):
             gs_new_module = module_only_import("gm_base.geometry_files." + format_module)
             layers.base_path = base_path
             layers = gs_new_module.LayerGeometry.convert(layers)
-
-    del layers.base_path
+    if hasattr(layers, 'base_path'):
+        del layers.base_path
     return layers
 
 
@@ -150,7 +151,6 @@ def read_geometry(file_name):
     json_lg = json.loads(contents, encoding="utf-8")
     base_path = os.path.dirname(file_name)
     return convert_file_to_actual_format(json_lg, base_path=base_path)
-    return lg
 
 
 def write_geometry(file_name, lg):

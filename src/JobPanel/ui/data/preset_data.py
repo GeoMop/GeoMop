@@ -9,7 +9,7 @@ import re
 import os
 
 from gm_base import config
-from JobPanel.data.user_helper import Users
+from JobPanel.data.secret import Secret
 
 
 class Id:
@@ -132,9 +132,9 @@ class PbsPreset(APreset):
         :param permited: Is dictionary of lists permited values for set key.
         """
         ret = super().validate(excluded, permited)       
-        if not re.match("^$|(\d+[wdhms])(\d+[dhms])?(\d+[hms])?(\d+[ms])?(\d+[s])?", self.walltime):
+        if not re.match("^(|\d+)$", self.walltime):
             ret["walltime"]="Bad format of walltime"
-        if not re.match("^$|\d+(mb|gb)", self.memory):
+        if not re.match("^(|\d+(mb|gb))$", self.memory):
             ret["memory"]="Bad format of memory"
         return ret
 
@@ -179,6 +179,12 @@ class SshPreset(APreset):
         """Defines PBS system dialect"""
         self.env = kw_or_def('env')
         """Settings for remote environment"""
+        self.tested = kw_or_def('tested', False)
+        """True if SSH preset is tested"""
+        self.home_dir = kw_or_def('home_dir', '')
+        """User's home directory"""
+        self.executables = kw_or_def('executables', [])
+        """Available executables"""
 
     def get_description(self):
         """
@@ -205,7 +211,7 @@ class SshPreset(APreset):
         elif len(self.host)>63:
             ret["host"]="Invalid dns name (too long)" 
         if not isinstance(self.port, int) or self.port<1 or self.port>65535:
-            ret["port"]="Invalid ssh port"     
+            ret["host"]="Invalid ssh port"
         # todo: spravit, taky pridat validaci pro workspace
         # if not self.re_name.match(self.geomop_root):
         #     ret["geomop_root"]="Bad format of remote directory"
@@ -218,21 +224,16 @@ class SshPreset(APreset):
         Mangles secret data.
         :return:
         """
-        from ui.imports.workspaces_conf import BASE_DIR
-        self.key = Users.save_reg(self.name, self.pwd, os.path.join(config.__config_dir__, BASE_DIR))
-        self.pwd = "a124b.#"
+        s = Secret()
+        self.pwd = s.mangle(self.pwd)
 
     def demangle_secret(self):
         """
         Demangles secret data.
         :return:
         """
-        from ui.imports.workspaces_conf import BASE_DIR
-        pwd = Users.get_reg(self.name, self.key, os.path.join(config.__config_dir__, BASE_DIR))
-        if pwd is not None:
-            self.pwd = pwd
-        else:
-            self.pwd = ""
+        s = Secret()
+        self.pwd = s.demangle(self.pwd)
 
 
 class ResPreset(APreset):

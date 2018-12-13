@@ -56,7 +56,7 @@ if __name__ == "__main__":
         cfg.import_file(args.con_file)
         if args.transformation_name is not None:
             for transf in args.transformation_name:
-                cfg.transform(transf)
+                cfg.transform_con(transf)
 
         file_d = open(file, 'w')
         file_d.write(cfg.document)

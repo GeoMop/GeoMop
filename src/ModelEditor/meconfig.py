@@ -24,6 +24,12 @@ from gm_base.model_data import (export_con, Loader, Validator, get_root_input_ty
                         autoconvert, notification_handler, Notification)
 from gm_base.model_data.import_json import parse_con, fix_tags, rewrite_comments, fix_intendation
 
+import gm_base.yaml_conv
+from change_rules import make_changes
+from yaml_parser_extra import get_yaml_serializer
+from YAMLConverter import Changes
+from ruamel.yaml.compat import StringIO
+
 
 class _Config:
     """Class for ModelEditor serialization"""
@@ -52,10 +58,9 @@ class _Config:
             """Get keyword arg or default value."""
             return kwargs[key] if key in kwargs else default
 
-        from os.path import expanduser
         self.observers = []
         """objects to be notified of changes"""
-        self.last_data_dir = kw_or_def('last_data_dir', expanduser("~"))
+        self.current_working_dir = os.getcwd()
         """directory of the most recently opened data file"""
         self.recent_files = kw_or_def('recent_files', [])
         """a list of recently opened files"""
@@ -75,21 +80,23 @@ class _Config:
         self.font = kw_or_def('font', constants.DEFAULT_FONT)
         """text editor font"""
         self._line_endings = kw_or_def('_line_endings', _Config.LINE_ENDINGS_LF)
-        self._analysis = kw_or_def('_analysis')
+        #self._analysis = kw_or_def('_analysis')
+        # analysis no longer in use
+        self._analysis = None
         self._workspace = kw_or_def('_workspace')
 
         # initialize project and workspace
         self.workspace = self._workspace
         self.analysis = self._analysis
 
-    def update_last_data_dir(self, file_name):
+    def update_current_working_dir(self, file_name):
         """Save dir from last used file"""
         analysis_directory = None
         directory = os.path.dirname(os.path.realpath(file_name))
         if self.workspace is not None and self.analysis is not None:
             analysis_dir = os.path.join(self.workspace, self.analysis)
         if analysis_directory is None or directory != analysis_dir:
-            self.last_data_dir = directory
+            self.current_working_dir = directory
 
     @staticmethod
     def open():
@@ -158,11 +165,11 @@ class _Config:
 
     @property
     def data_dir(self):
-        """Data directory - either an analysis dir or the last used dir."""
+        """Data directory - either an analysis dir or the current working dir."""
         if self.workspace and self.analysis:
             return os.path.join(self.workspace, self.analysis)
         else:
-            return self.last_data_dir
+            return self.current_working_dir
 
     @property
     def workspace(self):
@@ -399,7 +406,7 @@ class MEConfig:
             base_name = os.path.splitext(os.path.basename(file))[0]
             cls.imported_file_name = base_name
             i = 1
-            dir_path = cls.config.last_data_dir + os.path.sep
+            dir_path = cls.config.current_working_dir + os.path.sep
             while os.path.isfile(dir_path + cls.imported_file_name + '.yaml'):
                 if i > 999:
                     break
@@ -425,10 +432,11 @@ class MEConfig:
        empty file
         """
         cls.document = ""
-        if Analysis.current is not None:
-            cls.curr_format_file = Analysis.current.flow123d_version
-            if not cls.curr_format_file:
-                cls.curr_format_file = sorted(cls.format_files, reverse=True)[0]
+        # if Analysis.current is not None:
+        #     cls.curr_format_file = Analysis.current.flow123d_version
+        #     if not cls.curr_format_file:
+        #         cls.curr_format_file = sorted(cls.format_files, reverse=True)[0]
+        cls.curr_format_file = sorted(cls.format_files, reverse=True)[0]
         cls.update_format()
         cls.changed = False
         cls._set_file(None)
@@ -462,7 +470,7 @@ class MEConfig:
         return: if file have good format (boolean)
         """
         cls.document = cls.read_file(file_name)
-        cls.config.update_last_data_dir(file_name)
+        cls.config.update_current_working_dir(file_name)
         cls._set_file(file_name)
         cls.config.add_recent_file(file_name, cls.curr_format_file)
         cls.update()
@@ -520,11 +528,11 @@ class MEConfig:
             transformator = Transformator(None, data)
             cls.document = transformator.transform(cls.document, cls)
             cls.curr_format_file = MEConfig.DEFAULT_IMPORT_FORMAT_FILE
-            if Analysis.current is not None and \
-                (Analysis.current.flow123d_version[:5] == '2.0.0' or 
-                Analysis.current.flow123d_version[:5] == '2.1.0'):
-                cls.curr_format_file = MEConfig.DEFAULT_IMPORT_FORMAT_FILE
-                cls.transform("flow123d_1.8.3_to_2.0.0_rc", False)
+            # if Analysis.current is not None and \
+            #     (Analysis.current.flow123d_version[:5] == '2.0.0' or
+            #     Analysis.current.flow123d_version[:5] == '2.1.0'):
+            #     cls.curr_format_file = MEConfig.DEFAULT_IMPORT_FORMAT_FILE
+            #     cls.transform_con("flow123d_1.8.3_to_2.0.0_rc")
             cls.update_format()
             cls.changed = True
             return True
@@ -562,7 +570,7 @@ class MEConfig:
         #     cls.curr_format_file = format_file
 
         cls.document = cls.read_file(file_name)
-        cls.config.update_last_data_dir(file_name)
+        cls.config.update_current_working_dir(file_name)
         cls._set_file(file_name)
         cls.config. add_recent_file(file_name, cls.curr_format_file)
         cls.update()
@@ -599,9 +607,9 @@ class MEConfig:
                 cls.notification_handler.report(ntf)
 
         # handle parameters
-        if (Analysis.current is not None and
-                Analysis.current.is_abs_path_in_analysis_dir(cls.curr_file)):
-            Analysis.current.merge_params(cls.validator.params)
+        # if (Analysis.current is not None and
+        #         Analysis.current.is_abs_path_in_analysis_dir(cls.curr_file)):
+        #     Analysis.current.merge_params(cls.validator.params)
 
         StructureAnalyzer.add_node_info(cls.document, cls.root, cls.notification_handler)
         cls.notifications = cls.notification_handler.notifications
@@ -649,7 +657,7 @@ class MEConfig:
         try:
             with codecs.open(file_name, 'w', 'utf-8') as file_d:
                 file_d.write(cls.document)
-            cls.config.update_last_data_dir(file_name)
+            cls.config.update_current_working_dir(file_name)
             cls._set_file(file_name)
             cls.config.add_recent_file(file_name, cls.curr_format_file)
             cls.changed = False
@@ -664,14 +672,15 @@ class MEConfig:
     @classmethod
     def sync_analysis_for_curr_file(cls):
         """Write current file and params to analysis file."""
-        if (Analysis.current is not None and
-                Analysis.current.is_abs_path_in_analysis_dir(cls.curr_file)):
-            Analysis.current.merge_params(cls.validator.params)
-            params = [param.name for param in cls.validator.params]
-            Analysis.current.add_file(cls.curr_file, params)
-            if not Analysis.current.flow123d_version:
-                Analysis.current.flow123d_version = cls.curr_format_file
-            Analysis.current.save()
+        # if (Analysis.current is not None and
+        #         Analysis.current.is_abs_path_in_analysis_dir(cls.curr_file)):
+        #     Analysis.current.merge_params(cls.validator.params)
+        #     params = [param.name for param in cls.validator.params]
+        #     Analysis.current.add_file(cls.curr_file, params)
+        #     if not Analysis.current.flow123d_version:
+        #         Analysis.current.flow123d_version = cls.curr_format_file
+        #     Analysis.current.save()
+        pass
 
     @classmethod
     def update_yaml_file(cls, new_yaml_text):
@@ -683,8 +692,11 @@ class MEConfig:
         return False
 
     @classmethod
-    def transform(cls, file, confirmation=True):
-        """Run transformation according rules in set file"""
+    def transform_con(cls, file):
+        """
+        Run transformation according rules in set file.
+        Now used only for .con files import.
+        """
         cls.update()
         text = cls.get_transformation_text(file)
         try:
@@ -695,47 +707,62 @@ class MEConfig:
             else:
                 raise err
             return
-        dialog = None
-        res = True
-        if cls.main_window is not None:
-            import PyQt5.QtWidgets as QtWidgets
-            from ui.dialogs import TranformationDetailDlg
-            if confirmation:
-                dialog = TranformationDetailDlg(transformator.name,
-                                                transformator.description,
-                                                transformator.old_version,
-                                                cls.curr_format_file,
-                                                transformator.new_version,
-                                                transformator.new_version in cls.format_files,
-                                                cls.main_window)
-                res = QtWidgets.QDialog.Accepted == dialog.exec_()
-        else:
+        if cls.main_window is None:
             if cls.curr_format_file != transformator.old_version:
                 print("Transformed file format '" + cls.curr_format_file +
                           "' and format specified in transformation file '" +
                           transformator.old_version + "' are different")
-        if res:
-            try:
-                cls.document = transformator.transform(cls.document, cls)
-                if len(transformator.err)>0:
-                    if cls.main_window is not None:
-                        cls._report_notify(transformator.err)
-                    else:
-                        for err in transformator.err:
-                            print(err)
-            except TransformationFileFormatError as err :
+        try:
+            cls.document = transformator.transform(cls.document, cls)
+            if len(transformator.err)>0:
                 if cls.main_window is not None:
-                    cls._report_error("Transformation format error", err)
+                    cls._report_notify(transformator.err)
                 else:
-                    raise err
-                return
-            if transformator.new_version in cls.format_files:
-                cls.set_current_format_file(transformator.new_version)
+                    for err in transformator.err:
+                        print(err)
+        except TransformationFileFormatError as err :
+            if cls.main_window is not None:
+                cls._report_error("Transformation format error", err)
             else:
-                if cls.main_window is None:
-                    print("Cannot set new fileformat specified in transformation file '" +
-                          transformator.new_version + "'. Format file is not available.")
-                cls.update()
+                raise err
+            return
+        if transformator.new_version in cls.format_files:
+            cls.set_current_format_file(transformator.new_version)
+        else:
+            if cls.main_window is None:
+                print("Cannot set new fileformat specified in transformation file '" +
+                      transformator.new_version + "'. Format file is not available.")
+            cls.update()
+
+    @classmethod
+    def transform(cls, to_version):
+        """Run transformation to version to_version."""
+        cls.update()
+
+        changes = make_changes()
+        yml = get_yaml_serializer()
+        tree = yml.load(cls.document)
+
+        try:
+            actions = changes.apply_changes(tree, to_version, map_insert=Changes.BEGINNING)
+        except:
+            cls._report_error("Transformation format error.")
+            return
+
+        stream = StringIO()
+        yml.dump(tree, stream)
+        cls.document = stream.getvalue()
+
+        if to_version in cls.format_files:
+            cls.set_current_format_file(to_version)
+        else:
+            cls.update()
+
+    @classmethod
+    def transform_get_version_list(cls):
+        """Returns list of versions available to transformation."""
+        changes = make_changes()
+        return [v for v in changes.versions if v in cls.format_files]
 
     @classmethod
     def get_shortcut(cls, name):

@@ -6,4 +6,4 @@ from .diagram_view import DiagramView
 from .blink import Blink
 from .polygon import Polygon
 from .init_area import InitArea
-from .mash import Mash
+from .grid import Grid

@@ -19,7 +19,9 @@ from ModelEditor.meconfig import MEConfig as cfg
 from ModelEditor.ui.dialogs.json_editor import JsonEditorDlg
 from ModelEditor.ui import MainWindow
 from ModelEditor.util import constants
+from ModelEditor.ui.dialogs.new_file_dialog import NewFileDialog
 import subprocess
+
 
 RELOAD_INTERVAL = 5000
 """interval for file time checjing in ms"""
@@ -59,11 +61,22 @@ class ModelEditor:
         """new file menu action"""
         if not self.save_old_file():
             return
+
+        dialog = NewFileDialog(self.mainwindow, cfg.config.data_dir)
+        if dialog.exec_() == dialog.Rejected:
+            return
+
         cfg.new_file()
+        for template in dialog.templates():
+            with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'resources',
+                                   'yaml_templates',template),'r') as file:
+                cfg.document += file.read()
+
+        cfg.save_as(dialog.get_file_name())
         self.mainwindow.reload()
         self.mainwindow.update_recent_files(0)
         self._update_document_name()
-        self.mainwindow.info.update_from_data({'record_id': cfg.root_input_type['id']}, False)
+        self.mainwindow.info_page.update_from_data({'record_id': cfg.root_input_type['id']}, False)
         self.mainwindow.show_status_message("New file is opened")
 
     def open_file(self):
@@ -156,13 +169,17 @@ class ModelEditor:
             return True
         return False
 
-    def transform(self, file):
-        """Run transformation according rules in set file"""
+    def transform(self, to_version):
+        """Run transformation to version to_version."""
         cfg.update_yaml_file(self.mainwindow.editor.text())
-        cfg.transform(file)
+        cfg.transform(to_version)
         # synchronize cfg document with editor text
         self.mainwindow.editor.setText(cfg.document, keep_history=True)
         self.mainwindow.reload()
+
+    def transform_get_version_list(self):
+        """Returns list of versions available to transformation."""
+        return cfg.transform_get_version_list()
 
     def edit_transformation_file(self, file):
         """edit transformation rules in file"""

@@ -138,6 +138,9 @@ FUTURE (as soon as we are not about to release):
 #  - example of child classes
 #  - support both types and default values in declaration of serializable attrs
 #  - Just warn for unknown attrs on  input
+#  - because of decalration of keys in __init__ it is not possible to
+#    have propert conversion methods, in particular _serialized_attrs_ has to be set manually afet conversion
+#
 
 from enum import IntEnum
 import inspect
@@ -218,8 +221,8 @@ class ClassFactory:
                     return c(config)
                 except TypeError:
                     raise TypeError("Non-standard JsonData constructor for class: {}\npath: {}".format(c, path))
-                except:
-                    raise Exception("Failed initialization of type: {}\npath: {}".format(c, path))
+                #except:
+                #    raise Exception("Failed initialization of type: {}\npath: {}".format(c, path))
         assert False, "Input class: {} not in the factory list: {}\npath: {} ".format(class_name, self.class_list, path)
 
 # class ClassFromList(ClassFactory):
@@ -268,7 +271,7 @@ class JsonData:
 
     _not_serialized_attrs_=[]
     """
-    List of attributes to not serialize. Lower priarity then _serialized_attrs_. Leave empty to use non-public attributes.
+    List of attributes to not serialize. Lower priority then _serialized_attrs_. Leave empty to use non-public attributes.
     """
 
     def __init__(self, config):
@@ -276,26 +279,30 @@ class JsonData:
         Initialize class dict from config serialization.
         :param config: config dict
         :param serialized_attr: list of serialized attributes
-        """
 
-        if self._serialized_attrs_:
-            self.__class__._not_serialized_attrs_ = [key for key in self.__dict__.keys() if key not in self._serialized_attrs_]
-        elif self._not_serialized_attrs_:
-            pass
+        """
+        imposible_attrs = {'__class__', '_serialized_attrs_', '_not_serialized_attrs_'}
+        if self.__class__._serialized_attrs_:
+            self._serialized_attrs_ = [ attr  for attr in self.__class__._serialized_attrs_ if attr not in imposible_attrs]
         else:
-            self.__class__._not_serialized_attrs_ = [ key  for key in self.__dict__.keys() if key[0] == "_" ]
-        self.__class__._not_serialized_attrs_.extend( ['__class__', '_not_serialized_attrs_'] )
+            if self.__class__._not_serialized_attrs_:
+                not_serialized = set(self.__class__._not_serialized_attrs_)
+            else:
+                not_serialized = { attr for attr in self.__dict__.keys() if attr[0] == "_"}
+            not_serialized.union(imposible_attrs)
+            self._serialized_attrs_ = [attr for attr in self.__dict__.keys() if attr not in not_serialized]
+
 
         path = []
-        result_dict = self._deserialize_dict(self.__dict__, config, self._not_serialized_attrs_, path)
+        result_dict = self._deserialize_dict(self.__dict__, config, self._serialized_attrs_, path)
         for key, val in result_dict.items():
             self.__dict__[key] = val
 
     @staticmethod
-    def _deserialize_dict(template_dict, config_dict, filter_attrs, path):
+    def _deserialize_dict(template_dict, config_dict, serialized_attrs, path):
         result_dict = {}
         for key, temp in list(template_dict.items()):
-            if key in filter_attrs:
+            if key not in serialized_attrs:
                 continue
             value = config_dict.get(key, temp)
             config_dict.pop(key, 0)
@@ -338,7 +345,7 @@ class JsonData:
             return None
 
         elif isinstance(temp, dict):
-            result = JsonData._deserialize_dict(temp, value, [], path)
+            result = JsonData._deserialize_dict(temp, value, temp, path)
             return result
 
         # list,
@@ -427,7 +434,7 @@ class JsonData:
         """Return dict for serialization."""
         d = {"__class__": self.__class__.__name__}
         for k, v in self.__dict__.items():
-            if k not in self._not_serialized_attrs_ and not isinstance(v, ClassFactory):
+            if k in self._serialized_attrs_ and not isinstance(v, ClassFactory):
                 d[k] = JsonData._serialize_object(v)
         return d
 

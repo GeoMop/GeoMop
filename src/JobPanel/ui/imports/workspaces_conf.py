@@ -11,9 +11,10 @@ import os
 import uuid
 import yaml
 import time
+import platform
 
 BASE_DIR = 'JobPanel'
-WORKSPACE_CONF_DIR = 'conf'
+WORKSPACE_CONF_DIR = base_cfg.GEOMOP_INTERNAL_DIR_NAME
 
 
 class WorkspaceConf():
@@ -37,7 +38,7 @@ class WorkspaceConf():
         """Workspace path"""
         self.id = kw_or_def("id")
         """Id for link to workspaces mj statisctics (name of mj dir)"""
-        self.pc = os.uname()[1]
+        self.pc = platform.node()
         """computer name"""
         self.selected_mj = kw_or_def("selected_mj", 0) 
         """last selected mj"""
@@ -98,6 +99,8 @@ class WorkspaceConf():
             if not os.path.isdir(path):
                 continue
             # resource
+            # MJ no longer has resources
+            continue
             new_res = mj.preset.resource_preset
             # if some preset in res is changed, change res too
             is_known = True
@@ -247,8 +250,8 @@ class WorkspaceConf():
         # construct and repair name of confusing presets in workspace config
         mj_container.multijobs.clear() 
         for key, mj in  valid_mj.items():
-            if mj.preset.resource_preset in conf_res:
-                mj.preset.resource_preset = prefix + "_" + mj.preset.resource_preset
+            # if mj.preset.resource_preset in conf_res:
+            #     mj.preset.resource_preset = prefix + "_" + mj.preset.resource_preset
             mj.error = "Multijob was processed from different location."
             mj.state.analysis = mj.preset.analysis
             mj.state.name = mj.preset.name
@@ -326,7 +329,9 @@ class WorkspacesConf():
         if path is None:
             return None
         res=os.path.realpath(path)
-        return os.path.normcase(res)
+        #return os.path.normcase(res)
+        # Modified due to docker path problems.
+        return os.path.normpath(res)
     
     def get_id(self):
         """get id selected mj"""

@@ -2,16 +2,22 @@ from .service_base import ServiceBase, ServiceStatus
 from . import config_builder
 from .json_data import JsonData, JsonDataNoConstruct
 from .executor import ProcessDocker
-from services.backend_service import MJReport
-from services.multi_job_service import MJStatus
-from ui.data.mj_data import MultiJobState
-from data.states import TaskStatus as GuiTaskStatus
+from .path_converter import if_win_win2lin_conv_path
+from JobPanel.services.backend_service import MJReport
+from JobPanel.services.multi_job_service import MJStatus
+from JobPanel.ui.data.mj_data import MultiJobState
+from JobPanel.data.states import TaskStatus
+from JobPanel.data.secret import Secret
+from JobPanel.communication import Installation
+from gm_base.config import GEOMOP_INTERNAL_DIR_NAME
 
 import threading
 import time
 import logging
 import os
 import json
+import sys
+import random
 
 
 class ServiceFrontend(ServiceBase):
@@ -46,7 +52,7 @@ class ServiceFrontend(ServiceBase):
         geomop_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
         geomop_analysis_workspace = data_app.workspaces.get_path()
         workspace = ""
-        config_file_name = "frontend_service.conf"
+        config_file_name = GEOMOP_INTERNAL_DIR_NAME + "/frontend_service.conf"
 
         # try load frontend service config file
         file = os.path.join(geomop_analysis_workspace,
@@ -113,6 +119,11 @@ class ServiceFrontend(ServiceBase):
         Dictionary of jobs ids=>None (ids=>error), that was deleted data.
         If job was not deleted, in dictionary value is error text
         """
+        self._jobs_downloaded = {}
+        """
+        Dictionary of jobs ids=>None (ids=>error), that was downloaded data.
+        If job was not downloaded, in dictionary value is error text.
+        """
         self._logs_change_jobs=[]
         """array of jobs ids, that have changed jobs logs"""
 
@@ -127,17 +138,20 @@ class ServiceFrontend(ServiceBase):
 
         self._answers_from_delete = []
         """list of answers from request_delete_mj (mj_id, [answer])"""
+        self._answers_from_download = []
+        """list of answers from request_download_whole_mj (mj_id, [answer])"""
 
     def _do_work(self):
         # save backend process id
         if not self._backend_process_id_saved:
-            if (self._backend_proxy is not None) and (len(self._backend_proxy._results_process_start) > 0):
-                self.backend_process_id = self._backend_proxy._results_process_start[-1]["data"]
+            if (self._backend_proxy is not None) and (self._backend_proxy.process_id != ""):
+                self.backend_process_id = self._backend_proxy.process_id
                 self.save_config()
                 self._backend_process_id_saved = True
 
         self._retrieve_mj_report()
         self._process_delete_answers()
+        self._process_download_answers()
 
     def _retrieve_mj_report(self):
         """
@@ -173,29 +187,29 @@ class ServiceFrontend(ServiceBase):
                 self._mj_report[k] = v
 
                 # update MJ data
-                status = GuiTaskStatus.none
+                status = TaskStatus.none
                 if v.proxy_stopped:
-                    status = GuiTaskStatus.stopped
+                    status = TaskStatus.stopped
                 elif v.service_status == ServiceStatus.queued:
                     if v.proxy_stopping:
-                        status = GuiTaskStatus.stopping
+                        status = TaskStatus.stopping
                     else:
-                        status = GuiTaskStatus.queued
+                        status = TaskStatus.queued
                 elif v.service_status == ServiceStatus.running:
                     if v.proxy_stopping:
-                        status = GuiTaskStatus.stopping
+                        status = TaskStatus.stopping
                     else:
-                        status = GuiTaskStatus.running
+                        status = TaskStatus.running
                 elif v.service_status == ServiceStatus.done:
                     if v.mj_status == MJStatus.success:
-                        status = GuiTaskStatus.finished
+                        status = TaskStatus.finished
                     elif v.mj_status == MJStatus.error:
-                        status = GuiTaskStatus.error
+                        status = TaskStatus.error
                     elif v.mj_status == MJStatus.stopping:
-                        status = GuiTaskStatus.stopped
+                        status = TaskStatus.stopped
                     else:
                         # todo: divny, nemelo by nikdy nastat
-                        status = GuiTaskStatus.running
+                        status = TaskStatus.running
 
                 run_interval = 0.0
                 if v.done_time:
@@ -236,6 +250,25 @@ class ServiceFrontend(ServiceBase):
                     done = False
                     break
 
+    def _process_download_answers(self):
+        """
+        Process answers from request_download_whole_mj.
+        :return:
+        """
+        done = False
+        while not done:
+            done = True
+            for i in range(len(self._answers_from_download)):
+                if len(self._answers_from_download[i][1]) > 0:
+                    item = self._answers_from_download.pop(i)
+                    res = item[1][0]
+                    if "error" in res:
+                        logging.error("Error in download mj")
+                    else:
+                        self._jobs_downloaded[item[0]] = res["data"]
+                    done = False
+                    break
+
     # Interface old
     ###############
     def poll(self):
@@ -261,7 +294,7 @@ class ServiceFrontend(ServiceBase):
         :return:
         """
         workspace = ""
-        config_file_name = "backend_service.conf"
+        config_file_name = GEOMOP_INTERNAL_DIR_NAME + "/backend_service.conf"
 
         # kill old backend container
         self.kill_backend()
@@ -290,8 +323,8 @@ class ServiceFrontend(ServiceBase):
             # if file doesn't exist create new config
             env = {"__class__": "Environment",
                    # todo: v budoucnu bude odkazovat primo na instalaci v dockeru
-                   "geomop_root": self.get_geomop_root(),
-                   "geomop_analysis_workspace": self.get_analysis_workspace(),
+                   "geomop_root": if_win_win2lin_conv_path(self.get_geomop_root()),
+                   "geomop_analysis_workspace": if_win_win2lin_conv_path(self.get_analysis_workspace()),
                    "python": "python3"}
 
             cd = {"__class__": "ConnectionLocal",
@@ -309,6 +342,24 @@ class ServiceFrontend(ServiceBase):
                             "process": pd,
                             "workspace": workspace,
                             "config_file_name": config_file_name}
+
+        # set log level
+        service_data["log_all"] = False
+
+        # add secret key
+        if "exec_args" not in service_data["process"]:
+            service_data["process"]["exec_args"] = {"__class__": "ExecArgs"}
+        service_data["process"]["exec_args"]["secret_args"] = [Secret().get_key()]
+
+        # win workaround
+        if sys.platform == "win32":
+            container_port = 33033
+            host_port = random.randrange(30001, 60000)
+            service_data["process"]["docker_port_expose"] = [host_port, container_port]
+
+            service_data["requested_listen_port"] = container_port
+
+            service_data["listen_address_substitute"] = ["192.168.99.100", host_port]
 
         # start backend
         child_id = self.request_start_child(service_data)
@@ -336,7 +387,32 @@ class ServiceFrontend(ServiceBase):
     ###############
     def mj_start(self, mj_id):
         """Start multijob"""
-        mj_conf = config_builder.build(self._data_app, mj_id)
+        err, mj_conf = config_builder.build(self._data_app, mj_id)
+
+        # error handling
+        preset = self._data_app.multijobs[mj_id].preset
+        mj_config_path = Installation.get_config_dir_static(preset.name, preset.analysis)
+        mj_config_path_conf = os.path.join(mj_config_path, GEOMOP_INTERNAL_DIR_NAME)
+        file = "mj_preparation.log"
+        try:
+            os.makedirs(mj_config_path_conf, exist_ok=True)
+            with open(os.path.join(mj_config_path_conf, file), 'w') as fd:
+                if len(err) > 0:
+                    fd.write("Errors in MJ preparation:\n")
+                    for e in err:
+                        fd.write(e + "\n")
+                else:
+                    fd.write("MJ preparation - OK.\n")
+        except (RuntimeError, IOError):
+            pass
+        if len(err) > 0:
+            mj = self._data_app.multijobs[mj_id]
+            mj.state.status = TaskStatus.error
+            mj.state.update_time = time.time()
+            self._mj_changed_state.add(mj_id)
+            return
+
+        # start MJ
         answer = []
         self._backend_proxy.call("request_start_mj", {"mj_id": mj_id, "mj_conf": mj_conf}, answer)
 
@@ -355,6 +431,7 @@ class ServiceFrontend(ServiceBase):
         """Downloads whole multijob"""
         answer = []
         self._backend_proxy.call("request_download_whole_mj", mj_id, answer)
+        self._answers_from_download.append((mj_id, answer))
 
     def get_mj_changed_state(self):
         """
@@ -364,3 +441,10 @@ class ServiceFrontend(ServiceBase):
         ret = list(self._mj_changed_state)
         self._mj_changed_state.clear()
         return ret
+
+    def ssh_test(self, ssh):
+        """Performs ssh test"""
+        ssh_conf = config_builder.build_ssh_conf(ssh)
+        answer = []
+        self._backend_proxy.call("request_ssh_test", ssh_conf, answer)
+        return answer

@@ -95,7 +95,7 @@ class LayersHelpers():
             dialog.zs = surfaces[id].approximation
             _compute_depth()
                 
-        surfaces = cfg.layers.surfaces.surfaces
+        surfaces = cfg.layers.surfaces
         is_surface = len(surfaces)>0
         dialog.grid = QtWidgets.QRadioButton("Grid")
         dialog.grid.clicked.connect(_enable_controls)

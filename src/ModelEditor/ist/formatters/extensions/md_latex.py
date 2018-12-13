@@ -13,7 +13,7 @@ Converts [[type_value]] to relative links.
 
 import cgi
 from markdown.extensions import Extension
-from markdown.inlinepatterns import Pattern, SimpleTagPattern, BacktickPattern
+from markdown.inlinepatterns import Pattern
 from markdown.util import etree
 import re
 
