@@ -141,17 +141,18 @@ class MainWindow(QtWidgets.QMainWindow):
         cfg.diagram.regions.reload_regions(cfg)
         self.refresh_view_data(0)
         self.update_layers_panel()
+        self._refresh_area()
         if not cfg.diagram.position_set():
-            self.display_area()        
+            self.display_area()
 
     def paint_new_data(self):
         """Propagate new diagram scene to canvas"""
-        self.display_area()
         self.layers.change_size()
         self.diagramScene.show_init_area(True)
         if not cfg.config.show_init_area:
             self.diagramScene.show_init_area(False)            
-        
+        self.display_area()
+
     def refresh_curr_data(self, old_i, new_i):
         """Propagate new diagram scene to canvas"""
         if old_i == new_i:
@@ -302,7 +303,6 @@ class MainWindow(QtWidgets.QMainWindow):
         else:
             self.diagramScene.hide_grid()
 
-        
     def _refresh_area(self):
         """Refresh init area"""
         if self.diagramScene.init_area is not None:
