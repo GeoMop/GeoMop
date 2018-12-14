@@ -89,19 +89,21 @@ class GsPoint(QtWidgets.QGraphicsEllipseItem):
         self.pt = pt
         super().__init__(-self.SIZE, -self.SIZE, 2*self.SIZE, 2*self.SIZE, )
         self.setFlag(QtWidgets.QGraphicsItem.ItemIgnoresTransformations, True)
+            # do not scale points whenzooming
         self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, True)
         self.setFlag(QtWidgets.QGraphicsItem.ItemIsSelectable, True)
         self.setFlag(QtWidgets.QGraphicsItem.ItemSendsGeometryChanges, True)
-        self.setFlag(QtWidgets.QGraphicsItem.ItemClipsToShape, True)
+            # Keep point shape (used for mouse interaction) having same size as the point itself.
+        #self.setFlag(QtWidgets.QGraphicsItem.ItemClipsToShape, True)
         self.setCacheMode(QtWidgets.QGraphicsItem.DeviceCoordinateCache)
+            # Caching: Points can move.
         self.setCursor(Cursor.point)
         self.setAcceptedMouseButtons(QtCore.Qt.LeftButton | QtCore.Qt.RightButton)
-
         self.update()
 
     def paint(self, painter, option, widget):
-        #print("option: ", option.state)
-        if option.state & (QtWidgets.QStyle.State_Sunken | QtWidgets.QStyle.State_Selected):
+        print("option: ", option.state)
+        if option.state & QtWidgets.QStyle.State_Selected:
             painter.setBrush(GsPoint.no_brush)
             painter.setPen(self.region_pen)
         else:
@@ -325,6 +327,7 @@ class Diagram(QtWidgets.QGraphicsScene):
     def mouseMoveEvent(self, event):
         if self.last_point is not None:
             self.move_aux_segment(event.scenePos())
+        super().mouseMoveEvent(event)
 
 
 class MainWindow(QtWidgets.QGraphicsView):
