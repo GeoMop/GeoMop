@@ -124,12 +124,12 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Shapefile editor
         self.items = QtWidgets.QDockWidget("Dockable", self)
-        self.listWidget = panels.ShpTransferView()
+        self.shpTransfer = panels.ShpTransferView()
         self.items.setTitleBarWidget(QtWidgets.QLabel("Shapefile help panel: "))
         # self.listWidget.addItem("item1")
         # self.listWidget.addItem("item2")
         # self.listWidget.addItem("item3")
-        self.items.setWidget(self.listWidget)
+        self.items.setWidget(self.shpTransfer)
 
         self.items.setFloating(True)
         self.addDockWidget(QtCore.Qt.RightDockWidgetArea, self.items)
