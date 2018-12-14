@@ -7,6 +7,7 @@ from JobPanel.data.states import TaskStatus
 from PyQt5 import QtWidgets
 
 import gm_base.config as base_cfg
+from gm_base.global_const import GEOMOP_INTERNAL_DIR_NAME
 import os
 import uuid
 import yaml
@@ -14,7 +15,7 @@ import time
 import platform
 
 BASE_DIR = 'JobPanel'
-WORKSPACE_CONF_DIR = base_cfg.GEOMOP_INTERNAL_DIR_NAME
+WORKSPACE_CONF_DIR = GEOMOP_INTERNAL_DIR_NAME
 
 
 class WorkspaceConf():

@@ -823,7 +823,7 @@ class Diagram():
         return None
         
     def find_line(self, p1_id, p2_id):
-        """Find line accoding points index"""
+        """Find line according to points index"""
         p1 = self.get_point_by_de_id(p1_id)
         p2 = self.get_point_by_de_id(p2_id)
         for line in p1.lines:
@@ -964,7 +964,7 @@ class Diagram():
     def join_line(self,p1, p2, label=None, id=None, not_history=False, copy=None):
         """Add line from point p1 to p2"""
         assert p1 != p2
-        if p1>p2:
+        if p1 > p2:
             pom = p1
             p1 = p2
             p2 = pom
@@ -1079,12 +1079,12 @@ class Diagram():
         point2 = line.p2        
         line.p2 = point
         line.object.refresh_line()
-        l2 = self.join_line(point, point2)        
+        l2 = self.join_line(point, point2)
         #save revert operations to history
         self._history.add_line(line.id, line.p1.id, point2.id, None)
         self._history.delete_line(line.id, None)
         # TODO: case if one line is merged (line between new point and one of line point)
-        # TODO: case if two lines is merged (triangle) 
+        # TODO: case if two lines is merged (triangle)
         
 
         return l2, releasing_lines

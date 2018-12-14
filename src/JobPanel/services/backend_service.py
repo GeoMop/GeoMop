@@ -15,7 +15,7 @@ from JobPanel.data.states import TaskStatus
 from JobPanel.backend.connection import (ConnectionStatus, SSHError, SSHAuthenticationError, SSHWorkspaceError,
                                          SSHDelegatorError)
 from JobPanel.data.secret import Secret
-from gm_base.config import GEOMOP_INTERNAL_DIR_NAME
+from gm_base.global_const import GEOMOP_INTERNAL_DIR_NAME
 
 
 class MJInfo(JsonData):
@@ -76,6 +76,7 @@ class MJReport(JsonData):
         self.finished_jobs = 0
         self.running_jobs = 0
         self.jobs_report_save_counter = 0
+        self.delegator_online = False
 
         super().__init__(config)
 
@@ -92,7 +93,8 @@ class MJReport(JsonData):
                 self.estimated_jobs == other.estimated_jobs and \
                 self.finished_jobs == other.finished_jobs and \
                 self.running_jobs == other.running_jobs and \
-                self.jobs_report_save_counter == other.jobs_report_save_counter
+                self.jobs_report_save_counter == other.jobs_report_save_counter and \
+                self.delegator_online == other.delegator_online
         else:
             return NotImplemented
 
@@ -525,6 +527,9 @@ class Backend(ServiceBase):
                     rep.done_time = conf["done_time"]
                 if "mj_status" in conf:
                     rep.mj_status = MJStatus[conf["mj_status"]]
+
+            con = mj.proxy._connection
+            rep.delegator_online = (con is not None) and (con._status == ConnectionStatus.online)
 
             reports[str(k)] = rep.serialize()
         return reports
