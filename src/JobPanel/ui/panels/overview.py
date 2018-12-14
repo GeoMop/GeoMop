@@ -11,10 +11,19 @@ from PyQt5 import QtCore, QtGui
 from JobPanel.data import TaskStatus
 from ..menus.main_menu_bar import MultiJobMenu
 
-ERROR_BRUSH = QtGui.QBrush(QtGui.QColor(255, 0, 0, 40))
+
 BLACK_BRUSH = QtGui.QBrush(QtCore.Qt.black)
+WHITE_BRUSH = QtGui.QBrush(QtCore.Qt.white)
+
 ONLINE_BRUSH = QtGui.QBrush(QtCore.Qt.darkGreen)
 OFFLINE_BRUSH = QtGui.QBrush(QtCore.Qt.darkRed)
+
+TASK_STATUS_BRUSHES = {
+    TaskStatus.error: QtGui.QBrush(QtGui.QColor(255, 0, 0, 40)),
+    TaskStatus.finished: QtGui.QBrush(QtGui.QColor(0, 255, 0, 40)),
+    TaskStatus.running: QtGui.QBrush(QtGui.QColor(0, 0, 255, 40)),
+    TaskStatus.stopped: QtGui.QBrush(QtGui.QColor(255, 102, 0, 40)),
+    TaskStatus.queued: QtGui.QBrush(QtGui.QColor(128, 128, 128, 40))}
 
 
 class Overview(QtWidgets.QTreeWidget):
@@ -72,9 +81,12 @@ class Overview(QtWidgets.QTreeWidget):
         item.setText(8, "{}, {}, {}".format(state.known_jobs, state.running_jobs, state.finished_jobs))
 
         # background color
-        if state.status == TaskStatus.error:
-            for i in range(item.columnCount()):
-                item.setBackground(i, ERROR_BRUSH)
+        if state.status in TASK_STATUS_BRUSHES:
+            brush = TASK_STATUS_BRUSHES[state.status]
+        else:
+            brush = WHITE_BRUSH
+        for i in range(item.columnCount()):
+            item.setBackground(i, brush)
 
         # status color
         mj_delegator_online = self.frontend_service.get_mj_delegator_online()
