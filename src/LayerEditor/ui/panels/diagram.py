@@ -490,24 +490,28 @@ class Diagram(QtWidgets.QGraphicsScene):
                     self._point_moving.point_data.x, self._point_moving.point_data.y))
             cfg.diagram.move_point_after(self._point_moving.point_data,
                 self._point_moving_old.x(), self._point_moving_old.y())
-        elif isinstance(below_item, Line) and len(self._point_moving.point_data.lines) == 1 and not_obstructed:
-            cfg.diagram.move_point_after(self._point_moving.point_data,self._point_moving_old.x(),
-                self._point_moving_old.y(), 'Move point to Line')
-            new_line, merged_lines = cfg.diagram.add_point_to_line(below_item.line_data,
-                self._point_moving.point_data, None)
-            l = Line(new_line)
-            self.add_graphical_object(l)
-            self._point_moving.move_point(QtCore.QPointF(
-                self._point_moving.point_data.x, self._point_moving.point_data.y), ItemStates.standart)
-            self.update_changes([], [],  [], [], merged_lines)
-        elif isinstance(below_item, Point) and len(self._point_moving.point_data.lines) == 1 and not_obstructed:
-            cfg.diagram.move_point_after(self._point_moving.point_data,self._point_moving_old.x(),
-                self._point_moving_old.y(), 'Merge points')
-            removed_lines = cfg.diagram.merge_point(below_item.point_data, self._point_moving.point_data, None)
-            self._point_moving.release_point()
-            self.remove_graphical_object(self._point_moving)
-            self.update_changes([], [],  [], [], removed_lines)            
-            below_item.move_point(event.scenePos(), ItemStates.standart)
+        ### The drag2split function is ommited before the line contraction is implemented in the data layer.
+        ### now only dragging is supported, either unobstructed or limited.
+        # elif isinstance(below_item, Line) and len(self._point_moving.point_data.lines) == 1 and not_obstructed:
+        #     # split line by adding new line and merge the new point with the moving one
+        #     #TODO: line split to history
+        #     p, _ = self._add_point(below_item, QtCore.QPointF(
+        #         self._point_moving.point_data.x, self._point_moving.point_data.y))
+        #     cfg.diagram.move_point_after(self._point_moving.point_data, self._point_moving_old.x(),
+        #                                  self._point_moving_old.y(), 'Merge points')
+        #     removed_lines = cfg.diagram.merge_point(p.point_data, self._point_moving.point_data, None)
+        #     self._point_moving.release_point()
+        #     self.remove_graphical_object(self._point_moving)
+        #     self.update_changes([], [],  [], [], removed_lines)
+        #     p.move_point(event.scenePos(), ItemStates.standart)
+        # elif isinstance(below_item, Point) and len(self._point_moving.point_data.lines) == 1 and not_obstructed:
+        #     cfg.diagram.move_point_after(self._point_moving.point_data,self._point_moving_old.x(),
+        #         self._point_moving_old.y(), 'Merge points')
+        #     removed_lines = cfg.diagram.merge_point(below_item.point_data, self._point_moving.point_data, None)
+        #     self._point_moving.release_point()
+        #     self.remove_graphical_object(self._point_moving)
+        #     self.update_changes([], [],  [], [], removed_lines)
+        #     below_item.move_point(event.scenePos(), ItemStates.standart)
         else:
             # Path obstructed
             self._point_moving.move_point(QtCore.QPointF(
@@ -542,7 +546,7 @@ class Diagram(QtWidgets.QGraphicsScene):
             if self._point_moving is not None:
                 # either moving point or clicked on existing one
                 if self._point_moving_counter > 1:
-                    # TODO: take care of cases when point is moving in wrong manner, e.g. creating overlapping lines. This should be taken care of on data layer.
+                    # TODO: take care of cases when point is moving in wrong manner, e.g. creating overlapping lines. This should be taken care of in data layer.
                     # if the point is actually moving in space (mouseMoveEvent occurred)
                     self._anchor_moved_point(event)
                 else:
