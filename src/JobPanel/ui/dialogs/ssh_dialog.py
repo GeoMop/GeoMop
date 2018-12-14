@@ -339,7 +339,7 @@ class UiSshDialog():
         # 3 row
         self.geomop_rootLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
         self.geomop_rootLabel.setText("GeoMop root directory:")
-        self.geomop_rootLabel.setToolTip("Absolute path to GeoMop installation on remote server.")
+        self.geomop_rootLabel.setToolTip("Absolute path to GeoMop installation on the remote server.")
         self.formLayout.setWidget(3, QtWidgets.QFormLayout.LabelRole,
                                   self.geomop_rootLabel)
         self.geomop_rootLineEdit = QtWidgets.QLineEdit(self.mainVerticalLayoutWidget)
@@ -352,8 +352,8 @@ class UiSshDialog():
         # 4 row
         self.workspaceLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
         self.workspaceLabel.setText("Analysis workspace directory:")
-        self.workspaceLabel.setToolTip("Absolute or relative (relative to user home) path on remote server "
-                                       "to directory where will be stored remote computations.")
+        self.workspaceLabel.setToolTip("Absolute or relative (to user's home) path\n "
+                                       "to the workspace on the remote server.")
         self.formLayout.setWidget(4, QtWidgets.QFormLayout.LabelRole,
                                   self.workspaceLabel)
         self.workspaceLineEdit = QtWidgets.QLineEdit(self.mainVerticalLayoutWidget)
