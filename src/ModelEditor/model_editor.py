@@ -20,6 +20,7 @@ from ModelEditor.ui.dialogs.json_editor import JsonEditorDlg
 from ModelEditor.ui import MainWindow
 from ModelEditor.util import constants
 from ModelEditor.ui.dialogs.new_file_dialog import NewFileDialog
+from ModelEditor.autosave import Autosave
 import subprocess
 
 
@@ -45,6 +46,8 @@ class ModelEditor:
 
         # show
         self.mainwindow.show()
+
+        self.autosave = Autosave(cfg)
         
         self.reloader_timer = QtCore.QTimer()
         """timer for file time checking in ms"""
