@@ -46,6 +46,12 @@ class Metaline:
             return True
         return False
 
+class Polyline:
+
+    def __init__(self, endpoints, lines):
+        self.end1 = endpoints[0]
+        self.end2 = endpoints[1]
+        self.lines = lines
 
 class Metapolygon:
 
@@ -56,16 +62,38 @@ class Metapolygon:
         self.points_lookup = aabb_lookup.AABB_Lookup()
         self.segments_lookup = aabb_lookup.AABB_Lookup()
 
-    # def group_metalines(self):
-    #     lines = self.metalines
-    #     l = lines.pop()
-    #     for p in [l.mp1, l.mp2]:
-    #         while
-    #             if len(p.metalines) == 1 or len(p.metalines) >2:
-    #                 #end the polyline
-    #                 continue
-    #             else:
-    #                 # search next
+    def _get_line_end(self, p, polygon_lines):
+        lines = []
+        while not(len(p.metalines) <= 1 or len(p.metalines) > 2):
+            for l in p.metalines:
+                if l not in polygon_lines:
+                    continue
+                else:
+                    polygon_lines.remove(l)
+                    lines.append(l)
+                    if l.mp1 == p:
+                        p = l.mp2
+                        break
+                    elif l.mp2 == p:
+                        p = l.mp1
+                        break
+                    else:
+                        print("This is impossible!")
+                        break
+        return p, lines, polygon_lines
+
+    def group_metalines(self):
+        polygon_lines = self.metalines
+        for line in polygon_lines:
+            polygon_lines.remove(line)
+            polyline = []
+            endpoints = []
+            for p in [line.mp1, line.mp2]:
+                endpoint, temp_lines, polygon_lines = self._get_line_end(p, polygon_lines)
+                endpoints.append(endpoint)
+                polyline.extend(temp_lines)
+            polyline = Polyline(endpoints, polyline)
+            self.polylines.append(polyline)
 
     def verify_simple_loop(self):
         closed = 1
