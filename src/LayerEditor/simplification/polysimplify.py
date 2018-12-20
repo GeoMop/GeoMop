@@ -91,7 +91,16 @@ def remove(s,i):
     s[i:-1]=s[i+1:]
 
 class VWSimplifier(object):
+    """
+    Algorithm for polyline simplification, based on areas of triangles formed by three consecutive points
+    1. compute area of triangles for every three consecutive points.
+    2. while more then 2 points
+    3. pop the point with minimal area
+    4. Update areas of neighbouring points
 
+    Result is array of tresholds for every point.
+
+    """
     def __init__(self,pts):
         '''Initialize with points. takes some time to build 
         the thresholds but then all threshold filtering later 
@@ -206,7 +215,10 @@ class VWSimplifier(object):
           return self.from_number(r*len(self.thresholds))
 
 class WKTSimplifier(VWSimplifier):
-      '''VWSimplifier that returns strings suitable for WKT
+
+
+
+      '''VWSimplifier that returns strings suitable for WKT (Well known text - representation)
       creation'''
       def __init__(self,*args,**kwargs):
          if 'precision' in kwargs:

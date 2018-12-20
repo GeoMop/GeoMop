@@ -173,6 +173,8 @@ class ShpTransferData:
             self.shp_polygons.extend([polygon for polygon in shp.shpdata.polygons if polygon.highlighted])
             self.shp_lines.extend([line for line in shp.shpdata.lines if line.highlighted])
             self.shp_points.extend([point.p for point in shp.shpdata.points if point.highlighted])
+
+        # TODO: move to widget
         cfg.main_window.shpTransfer.process_button.setEnabled(True)
         self.todo_steps[0] = False
         return self.todo_steps[0]
@@ -291,6 +293,9 @@ class ShpTransferData:
         added_metapoints = []
         for pt in points:
             point = Metapoint([pt.x(), pt.y()], id = self._get_new_point_id())
+
+
+            # TODO: use only self.points_lookup, self.segment_lookup
             if p_lookup:
                 candidates = p_lookup.closest_candidates(point.xy)
             else:
@@ -331,7 +336,7 @@ class ShpTransferData:
             for i in range(len(poly.polygon_points)-1):
                 lines.append([poly.polygon_points[i-1], poly.polygon_points[i]])
             polygon = Metapolygon(id=self._get_new_poly_id())
-            metalines = self.snapadd_metalines(lines, polygon.points_lookup, polygon.segments_lookup)
+            metalines = self.snapadd_metalines(lines)
             polygon.metalines.extend(metalines)
             if polygon.verify_simple_loop():
                 self._add_polygon_processed(polygon)
@@ -346,6 +351,8 @@ class ShpTransferData:
     #     return simplified
 
     def process_data(self):
+
+        # TODO: replace by a 'have_data' method and test presence of data in self.shp_*
         if self.todo_steps[0]:
             print("Get data from shapefile first.")
             return
@@ -366,6 +373,7 @@ class ShpTransferData:
         # load all standalone points and try to do weighted merge
         self.snapadd_metapoints(self.shp_points)
 
+        # TODO: move to widget, similare elsewhere
         cfg.main_window.shpTransfer.process_button.setEnabled(False)
         cfg.main_window.shpTransfer.transfer_button.setEnabled(True)
         self.todo_steps[1] = False
@@ -419,6 +427,9 @@ class ShpTransferData:
             cfg.main_window.diagramScene._add_line(p_in_diagram[0].object, point, False)
 
         cfg.main_window.shpTransfer.transfer_button.setEnabled(False)
+        #TODO:verify fix in next two lines -> repeated load from same shapefile
+        # self._reset_data()
+        # self._reset_buttons()
 
         # TODO: major overhaul
         # for point in self.processed_points:
