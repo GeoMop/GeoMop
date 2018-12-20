@@ -15,7 +15,7 @@ import PyQt5.QtCore as QtCore
 import gm_base.icon as icon
 from LayerEditor.ui.dialogs.set_diagram import SetDiagramDlg
 from LayerEditor.ui.dialogs.make_mesh import MakeMeshDlg
-
+from gm_base.geomop_util.logging import log_unhandled_exceptions
 
 style_sheet =\
 """
@@ -43,7 +43,9 @@ class LayerEditor:
         self._app.setStyleSheet(style_sheet)
         #print("Layer app: ", str(self._app))
         self._app.setWindowIcon(icon.get_app_icon("le-geomap"))
-        
+
+        QtCore.QLocale.setDefault(QtCore.QLocale(QtCore.QLocale.English, QtCore.QLocale.UnitedStates))
+
         # load config        
         cfg.init()
 
@@ -200,8 +202,7 @@ class LayerEditor:
                     self.save_file()
         return True
 
-    def main(self):
-        """go"""
+    def exec(self):
         self._app.exec()
         
     def _update_document_name(self):
@@ -213,6 +214,17 @@ class LayerEditor:
             title += " - " + cfg.curr_file
         self.mainwindow.setWindowTitle(title)
 
+def set_debug_exceptions():
+    def on_unhandled_exception(type_, exception, tback):
+        """Unhandled exception callback."""
+        # pylint: disable=unused-argument
+        from gm_base.geomop_dialogs import GMErrorDialog
+        err_dialog = GMErrorDialog(layer_editor.mainwindow)
+        err_dialog.open_error_dialog("Unhandled Exception!", error=exception)
+        sys.exit(1)
+
+    log_unhandled_exceptions(cfg.config.__class__.CONTEXT_NAME, on_unhandled_exception)
+
 
 def main():
     """LayerEditor application entry point."""
@@ -220,47 +232,10 @@ def main():
     parser.add_argument('--debug', action='store_true', help='Enable debug mode')
     args = parser.parse_args()
 
-    if args.debug:
-        cfg.config.__class__.DEBUG_MODE = True
-        
-    #set locale    
-    QtCore.QLocale.setDefault(QtCore.QLocale(QtCore.QLocale.English, QtCore.QLocale.UnitedStates))
 
     # logging
     if not args.debug:
-        from gm_base.geomop_util.logging import log_unhandled_exceptions
-
-        def on_unhandled_exception(type_, exception, tback):
-            """Unhandled exception callback."""
-            # pylint: disable=unused-argument
-            from gm_base.geomop_dialogs import GMErrorDialog
-            err_dialog = GMErrorDialog(layer_editor.mainwindow)
-            err_dialog.open_error_dialog("Unhandled Exception!", error=exception)
-            sys.exit(1)
-            
-            
-            
-#            from geomop_dialogs import GMErrorDialog
-#            if layer_editor is not None:
-#                err_dialog = None
-#                # display message box with the exception
-#                if layer_editor.mainwindow is not None:
-#                    err_dialog = GMErrorDialog(layer_editor.mainwindow)
-#
-#                # try to reload editor to avoid inconsistent state
-#                if callable(layer_editor.mainwindow.reload):
-#                    try:
-#                        layer_editor.mainwindow.reload()
-#                    except:
-#                        if err_dialog is not None:
-#                            err_dialog.open_error_dialog("Application performed invalid operation!",
-#                                                         error=exception)
-#                            sys.exit(1)
-#
-#                if err_dialog is not None:
-#                    err_dialog.open_error_dialog("Unhandled Exception!", error=exception)
-#
-        log_unhandled_exceptions(cfg.config.__class__.CONTEXT_NAME, on_unhandled_exception)
+        set_debug_exceptions()
 
     # enable Ctrl+C from console to kill the application
     signal.signal(signal.SIGINT, signal.SIG_DFL)

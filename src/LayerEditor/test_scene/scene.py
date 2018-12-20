@@ -7,9 +7,13 @@ import mouse
 
 """
 TODO:
-- deselecting initial points
-- point move doesn't work
+
 - switch buttons
+- decomposition:
+  wrapper classes: Point, Segment, Polygon (merge with GsPoint etc. add additional info)
+  keep both diretion relation to GsPoint, are organized 
+  into a dict using same decomp IDs, keep back reference to decomp objects.
+   
 - move lines with points
 - decomposition two modes - with and without intersection tracking, with and without polygons
 - add decomposition
@@ -48,6 +52,7 @@ Region.none =  Region(0, "grey")
 
 class Point:
     def __init__(self, x, y, region):
+        self.gpt = None
         self.xy = np.array([x, y])
         self.region = region
 
@@ -56,9 +61,24 @@ class Point:
         self.xy[0] = x
         self.xy[1] = y
 
+    def segments(self):
+        """
+        Generator of connected segments.
+        :return:
+        """
+
+    def g_segments(self):
+        """
+        Generator of graphical segments.
+        :return:
+        """
+        for seg in self.segments():
+            yield seg.g_segment
+
 
 class Segment:
     def __init__(self, pt_from, pt_to, region):
+        self.g_segment = None
         self.points = [pt_from, pt_to]
         self.region = region
 
@@ -87,6 +107,7 @@ class GsPoint(QtWidgets.QGraphicsEllipseItem):
 
     def __init__(self, pt):
         self.pt = pt
+        pt.gpt = self
         super().__init__(-self.SIZE, -self.SIZE, 2*self.SIZE, 2*self.SIZE, )
         self.setFlag(QtWidgets.QGraphicsItem.ItemIgnoresTransformations, True)
             # do not scale points whenzooming
@@ -120,6 +141,8 @@ class GsPoint(QtWidgets.QGraphicsEllipseItem):
 
     def move_to(self, x, y):
         self.pt.set_xy(x, y)
+        for gseg in self.pt.g_segments():
+            gseg.update()
         self.update()
 
 
@@ -176,7 +199,7 @@ class GsSegment(QtWidgets.QGraphicsLineItem):
 
     def __init__(self, segment):
         self.segment = segment
-
+        segment.g_segment = self
         super().__init__()
         #self.setFlag(QtWidgets.QGraphicsItem.ItemIgnoresTransformations, True)
         self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, True)
@@ -271,15 +294,15 @@ class Diagram(QtWidgets.QGraphicsScene):
         else:
             #if type(gitem) == GsSegment:
             pt = Point(pos.x(), pos.y(), Region.none)
-            self.points.append(pt)
             gpt = GsPoint(pt)
+            self.points.append(pt)
             self.addItem(gpt)
             return gpt
 
     def add_segment(self, gpt1, gpt2):
         seg = Segment(gpt1.pt, gpt2.pt, Region.none)
-        self.segments.append(seg)
         gseg = GsSegment(seg)
+        self.segments.append(seg)
         self.addItem(gseg)
 
     def new_point(self, pos, gitem, close = False):
@@ -330,10 +353,10 @@ class Diagram(QtWidgets.QGraphicsScene):
         super().mouseMoveEvent(event)
 
 
-class MainWindow(QtWidgets.QGraphicsView):
+class DiagramView(QtWidgets.QGraphicsView):
     def __init__(self):
 
-        super(MainWindow, self).__init__()
+        super(DiagramView, self).__init__()
         print(self)
 
 
@@ -357,37 +380,15 @@ class MainWindow(QtWidgets.QGraphicsView):
     #def mouseDoubleClickEvent(self, QMouseEvent):
     #    pass
 
-    # def mousePressEvent(self, event):
-    #     if event.button() == mouse.Event.Left:
-    #         # create point
-    #         pass
-    #     elif event.button() == mouse.Event.Right:
-    #         new_buttons = (event.buttons() ^ mouse.Event.Right) ^ mouse.Event.Left
-    #         new_event = QtGui.QMouseEvent(QtCore.QEvent.MouseButtonPress, event.localPos(), mouse.Event.Left, new_buttons, event.modifiers())
-    #         return super().mousePressEvent(new_event)
-    #
-    # def mouseReleaseEvent(self, event):
-    #     if event.button() == mouse.Event.Left:
-    #         below_item = self.items(event.scenePos())[0]
-    #         close = False
-    #         if event.modifier() == mouse.Event.Ctrl:
-    #             close = True
-    #         self.new_point(event.scenePos(), below_item, close)
-    #
-    #     elif event.button() == mouse.Event.Right:
-    #         # use panning/zooming functionality provided ofr the Left Button
-    #         new_buttons = (event.buttons() ^ mouse.Event.Right) ^ mouse.Event.Left
-    #         new_event = QtGui.QMouseEvent(QtCore.QEvent.MouseButtonRelease, event.localPos(), mouse.Event.Left, new_buttons, event.modifiers())
-    #         return super().mousePressEvent(new_event)
-    #
-    #
-    #
-    # def mouseMoveEvent(self, event):
-    #     if event.buttons() & mouse.Event.Right:
-    #         # use panning/zooming functionality provided ofr the Left Button
-    #         new_buttons = event.buttons() | mouse.Event.Left
-    #         new_event = QtGui.QMouseEvent(QtCore.QEvent.MouseButtonRelease, event.localPos(), mouse.Event.Left, new_buttons, event.modifiers())
-    #         return super().mousePressEvent(new_event)
+
+    def mousePressEvent(self, event):
+        return super().mousePressEvent(mouse.event_swap_buttons(event, QtCore.QEvent.MouseButtonPress))
+
+    def mouseReleaseEvent(self, event):
+        return super().mouseReleaseEvent(mouse.event_swap_buttons(event, QtCore.QEvent.MouseButtonRelease))
+
+    def mouseMoveEvent(self, event):
+        return super().mouseMoveEvent(mouse.event_swap_buttons(event, QtCore.QEvent.MouseMove))
 
 
 
@@ -448,7 +449,7 @@ if __name__ == '__main__':
     import sys
     app = QtWidgets.QApplication(sys.argv)
     Cursor.setup_cursors()
-    mainWindow = MainWindow()
+    mainWindow = DiagramView()
     mainWindow.setGeometry(500, 300, 800, 600)
     mainWindow.show()
     sys.exit(app.exec_())
