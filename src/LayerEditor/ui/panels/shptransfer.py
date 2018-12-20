@@ -49,11 +49,23 @@ class Metaline:
 
 class Metapolygon:
 
-    def __init__(self, lines, id=None):
+    def __init__(self, id=None):
         self.id = id
+        self.polylines = []
         self.metalines = []
         self.points_lookup = aabb_lookup.AABB_Lookup()
         self.segments_lookup = aabb_lookup.AABB_Lookup()
+
+    # def group_metalines(self):
+    #     lines = self.metalines
+    #     l = lines.pop()
+    #     for p in [l.mp1, l.mp2]:
+    #         while
+    #             if len(p.metalines) == 1 or len(p.metalines) >2:
+    #                 #end the polyline
+    #                 continue
+    #             else:
+    #                 # search next
 
     def verify_simple_loop(self):
         closed = 1
@@ -142,7 +154,7 @@ class ShpTransferData:
     def _get_new_point_id(self):
         i = None
         for i in range(len(self.processed_points)+1):
-            if any([p.id for p in self.processed_points if p.id == i]):
+            if [p.id for p in self.processed_points if p.id == i]:
                 continue
             else:
                 break
@@ -151,7 +163,18 @@ class ShpTransferData:
     def _get_new_line_id(self):
         i = None
         for i in range(len(self.processed_segments)+1):
-            if any([l.id for l in self.processed_segments if l.id == i]):
+            # pass if list is not empty, i.e. element with this id exists
+            if [l.id for l in self.processed_segments if l.id == i]:
+                continue
+            else:
+                break
+        return i
+
+    def _get_new_poly_id(self):
+        i = None
+        for i in range(len(self.processed_polygons)+1):
+            # pass if list is not empty, i.e. element with this id exists
+            if [poly.id for poly in self.processed_polygons if poly.id == i]:
                 continue
             else:
                 break
@@ -192,9 +215,9 @@ class ShpTransferData:
 
     def _add_segment_processed(self, seg, lookup = None):
         if lookup:
-            lookup.add_object(seg.id, aabb_lookup.make_aabb([seg.p1.xy, seg.p2.xy], margin=self.precision))
+            lookup.add_object(seg.id, aabb_lookup.make_aabb([seg.mp1.xy, seg.mp2.xy], margin=self.precision))
         else:
-            self.segments_lookup.add_object(seg.id, aabb_lookup.make_aabb([seg.p1.xy, seg.p2.xy], margin=self.precision))
+            self.segments_lookup.add_object(seg.id, aabb_lookup.make_aabb([seg.mp1.xy, seg.mp2.xy], margin=self.precision))
         # id list is common for all segment lookups
         self.processed_segments.append(seg)
 
@@ -222,15 +245,17 @@ class ShpTransferData:
     def pt_dist(pt, point):
         return la.norm(pt.xy - point)
 
-    def _merge_points_weighted(self, p1, p2):
+    def _merge_points_weighted(self, p1, p2, p_lookup):
         p1.xy = (p1.xy * p1.weight + p2.xy * p2.weight)/(p1.weight + p2.weight)
         p1.weight += p2.weight
         # TODO: Fork merging - one point -> two lines -> two end points are merged. Now both lines are kept..
         # candidates = self.segments_lookup.closest_candidates(point)
+        if p1.id < p2.id:
+            p1.id = p2.id
         for line in p2.metalines:
             p1.metalines.append(line)
             line.replace_point(p2, p1)
-        self._rm_point(p2)
+        self._rm_point(p2, p_lookup)
         return p1
 
     def snapadd_metapoints(self, points, p_lookup=None):
@@ -245,12 +270,12 @@ class ShpTransferData:
             # look which points should be merged
             to_merge = []
             for pt_id in candidates:
-                pt = self.processed_points[pt_id]
+                pt = [p for p in self.processed_points if p.id == pt_id][0]
                 if self.pt_dist(pt, point.xy) < self.precision:
                     to_merge.append(pt)
             # do weighted merge
             for p in to_merge:
-                point = self._merge_points_weighted(point, p)
+                point = self._merge_points_weighted(point, p, p_lookup)
             # add the weighted point or just the point if there was nothing to merge
             self._add_point_processed(point, p_lookup)
             added_metapoints.append(point)
@@ -259,10 +284,13 @@ class ShpTransferData:
     def snapadd_metalines(self, lines, p_lookup=None, s_lookup=None):
         added_metalines = []
         for l in lines:
-            mp1 = self.snapadd_metapoints(l[0], p_lookup)[0]
-            mp2 = self.snapadd_metapoints(l[1], p_lookup)[0]
+            mp1 = self.snapadd_metapoints([l[0]], p_lookup)[0]
+            mp2 = self.snapadd_metapoints([l[1]], p_lookup)[0]
+            # case mp1 a mp2 are merged, i.e. 0 length line, dont create line - DUH!
+            if not (mp1 in self.processed_points and mp2 in self.processed_points):
+                continue
             line = Metaline(mp1, mp2, id=self._get_new_line_id())
-        # TODO: line overlaps - see TODO in points merging method
+            # TODO: line overlaps - see TODO in points merging method
             self._add_segment_processed(line, s_lookup)
             added_metalines.append(line)
         return added_metalines
@@ -271,15 +299,15 @@ class ShpTransferData:
         # polygon.polygon_points are passed in ordered manner - create metalines from the raw data
         processed_polygons = []
         for poly in polygons:
-            polygon = Metapolygon()
             lines = []
             for i in range(len(poly.polygon_points)-1):
                 lines.append([poly.polygon_points[i-1], poly.polygon_points[i]])
+            polygon = Metapolygon(id=self._get_new_poly_id())
             metalines = self.snapadd_metalines(lines, polygon.points_lookup, polygon.segments_lookup)
-            polygon.metalines.append(metalines)
+            polygon.metalines.extend(metalines)
             if polygon.verify_simple_loop():
-                self._add_polygon_processed(poly)
-                processed_polygons.append(poly)
+                self._add_polygon_processed(polygon)
+                processed_polygons.append(polygon)
         return processed_polygons
 
     # def _simplify_polyline(self, points):
@@ -317,8 +345,6 @@ class ShpTransferData:
 
 ### ------------------------------------- TRANSFER --------------------------------------
 
-    # TODO: major overhaul
-
     # Transfer function
     def _point_in_diagram(self, searched_point):
         '''basically for item in list overload for location comparison
@@ -335,33 +361,11 @@ class ShpTransferData:
             print("Load and process the shapefile data before transferring to the diagram.")
             return
 
-        for point in self.processed_points:
-            points_in_diagram = self._point_in_diagram(point)
-            if not points_in_diagram:
-                cfg.diagram._add_point(None, point)
-            else:
-                print("Tried to add solitary point to a position of existing point.")
-
-        for line in self.lines:
-            #TODO: polyline simplification requires different data handling, i.e. polyline separation and individual addition
-            # pp = np.array([[point.x(), point.y()] for point in polygon.polygon_points])
-            # simplifier = VWSimplifier(pp)
-            # polygon_points = simplifier.from_number(len(pp) / 2)
-            # polygon_points = [QtCore.QPointF(p[0], p[1]) for p in polygon_points]
-            # # print("Visvalingam: reduced to %s points from %s in %03f seconds" % (len(polygon_points), len(pp), end - start))
-            start_points = self._point_in_diagram(line.p1)
-            if not start_points:
-                cfg.main_window.diagramScene._add_line(None, line.p1)
-                cfg.main_window.diagramScene._add_line(None, line.p2, False)
-            elif len(start_points) == 1:
-                cfg.main_window.diagramScene._add_line(start_points[0].object, line.p1)
-                cfg.main_window.diagramScene._add_line(None, line.p2, False)
-            else:
-                print("TODO: I found more points at point1 location, these should be merged")
-                # TODO: merge the points instead
-
-        for polygon in self.shp_polygons:
-            pp = np.array([[point.x(), point.y()] for point in polygon.polygon_points])
+        for polygon in self.processed_polygons:
+            polygon_points = []
+            for metaline in polygon.metalines:
+                polygon_points.append(metaline.mp1)
+            pp = np.array([p.xy for p in polygon_points])
             simplifier = VWSimplifier(pp)
             nb_reduced = int(cfg.main_window.shpTransfer.transfer_button.text().split("/", 1)[0])
             if nb_reduced:
@@ -382,50 +386,70 @@ class ShpTransferData:
                 print("TODO: I found more points at point1 location, these points should be merged")
 
             for point in polygon_points[1:]:
-                p_in_diagram = self._point_in_diagram(point)
-                if not p_in_diagram:
-                    cfg.main_window.diagramScene._add_line(None, point)
-                elif len(p_in_diagram) == 1:
-                    cfg.main_window.diagramScene._add_line(p_in_diagram[0].object, point, False)
-                else:
-                    print("TODO: I found more points at point1 location, these points should be merged")
+                cfg.main_window.diagramScene._add_line(None, point)
+            p_in_diagram = self._point_in_diagram(polygon_points[0])
+            cfg.main_window.diagramScene._add_line(p_in_diagram[0].object, point, False)
 
         cfg.main_window.shpTransfer.transfer_button.setEnabled(False)
 
-            # first_point = cfg.main_window.diagramScene._last_line.p1
-                #     cfg.main_window.diagramScene._add_`line(None, point, False)
-                    # added_points.append(p)
-                    # last_point = points
-                    # continue
-                # p1 = added_points[-1]
-                # p2 = cfg.diagram.add_point(point.x(), point.y())
-                # cfg.main_window.diagramScene._add_line(None, point)
-                # _, l = cfg.diagram.add_line(p1, p2.x, p2.y)
-                # added_points.append(p2)
-                # if not last_point:
-                # added_lines.append(l)
-                # last_point = point
-            # cfg.main_window.diagramScene._add_line(p, polygon.polygon_points[-1],False)
-            # cfg.diagram.merge_point(first_point, cfg.main_window.diagramScene._last_line.p1, None)
-            # l = cfg.diagram.join_line(added_points[-1], added_points[0])
-            # added_lines.append(l)
-        # cfg.main_window.diagramScene.update_changes(added_points, [], [], added_lines, [])
+        # TODO: major overhaul
+        # for point in self.processed_points:
+        #     points_in_diagram = self._point_in_diagram(point)
+        #     if not points_in_diagram:
+        #         cfg.diagram._add_point(None, point)
+        #     else:
+        #         print("Tried to add solitary point to a position of existing point.")
+        #
+        # for line in self.lines:
+        #     #TODO: polyline simplification requires different data handling, i.e. polyline separation and individual addition
+        #     # pp = np.array([[point.x(), point.y()] for point in polygon.polygon_points])
+        #     # simplifier = VWSimplifier(pp)
+        #     # polygon_points = simplifier.from_number(len(pp) / 2)
+        #     # polygon_points = [QtCore.QPointF(p[0], p[1]) for p in polygon_points]
+        #     # # print("Visvalingam: reduced to %s points from %s in %03f seconds" % (len(polygon_points), len(pp), end - start))
+        #     start_points = self._point_in_diagram(line.p1)
+        #     if not start_points:
+        #         cfg.main_window.diagramScene._add_line(None, line.p1)
+        #         cfg.main_window.diagramScene._add_line(None, line.p2, False)
+        #     elif len(start_points) == 1:
+        #         cfg.main_window.diagramScene._add_line(start_points[0].object, line.p1)
+        #         cfg.main_window.diagramScene._add_line(None, line.p2, False)
+        #     else:
+        #         print("TODO: I found more points at point1 location, these should be merged")
+        #         # TODO: merge the points instead
+        #
+        # for polygon in self.shp_polygons:
+        #     pp = np.array([[point.x(), point.y()] for point in polygon.polygon_points])
+        #     simplifier = VWSimplifier(pp)
+        #     nb_reduced = int(cfg.main_window.shpTransfer.transfer_button.text().split("/", 1)[0])
+        #     if nb_reduced:
+        #         polygon_points = simplifier.from_number(nb_reduced)
+        #     else:
+        #         print("Set desired reduction!")
+        #         return
+        #     polygon_points = [QtCore.QPointF(p[0], p[1]) for p in polygon_points]
+        #     # print("Visvalingam: reduced to %s points from %s in %03f seconds" % (len(polygon_points), len(pp), end - start))
+        #     p_in_diagram = self._point_in_diagram(polygon_points[0])
+        #     # TODO: line intersection
+        #     # If is only for the case the polygon first point is on already existing point
+        #     if not p_in_diagram:
+        #         cfg.main_window.diagramScene._add_line(None, polygon_points[0])
+        #     elif len(p_in_diagram) == 1:
+        #         cfg.main_window.diagramScene._add_line(p_in_diagram[0].object, polygon_points[0])
+        #     else:
+        #         print("TODO: I found more points at point1 location, these points should be merged")
+        #
+        #     for point in polygon_points[1:]:
+        #         p_in_diagram = self._point_in_diagram(point)
+        #         if not p_in_diagram:
+        #             cfg.main_window.diagramScene._add_line(None, point)
+        #         elif len(p_in_diagram) == 1:
+        #             cfg.main_window.diagramScene._add_line(p_in_diagram[0].object, point, False)
+        #         else:
+        #             print("TODO: I found more points at point1 location, these points should be merged")
+        #
+        # cfg.main_window.shpTransfer.transfer_button.setEnabled(False)
 
-            # single polygon without checking
-            # p, _ = cfg.main_window.diagramScene._add_point(None, polygon.polygon_points[0])
-            # cfg.main_window.diagramScene._add_line(p, polygon.polygon_points[0])
-            # for point in polygon.polygon_points[1:-1]:
-            #     cfg.main_window.diagramScene._add_line(None, point)
-            # cfg.main_window.diagramScene._add_line(p, polygon.polygon_points[-1], False)
-        #TODO: Creating line on another error
-        #   - how does it change? Search from mouse release event
-            # for polygon in polygons:
-            #     spolygon = cfg.diagram.add_polygon(lines, label, not_history, copy)
-            #     spolygon.qtpolygon = qtpolygon
-
-            # for point in cfg.diagram.shp.datas.points.highlightened:
-            #     print(point.id)
-            # cfg.diagram.data.datas[0].av_highlight[j]
 
 class ShpTransferView(QtWidgets.QWidget):
 
