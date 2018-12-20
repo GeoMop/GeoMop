@@ -4,6 +4,7 @@ import PyQt5.QtGui as QtGui
 from LayerEditor.leconfig import cfg
 import os
 import numpy as np
+import numpy.linalg as la
 from gm_base.geomop_dialogs import GMErrorDialog
 import gm_base.icon as icon
 from ..data import SurfacesHistory
@@ -14,25 +15,105 @@ from LayerEditor.simplification.polysimplify import VWSimplifier
 from time import time
 import gm_base.polygons.aabb_lookup as aabb_lookup
 
+
+class Metapoint:
+
+    def __init__(self, xy, weight=1, id=None):
+        self.xy = np.array(xy)
+        self.weight = weight
+        self.id = id
+        self.metalines = []
+
+
+class Metaline:
+
+    def __init__(self, mp1, mp2, id=None):
+        # mp1, mp2 are Metapoints
+        self.mp1 = mp1
+        mp1.metalines.append(self)
+        self.mp2 = mp2
+        mp2.metalines.append(self)
+        self.id = id
+        self.metapolygons = []
+
+    def replace_point(self, p_old, p_new):
+        # Return error statement - False is unique, thus returned on success, True is obtained e.g. by any int cast
+        if self.mp1 == p_old:
+            self.mp1 = p_new
+        elif self.mp2 == p_old:
+            self.mp2 = p_new
+        else:
+            return True
+        return False
+
+
+class Metapolygon:
+
+    def __init__(self, lines, id=None):
+        self.id = id
+        self.metalines = []
+        self.points_lookup = aabb_lookup.AABB_Lookup()
+        self.segments_lookup = aabb_lookup.AABB_Lookup()
+
+    def verify_simple_loop(self):
+        closed = 1
+        lastline = self.metalines[0]
+        startp = lastline.mp1
+        point = lastline.mp2
+        while not closed == 1:
+            if len(point.metalines) == 1:
+                closed = 2
+            for l in point.metalines:
+                if l not in self.metalines:
+                    continue
+                elif l == lastline:
+                    continue
+                else:
+                    lastline = l
+                    if l.mp1 == point:
+                        point = l.mp2
+                        break
+                    elif l.mp2 == point:
+                        point = l.mp1
+                        break
+                    else:
+                        closed = 2
+                        break
+            if startp == point:
+                closed = 0
+        return closed
+
+
 class ShpTransferData:
 
     def __init__(self):
-        self.decomposition = PolygonDecomposition()
+        # self.poly_decomposition = PolygonDecomposition()
+        self.points_lookup = aabb_lookup.AABB_Lookup()
+        self.segments_lookup = aabb_lookup.AABB_Lookup()
         self._reset_data()
 
     def _reset_data(self):
-        self.polygons = []
-        self.lines = []
-        self.points = []
-        self.precision = 1e-3
+        # raw elements from shapefiles
+        self.shp_polygons = []
+        self.shp_lines = []
+        self.shp_points= []
+        # elements processed in temporary metaobjects
+        self.processed_points = []
+        self.processed_segments = []
+        self.processed_polygons = []
+        # snap precission
+        self.precision = 1e-2
+        # counter at which step the data transfer is. Cannot transfer unprocessed data
         self.todo_steps = [True, True]
 
-    def _reset_buttons(self):
+    @staticmethod
+    def _reset_buttons():
         cfg.main_window.shpTransfer.load_button.setEnabled(True)
         cfg.main_window.shpTransfer.process_button.setEnabled(False)
         cfg.main_window.shpTransfer.transfer_button.setEnabled(False)
 
-    def _is_number(self, s):
+    @staticmethod
+    def _is_number(s):
         try:
             float(s)
             return True
@@ -49,50 +130,194 @@ class ShpTransferData:
         self._reset_data()
         self._reset_buttons()
         for shp in cfg.diagram.shp.datas:
-            self.polygons.extend([polygon for polygon in shp.shpdata.polygons if polygon.highlighted])
-            self.lines.extend([line for line in shp.shpdata.lines if line.highlighted])
-            self.points.extend([point.p for point in shp.shpdata.points if point.highlighted])
+            self.shp_polygons.extend([polygon for polygon in shp.shpdata.polygons if polygon.highlighted])
+            self.shp_lines.extend([line for line in shp.shpdata.lines if line.highlighted])
+            self.shp_points.extend([point.p for point in shp.shpdata.points if point.highlighted])
         cfg.main_window.shpTransfer.process_button.setEnabled(True)
         self.todo_steps[0] = False
         return self.todo_steps[0]
 
-### ------------------------------------- PROCESSING --------------------------------------
+# ------------------------------------- PROCESSING --------------------------------------
 
-    def _simplify_polyline(self, points):
-        """Simplify a line defined by a list of points
-        :arg points list of points defining polyline [QPointF,..]
-        :returns simplified list of points [QPointF,..]"""
-        simplified = []
-        return simplified
+    def _get_new_point_id(self):
+        i = None
+        for i in range(len(self.processed_points)+1):
+            if any([p.id for p in self.processed_points if p.id == i]):
+                continue
+            else:
+                break
+        return i
 
-    def _extract_points(self):
-        points = []
-        points.extend(self.points)
-        for line in self.lines:
-            points.append(line.p1)
-            points.append(line.p2)
-        for polygon in self.polygons:
-            points.extend(polygon.polygon_points)
-        return points
+    def _get_new_line_id(self):
+        i = None
+        for i in range(len(self.processed_segments)+1):
+            if any([l.id for l in self.processed_segments if l.id == i]):
+                continue
+            else:
+                break
+        return i
+
+    # def _extract_points(self):
+    #     points = []
+    #     points.extend(self.shp_points)
+    #     for line in self.shp_lines:
+    #         points.append(line.p1)
+    #         points.append(line.p2)
+    #     for polygon in self.shp_polygons:
+    #         points.extend(polygon.polygon_points)
+    #     return points
+    #
+    # def _extract_lines(self):
+    #     lines = []
+    #     lines.extend(self.shp_lines)
+    #     for polygon in self.shp_polygons:
+    #         for i in range(len(polygon.polygon_points)):
+    #             lines.append([polygon.polygon_points[i-1],polygon.polygon_points[i]])
+    #     return lines
+    #
+    # def _extract_data(self):
+    #
+    #     points = self._extract_points()
+    #     lines = self._extract_lines()
+    #     polygons = self._extract_polygons()
+    #     return points, lines, polygons
+
+    def _add_point_processed(self, pt, lookup = None):
+        if lookup:
+            lookup.add_object(pt.id, aabb_lookup.make_aabb([pt.xy], margin=self.precision))
+        else:
+            self.points_lookup.add_object(pt.id, aabb_lookup.make_aabb([pt.xy], margin=self.precision))
+        # id list is common for all point lookups
+        self.processed_points.append(pt)
+
+    def _add_segment_processed(self, seg, lookup = None):
+        if lookup:
+            lookup.add_object(seg.id, aabb_lookup.make_aabb([seg.p1.xy, seg.p2.xy], margin=self.precision))
+        else:
+            self.segments_lookup.add_object(seg.id, aabb_lookup.make_aabb([seg.p1.xy, seg.p2.xy], margin=self.precision))
+        # id list is common for all segment lookups
+        self.processed_segments.append(seg)
+
+    def _add_polygon_processed(self, poly):
+        self.processed_polygons.append(poly)
+
+    def _rm_point(self, pt, lookup = None):
+        if lookup:
+            lookup.rm_object(pt.id)
+        else:
+            self.points_lookup.rm_object(pt.id)
+        self.processed_points.remove(pt)
+
+    def _rm_segment(self, seg, lookup = None):
+        if lookup:
+            lookup.rm_object(seg.id)
+        else:
+            self.segments_lookup.rm_object(seg.id)
+        self.processed_segments.remove(seg)
+
+    def _rm_polygon_processed(self, poly):
+        self.processed_polygons.remove(poly)
+
+    @staticmethod
+    def pt_dist(pt, point):
+        return la.norm(pt.xy - point)
+
+    def _merge_points_weighted(self, p1, p2):
+        p1.xy = (p1.xy * p1.weight + p2.xy * p2.weight)/(p1.weight + p2.weight)
+        p1.weight += p2.weight
+        # TODO: Fork merging - one point -> two lines -> two end points are merged. Now both lines are kept..
+        # candidates = self.segments_lookup.closest_candidates(point)
+        for line in p2.metalines:
+            p1.metalines.append(line)
+            line.replace_point(p2, p1)
+        self._rm_point(p2)
+        return p1
+
+    def snapadd_metapoints(self, points, p_lookup=None):
+        # p_lookup allows to create objects with snapping in target group
+        added_metapoints = []
+        for pt in points:
+            point = Metapoint([pt.x(), pt.y()], id = self._get_new_point_id())
+            if p_lookup:
+                candidates = p_lookup.closest_candidates(point.xy)
+            else:
+                candidates = self.points_lookup.closest_candidates(point.xy)
+            # look which points should be merged
+            to_merge = []
+            for pt_id in candidates:
+                pt = self.processed_points[pt_id]
+                if self.pt_dist(pt, point.xy) < self.precision:
+                    to_merge.append(pt)
+            # do weighted merge
+            for p in to_merge:
+                point = self._merge_points_weighted(point, p)
+            # add the weighted point or just the point if there was nothing to merge
+            self._add_point_processed(point, p_lookup)
+            added_metapoints.append(point)
+        return added_metapoints
+
+    def snapadd_metalines(self, lines, p_lookup=None, s_lookup=None):
+        added_metalines = []
+        for l in lines:
+            mp1 = self.snapadd_metapoints(l[0], p_lookup)[0]
+            mp2 = self.snapadd_metapoints(l[1], p_lookup)[0]
+            line = Metaline(mp1, mp2, id=self._get_new_line_id())
+        # TODO: line overlaps - see TODO in points merging method
+            self._add_segment_processed(line, s_lookup)
+            added_metalines.append(line)
+        return added_metalines
+
+    def process_polygons(self, polygons):
+        # polygon.polygon_points are passed in ordered manner - create metalines from the raw data
+        processed_polygons = []
+        for poly in polygons:
+            polygon = Metapolygon()
+            lines = []
+            for i in range(len(poly.polygon_points)-1):
+                lines.append([poly.polygon_points[i-1], poly.polygon_points[i]])
+            metalines = self.snapadd_metalines(lines, polygon.points_lookup, polygon.segments_lookup)
+            polygon.metalines.append(metalines)
+            if polygon.verify_simple_loop():
+                self._add_polygon_processed(poly)
+                processed_polygons.append(poly)
+        return processed_polygons
+
+    # def _simplify_polyline(self, points):
+    #     """Simplify a line defined by a list of points
+    #     :arg points list of points defining polyline [QPointF,..]
+    #     :returns simplified list of points [QPointF,..]"""
+    #     simplified = []
+    #     return simplified
 
     def process_data(self):
         if self.todo_steps[0]:
             print("Get data from shapefile first.")
             return
         print("Processing shapefile data")
-        print(len(self.polygons))
-        print(len(self.lines))
-        print(len(self.points))
-        # load all points and try to do weighted merge
-        points = self._extract_points()
-        for point in points:
-            pass
+        print(len(self.shp_polygons))
+        print(len(self.shp_lines))
+        print(len(self.shp_points))
+
+        # extract all data from polygons and create appropriate lines (and verify loop)
+        self.process_polygons(self.shp_polygons)
+
+        # load all lines and create its points
+        lines = []
+        for l in self.shp_lines:
+            lines.append([l.p1, l.p2])
+        self.snapadd_metalines(lines)
+
+        # load all standalone points and try to do weighted merge
+        self.snapadd_metapoints(self.shp_points)
+
         cfg.main_window.shpTransfer.process_button.setEnabled(False)
         cfg.main_window.shpTransfer.transfer_button.setEnabled(True)
         self.todo_steps[1] = False
         return self.todo_steps[1]
 
 ### ------------------------------------- TRANSFER --------------------------------------
+
+    # TODO: major overhaul
 
     # Transfer function
     def _point_in_diagram(self, searched_point):
@@ -110,7 +335,7 @@ class ShpTransferData:
             print("Load and process the shapefile data before transferring to the diagram.")
             return
 
-        for point in self.points:
+        for point in self.processed_points:
             points_in_diagram = self._point_in_diagram(point)
             if not points_in_diagram:
                 cfg.diagram._add_point(None, point)
@@ -135,7 +360,7 @@ class ShpTransferData:
                 print("TODO: I found more points at point1 location, these should be merged")
                 # TODO: merge the points instead
 
-        for polygon in self.polygons:
+        for polygon in self.shp_polygons:
             pp = np.array([[point.x(), point.y()] for point in polygon.polygon_points])
             simplifier = VWSimplifier(pp)
             nb_reduced = int(cfg.main_window.shpTransfer.transfer_button.text().split("/", 1)[0])
@@ -253,8 +478,8 @@ class ShpTransferView(QtWidgets.QWidget):
             self.transfer_button.setText("Finish data processing to continue..")
             return
         percentage = self.inputSlider.value()/100
-        if not self.shpdata.polygons:
+        if not self.shpdata.shp_polygons:
             self.transfer_button.setText("No selected polygons")
         else:
-            nb_points = int(np.floor(len(self.shpdata.polygons[0].polygon_points)*percentage))
-            self.transfer_button.setText(str(nb_points)+'/'+str(len(self.shpdata.polygons[0].polygon_points)))
+            nb_points = int(np.floor(len(self.shpdata.processed_points)*percentage))
+            self.transfer_button.setText(str(nb_points)+'/'+str(len(self.shpdata.processed_points)))
