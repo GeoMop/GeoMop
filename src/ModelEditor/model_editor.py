@@ -61,6 +61,7 @@ class ModelEditor:
         self.reloader_timer.start(RELOAD_INTERVAL)
 
     def _restore_backup(self):
+        """recover file from backup file if it exists and if user wishes so"""
         if self.autosave.restore_backup():
             cfg.document = cfg.read_file(self.autosave.backup_filename())
             cfg.changed = True
