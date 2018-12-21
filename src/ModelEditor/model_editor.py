@@ -47,8 +47,10 @@ class ModelEditor:
         # show
         self.mainwindow.show()
 
-        self.autosave = Autosave(cfg)
-        
+        self.autosave = Autosave(cfg, self.mainwindow.editor.text)
+        """Object handling automatic saving"""
+        self.mainwindow.editor.textChanged.connect(self.autosave.on_content_change)
+
         self.reloader_timer = QtCore.QTimer()
         """timer for file time checking in ms"""
         self.reloader_timer.timeout.connect(self.check_file)
@@ -143,6 +145,7 @@ class ModelEditor:
         cfg.update_yaml_file(self.mainwindow.editor.text())
         cfg.save_file()
         self.mainwindow.show_status_message("File is saved")
+        self.autosave.delete_backup()
 
     def save_as(self):
         """save file menu action"""
@@ -164,6 +167,7 @@ class ModelEditor:
         dialog.setOption(QtWidgets.QFileDialog.DontConfirmOverwrite, False)
         dialog.setViewMode(QtWidgets.QFileDialog.Detail)
         if dialog.exec_():
+            self.autosave.delete_backup()
             file_name = dialog.selectedFiles()[0]
             cfg.save_as(file_name)
             self.mainwindow.update_recent_files()
@@ -241,6 +245,8 @@ class ModelEditor:
                     return self.save_as()
                 else:
                     self.save_file()
+            if reply == QtWidgets.QMessageBox.No:
+                self.autosave.delete_backup()
         return True
 
     def main(self):
