@@ -61,7 +61,7 @@ class Autosave:
                 tail = self.DEFAULT_FILENAME
             else:
                 head, tail = os.path.split(self.curr_filename_fnc() if not None else self.DEFAULT_FILENAME)
-            msg.setText("Do you wish to recover unsaved file: " + tail +
+            msg.setText("Do you wish to continue editing last unsaved version of file: " + tail + " ?" +
                         "\nLast modification: " +
                         time.strftime("%d/%m/%Y %H:%M:%S",
                                       time.gmtime(os.path.getmtime(self.backup_filename()))))
@@ -71,6 +71,7 @@ class Autosave:
             if msg.exec_() == QtWidgets.QMessageBox.Yes:
                 return True
             else:
+                self.delete_backup()
                 return False
 
     def delete_backup(self):

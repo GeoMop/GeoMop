@@ -65,6 +65,8 @@ class ModelEditor:
         if self.autosave.restore_backup():
             cfg.document = cfg.read_file(self.autosave.backup_filename())
             cfg.changed = True
+        self.mainwindow.editor.reload()
+        self.autosave.autosave_timer.stop()
         
     def check_file(self):
         """timer for file time checking in ms"""
