@@ -47,14 +47,23 @@ class ModelEditor:
         # show
         self.mainwindow.show()
 
-        self.autosave = Autosave(cfg, self.mainwindow.editor.text)
+        self.autosave = Autosave(cfg.config.CONFIG_DIR, lambda: cfg.curr_file,
+                                 lambda: self.mainwindow.editor.text())
         """Object handling automatic saving"""
+        self._restore_backup()
+        if len(cfg.document) > 0:
+            self.mainwindow.reload()
         self.mainwindow.editor.textChanged.connect(self.autosave.on_content_change)
 
         self.reloader_timer = QtCore.QTimer()
         """timer for file time checking in ms"""
         self.reloader_timer.timeout.connect(self.check_file)
         self.reloader_timer.start(RELOAD_INTERVAL)
+
+    def _restore_backup(self):
+        if self.autosave.restore_backup():
+            cfg.document = cfg.read_file(self.autosave.backup_filename())
+            cfg.changed = True
         
     def check_file(self):
         """timer for file time checking in ms"""
@@ -93,6 +102,7 @@ class ModelEditor:
             cfg.config.data_dir, "Yaml Files (*.yaml)")
         if yaml_file[0]:
             cfg.open_file(yaml_file[0])
+            self._restore_backup()
             self.mainwindow.reload()
             self.mainwindow.update_recent_files()
             self._update_document_name()
@@ -101,6 +111,7 @@ class ModelEditor:
     def open_set_file(self, file):
         """open set file"""
         cfg.open_file(file)
+        self._restore_backup()
         self.mainwindow.reload()
         self.mainwindow.update_recent_files()
         self._update_document_name()
@@ -131,6 +142,7 @@ class ModelEditor:
         if not self.save_old_file():
             return
         cfg.open_recent_file(action.data())
+        self._restore_backup()
         self.mainwindow.reload()
         self.mainwindow.update_recent_files()
         self._update_document_name()
