@@ -5,6 +5,7 @@ import sys
 import os
 import signal
 import argparse
+import json
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 
@@ -13,6 +14,7 @@ from LayerEditor.leconfig import cfg
 import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtCore as QtCore
 import gm_base.icon as icon
+from gm_base.geomop_util import Autosave
 from LayerEditor.ui.dialogs.set_diagram import SetDiagramDlg
 from LayerEditor.ui.dialogs.make_mesh import MakeMeshDlg
 
@@ -80,7 +82,23 @@ class LayerEditor:
         
         # set default values
         self.mainwindow.paint_new_data()
-        self._update_document_name()        
+        self._update_document_name()
+
+        self.autosave = Autosave(cfg.config.CONFIG_DIR, lambda: cfg.curr_file,
+                                 lambda: json.dumps(cfg.le_serializer.cfg_to_geometry().serialize(),
+                                                    indent=4, sort_keys=True))
+        """Object handling automatic saving"""
+        self._restore_backup()
+        self.mainwindow.diagram_scene.regionsUpdateRequired.connect(self.autosave.on_content_change())
+
+    def _restore_backup(self):
+        """recover file from backup file if it exists and if user wishes so"""
+        if self.autosave.restore_backup():
+            cfg.main_window.release_data(cfg.diagram_id())
+            cfg.history.remove_all()
+            cfg.le_serializer.load(cfg, self.autosave.backup_filename())
+            cfg.main_window.refresh_all()
+        self.autosave.autosave_timer.stop()
         
     def new_file(self):
         """new file menu action"""
@@ -110,6 +128,7 @@ class LayerEditor:
         if file[0]:
             cfg.open_file(file[0])
             self._update_document_name()
+            self._restore_backup()
             self.mainwindow.show_status_message("File '" + file[0] + "' is opened")
             return True
         return False
@@ -141,6 +160,7 @@ class LayerEditor:
         cfg.open_recent_file(action.data())
         self.mainwindow.update_recent_files()
         self._update_document_name()
+        self._restore_backup()
         self.mainwindow.show_status_message("File '" + action.data() + "' is opened")
 
     def save_file(self):

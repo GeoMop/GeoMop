@@ -52,7 +52,9 @@ class Autosave:
             file_d.write(self.text())
 
     def restore_backup(self):
-        """When new file is opened, check if there is backup file and ask user if it should be recovered."""
+        """When new file is opened, check if there is backup file and ask user if it should be recovered.
+        :return bool: True if user wants to recover backup file
+        """
         if os.path.isfile(self.backup_filename()):
             msg = QtWidgets.QMessageBox()
             msg.setWindowTitle("Unsaved document found")

@@ -15,17 +15,17 @@ import PyQt5.QtCore as QtCore
 sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 
 import gm_base.icon as icon
+from gm_base.geomop_util import Autosave
 from ModelEditor.meconfig import MEConfig as cfg
 from ModelEditor.ui.dialogs.json_editor import JsonEditorDlg
 from ModelEditor.ui import MainWindow
 from ModelEditor.util import constants
 from ModelEditor.ui.dialogs.new_file_dialog import NewFileDialog
-from ModelEditor.autosave import Autosave
 import subprocess
 
 
 RELOAD_INTERVAL = 5000
-"""interval for file time checjing in ms"""
+"""interval for file time checking in ms"""
 
 class ModelEditor:
     """Model editor main class"""
@@ -47,8 +47,7 @@ class ModelEditor:
         # show
         self.mainwindow.show()
 
-        self.autosave = Autosave(cfg.config.CONFIG_DIR, lambda: cfg.curr_file,
-                                 lambda: self.mainwindow.editor.text())
+        self.autosave = Autosave(cfg.config.CONFIG_DIR, lambda: cfg.curr_file, self.mainwindow.editor.text)
         """Object handling automatic saving"""
         self._restore_backup()
         if len(cfg.document) > 0:
