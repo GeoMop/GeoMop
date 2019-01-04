@@ -73,7 +73,6 @@ class Autosave:
             if msg.exec_() == QtWidgets.QMessageBox.Yes:
                 return True
             else:
-                self.delete_backup()
                 return False
 
     def delete_backup(self):
