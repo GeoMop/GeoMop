@@ -21,6 +21,8 @@ class AddAnalysisDialog(QtWidgets.QDialog):
 
         self.config = config
 
+        self.analysis_name = ""
+
         button_box = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel)
         button_box.accepted.connect(self.accept)
         button_box.rejected.connect(self.reject)
@@ -62,6 +64,8 @@ class AddAnalysisDialog(QtWidgets.QDialog):
         analysis.save()
         self.config.save(0, analysis.name)
 
+        self.analysis_name = name
+
         super().accept()
 
 
@@ -100,8 +104,10 @@ class AnalysisDialog(QtWidgets.QDialog):
 
         self._analysis_list_reload()
 
-    def _analysis_list_reload(self):
+    def _analysis_list_reload(self, preferred_analysis=""):
+        self.ui.analysisListTreeWidget.blockSignals(True)
         self.ui.analysisListTreeWidget.clear()
+        self.ui.analysisListTreeWidget.blockSignals(False)
         to_select = None
         workspace_path = self.config.get_path()
         for name in sorted(os.listdir(workspace_path)):
@@ -113,7 +119,7 @@ class AnalysisDialog(QtWidgets.QDialog):
             row = QtWidgets.QTreeWidgetItem(self.ui.analysisListTreeWidget)
             row.setText(0, name)
             if Analysis.is_analysis(name_path):
-                if not to_select:
+                if name == preferred_analysis or not to_select:
                     to_select = row
             else:
                 row.setFlags(QtCore.Qt.NoItemFlags)
@@ -174,9 +180,14 @@ class AnalysisDialog(QtWidgets.QDialog):
             self.last_selected = currentItem
 
     def _handle_add_analysis_action(self):
+        if self.analysis and self._is_data_changed():
+            if not self._confirm_save():
+                return
+            self._update_files(False)
+
         dialog = AddAnalysisDialog(self, config=self.config)
         if dialog.exec():
-            self._analysis_list_reload()
+            self._analysis_list_reload(dialog.analysis_name)
 
     def _handle_save_analysis_action(self):
         self.analysis.flow123d_version = ""
@@ -203,8 +214,8 @@ class AnalysisDialog(QtWidgets.QDialog):
         """Return True if it is possible to continue."""
         msg = QtWidgets.QMessageBox(self)
         msg.setWindowTitle("Analyses")
-        msg.setText("Analysis has been changed.")
-        msg.setInformativeText("Do you want to save it?")
+        msg.setText('Analysis "{}" has been changed.\n'
+                    "Do you want to save it?".format(self.analysis.name))
         msg.setStandardButtons(QtWidgets.QMessageBox.Save |
                                QtWidgets.QMessageBox.Discard | QtWidgets.QMessageBox.Reset)
         msg.button(QtWidgets.QMessageBox.Discard).setText("Discard changes")

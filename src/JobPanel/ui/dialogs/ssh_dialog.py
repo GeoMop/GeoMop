@@ -168,8 +168,8 @@ class SshDialog(AFormContainer):
             self.valid()
         else:
             self.ui.nameLineEdit.setText("charon")
-            self.ui.hostLineEdit.setText("charon-ft.nti.tul.cz")
-            self.ui.geomop_rootLineEdit.setText('/storage/liberec1-tul/home/radeksrb/geomop_1.1.0')
+            self.ui.hostLineEdit.setText("charon.nti.tul.cz")
+            self.ui.geomop_rootLineEdit.setText('/storage/liberec3-tul/home/radeksrb/geomop_1.1.0')
             self.ui.workspaceLineEdit.setText('workspace')
             self.ui.userLineEdit.clear()
             self.ui.passwordLineEdit.clear()

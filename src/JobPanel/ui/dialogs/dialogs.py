@@ -476,8 +476,8 @@ class APresetsDialog(QtWidgets.QDialog):
             if self.last_selected is not None and \
                 self.presets_dlg. is_dirty():
                 msg = QtWidgets.QMessageBox()
-                msg.setText("Editing record is not saved.")
-                msg.setInformativeText("Do you want to save new record?")
+                msg.setText("Editing record is not saved.\n"
+                            "Do you want to save new record?")
                 msg.setStandardButtons(QtWidgets.QMessageBox.Save |  \
                     QtWidgets.QMessageBox.Discard | QtWidgets.QMessageBox.Reset)
                 msg.button(QtWidgets.QMessageBox.Discard).setText("Discard changes")
@@ -497,8 +497,8 @@ class APresetsDialog(QtWidgets.QDialog):
                     return False
         else:            
             msg = QtWidgets.QMessageBox()
-            msg.setText("New data record is not saved.")
-            msg.setInformativeText("Do you want to save new record?")
+            msg.setText("New data record is not saved.\n"
+                        "Do you want to save new record?")
             msg.setStandardButtons(QtWidgets.QMessageBox.Save |  \
                 QtWidgets.QMessageBox.Discard | QtWidgets.QMessageBox.Reset)
             msg.button(QtWidgets.QMessageBox.Discard).setText("Discard changes")
