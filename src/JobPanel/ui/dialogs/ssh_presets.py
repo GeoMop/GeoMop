@@ -29,6 +29,6 @@ class UiSshPresets(UiPresetsDialog):
         super().setup_ui(dialog)
 
         # dialog properties
-        dialog.resize(680, 510)
+        dialog.resize(680, 560)
         dialog.setObjectName("SshPresetsDialog")
         dialog.setWindowTitle("SSH hosts")

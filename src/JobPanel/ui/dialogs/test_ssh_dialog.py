@@ -77,11 +77,16 @@ class TestSSHDialog(QtWidgets.QDialog):
                         self._error.addItem(step)
                         item = self._error.item(self._error.count() - 1)
                         item.setForeground(QtGui.QColor(0, 128, 0))
-
                     self._error.setCurrentRow(self._error.count() - 1, QtCore.QItemSelectionModel.NoUpdate)
+
+                    if "version" in res["data"]["installation_info"]:
+                        self._error.addItem("GeoMop version: {}".format(res["data"]["installation_info"]["version"]))
+                    if "revision" in res["data"]["installation_info"]:
+                        self._error.addItem("GeoMop revision: {}".format(res["data"]["installation_info"]["revision"]))
                     self._error.addItem("Executables on remote:")
-                    for executable in res["data"]["executables"]:
-                        self._error.addItem(executable)
+                    if "executables" in res["data"]["installation_info"]:
+                        for executable in res["data"]["installation_info"]["executables"]:
+                            self._error.addItem(executable["name"])
                     self._error.setCurrentRow(self._error.count() - 1, QtCore.QItemSelectionModel.NoUpdate)
             finished = True
 

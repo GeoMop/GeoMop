@@ -254,7 +254,19 @@ class SshDialog(AFormContainer):
         if dialog.finished and (dialog.res_data is not None) and (not dialog.res_data["errors"]):
             self.parent.presets[preset.name].tested = True
             self.parent.presets[preset.name].home_dir = dialog.res_data["home_dir"]
-            self.parent.presets[preset.name].executables = dialog.res_data["executables"]
+            if "version" in dialog.res_data["installation_info"]:
+                self.parent.presets[preset.name].version = dialog.res_data["installation_info"]["version"]
+            else:
+                self.parent.presets[preset.name].version = ""
+            if "revision" in dialog.res_data["installation_info"]:
+                self.parent.presets[preset.name].revision = dialog.res_data["installation_info"]["revision"]
+            else:
+                self.parent.presets[preset.name].revision = ""
+            if "executables" in dialog.res_data["installation_info"]:
+                self.parent.presets[preset.name].executables = \
+                    [e["name"] for e in dialog.res_data["installation_info"]["executables"]]
+            else:
+                self.parent.presets[preset.name].executables = []
             self.parent.presets.save()
         else:
             self.parent.presets[preset.name].tested = False
@@ -268,15 +280,21 @@ class SshDialog(AFormContainer):
 
     def update_test_labels(self):
         exec_text = "Available executables:\n"
+        version_text = "GeoMop version: "
+        revision_text = "GeoMop revision: "
         if self.parent.presets and (not self.is_dirty()) and self.preset.name in self.parent.presets and \
                 self.parent.presets[self.preset.name].tested:
             self.ui.testedLabel.setText("The connection is tested.")
             self.ui.testedLabel.setStyleSheet("QLabel { color : green; }")
+            version_text += self.parent.presets[self.preset.name].geomop_version
+            revision_text += self.parent.presets[self.preset.name].geomop_revision[:10]
             exec_text += ", ".join(self.parent.presets[self.preset.name].executables)
         else:
             self.ui.testedLabel.setText("The connection must be tested before use.")
             self.ui.testedLabel.setStyleSheet("QLabel { color : red; }")
         self.ui.availableExecutablesLabel.setText(exec_text)
+        self.ui.geomopVersionLabel.setText(version_text)
+        self.ui.geomopRevisionLabel.setText(revision_text)
 
 
 class UiSshDialog():
@@ -448,9 +466,15 @@ class UiSshDialog():
         self.testedLabel.setWordWrap(True)
         self.formLayout.setWidget(10, QtWidgets.QFormLayout.LabelRole, self.testedLabel)
 
+        self.geomopVersionLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
+        self.formLayout.setWidget(11, QtWidgets.QFormLayout.LabelRole, self.geomopVersionLabel)
+
+        self.geomopRevisionLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
+        self.formLayout.setWidget(12, QtWidgets.QFormLayout.LabelRole, self.geomopRevisionLabel)
+
         self.availableExecutablesLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
         self.availableExecutablesLabel.setWordWrap(True)
-        self.formLayout.setWidget(11, QtWidgets.QFormLayout.LabelRole, self.availableExecutablesLabel)
+        self.formLayout.setWidget(13, QtWidgets.QFormLayout.LabelRole, self.availableExecutablesLabel)
 
         return self.formLayout
 

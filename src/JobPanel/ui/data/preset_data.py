@@ -183,6 +183,10 @@ class SshPreset(APreset):
         """True if SSH preset is tested"""
         self.home_dir = kw_or_def('home_dir', '')
         """User's home directory"""
+        self.geomop_version = kw_or_def('geomop_version', '')
+        """Remote GeoMop version"""
+        self.geomop_revision = kw_or_def('geomop_revision', '')
+        """Remote GeoMop revision"""
         self.executables = kw_or_def('executables', [])
         """Available executables"""
 
