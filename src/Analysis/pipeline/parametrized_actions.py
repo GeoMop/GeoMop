@@ -19,6 +19,7 @@ class Flow123dAction(ParametrizedActionType):
     def __init__(self, **kwargs):
         """
         :param string YAMLFile: path to Yaml file
+        :param string Executable: flow123d executable
         :param action or DTT Input: action DTT variable
         """
         super(Flow123dAction, self).__init__(**kwargs)
@@ -85,6 +86,11 @@ class Flow123dAction(ParametrizedActionType):
         for file in self._yaml_support.get_input_files():
             self._hash.update(bytes(input_files_hashes[file], "utf-8"))
 
+        # Executable hash
+        if "Executable" in self._variables:
+            self._hash.update(bytes("Executable:{};{}"
+                .format(len(self._variables["Executable"]), self._variables["Executable"]), "utf-8"))
+
         self._output = self.__file_output()
 
     def _get_work_dir(self):
@@ -95,6 +101,9 @@ class Flow123dAction(ParametrizedActionType):
         """return array of variables python scripts"""
         var = super(Flow123dAction, self)._get_variables_script()
         var.append(["YAMLFile='{0}'".format(self._variables["YAMLFile"])])
+        if "Executable" in self._variables:
+            v = "Executable={0}".format(self._variables["Executable"])
+            var.append([v])
         return var
 
     def _get_runner(self, params):    
@@ -108,7 +117,11 @@ class Flow123dAction(ParametrizedActionType):
         output_dir = "output"
         flow_output_dir = os.path.relpath(output_dir, os.path.dirname(yaml_file))
         # we need flow_output_dir relative to yaml_file
-        runner.command = ["flow123d", "-s", yaml_file, "-o", flow_output_dir]
+        if "Executable" in self._variables:
+            executable = self._variables["Executable"]
+        else:
+            executable = "flow123d"
+        runner.command = [executable, "-s", yaml_file, "-o", flow_output_dir]
 
         runner.input_files = [yaml_file]
         yaml_dir = os.path.dirname(yaml_file)
@@ -166,6 +179,9 @@ class Flow123dAction(ParametrizedActionType):
         err = super(Flow123dAction, self)._check_params()
         if 'YAMLFile' not in self._variables:
             self._add_error(err, "Flow123d action require YAMLFile parameter")
+        if 'Executable' in self._variables:
+            if not isinstance(self._variables['Executable'], str) or self._variables['Executable'] == "":
+                self._add_error(err, "Parameter 'Executable' must be non-empty string")
         if self._output is None:
             self._add_error(err, "Can't determine output from YAML file")
         return err
