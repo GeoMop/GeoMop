@@ -255,13 +255,13 @@ class SshDialog(AFormContainer):
             self.parent.presets[preset.name].tested = True
             self.parent.presets[preset.name].home_dir = dialog.res_data["home_dir"]
             if "version" in dialog.res_data["installation_info"]:
-                self.parent.presets[preset.name].version = dialog.res_data["installation_info"]["version"]
+                self.parent.presets[preset.name].geomop_version = dialog.res_data["installation_info"]["version"]
             else:
-                self.parent.presets[preset.name].version = ""
+                self.parent.presets[preset.name].geomop_version = ""
             if "revision" in dialog.res_data["installation_info"]:
-                self.parent.presets[preset.name].revision = dialog.res_data["installation_info"]["revision"]
+                self.parent.presets[preset.name].geomop_revision = dialog.res_data["installation_info"]["revision"]
             else:
-                self.parent.presets[preset.name].revision = ""
+                self.parent.presets[preset.name].geomop_revision = ""
             if "executables" in dialog.res_data["installation_info"]:
                 self.parent.presets[preset.name].executables = \
                     [e["name"] for e in dialog.res_data["installation_info"]["executables"]]
