@@ -65,7 +65,7 @@ class Autosave:
                 head, tail = os.path.split(self.curr_filename_fnc() if not None else self.DEFAULT_FILENAME)
             msg.setText("Do you wish to continue editing last unsaved version of file: " + tail + " ?" +
                         "\nLast modification: " +
-                        time.strftime("%d/%m/%Y %H:%M:%S",
+                        time.strftime("%Y/%m/%d %H:%M:%S",
                                       time.gmtime(os.path.getmtime(self.backup_filename()))))
             msg.setStandardButtons(QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No)
             msg.setDefaultButton(QtWidgets.QMessageBox.Yes)
