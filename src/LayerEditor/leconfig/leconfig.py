@@ -53,7 +53,7 @@ class _Config:
         self._workspace = kw_or_def('_workspace')
         self.show_init_area = kw_or_def('show_init_area', True)
             
-        self.last_data_dir = kw_or_def('last_data_dir', expanduser("~"))
+        self.current_workdir = os.getcwd()
         """directory of the most recently opened data file"""
         self.recent_files = kw_or_def('recent_files', [])
         """a list of recently opened files"""
@@ -115,16 +115,16 @@ class _Config:
         if self.workspace and self.analysis:
             return os.path.join(self.workspace, self.analysis)
         else:
-            return self.last_data_dir
+            return self.current_workdir
             
-    def update_last_data_dir(self, file_name):
+    def update_current_workdir(self, file_name):
         """Save dir from last used file"""
         analysis_directory = None
         directory = os.path.dirname(os.path.realpath(file_name))
         if self.workspace is not None and self.analysis is not None:
             analysis_dir = os.path.join(self.workspace, self.analysis)
         if analysis_directory is None or directory != analysis_dir:
-            self.last_data_dir = directory
+            self.current_workdir = directory
 
     @property
     def workspace(self):
@@ -344,7 +344,7 @@ class LEConfig:
             file = cls.curr_file
         cls.le_serializer.save(cls, file)
         cls.history.saved()
-        cls.config.update_last_data_dir(file)
+        cls.config.update_current_workdir(file)
         cls.config.add_recent_file(file)
         cls.curr_file = file
         try:
@@ -359,7 +359,7 @@ class LEConfig:
         """        
         cls.main_window.release_data(cls.diagram_id())
         cls.curr_file = file
-        cls.config.update_last_data_dir(file)
+        cls.config.update_current_workdir(file)
         if file is None:
             cls.curr_file_timestamp = None
         else:
@@ -411,7 +411,7 @@ class LEConfig:
         """
         try:
             cls.open_file(file_name)
-            cls.config.update_last_data_dir(file_name)
+            cls.config.update_current_workdir(file_name)
             cls.config.add_recent_file(file_name)
             return True
         except (RuntimeError, IOError) as err:

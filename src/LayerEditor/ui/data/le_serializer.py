@@ -1,4 +1,6 @@
 import os
+import json
+
 from gm_base.geometry_files.format_last import  LayerType, TopologyType, InterpolatedNodeSet, InterfaceNodeSet
 from gm_base.geometry_files.geometry_factory import GeometryFactory
 from .diagram_structures import Diagram
@@ -221,14 +223,19 @@ class LESerializer():
         decomp = polygons_io.deserialize(nodes, topology)
         diagram.import_decomposition(decomp)
 
-    def save(self, cfg, path):
-        geometry = self.cfg_to_geometry(cfg, path)
-        layers_io.write_geometry(path, geometry)
+    def save(self, cfg, path=""):
+        lg = self.cfg_to_geometry(cfg)
+        if path:
+            with open(path, 'w') as f:
+                json.dump(lg.serialize(), f, indent=4, sort_keys=True)
+            return None
+        else:
+            return json.dumps(lg.serialize(), indent=4, sort_keys=True)
 
-    def cfg_to_geometry(self, cfg, path):
+
+    def cfg_to_geometry(self, cfg):
         """Save diagram data to set file"""
         gf = GeometryFactory()
-        gf._base_dir = os.path.dirname(path)
         for reg in cfg.diagram.regions.regions.values():
             gf.add_region(reg.color, reg.name, reg.dim, reg.mesh_step, reg.boundary, reg.not_used)
         gf.save_surfaces(cfg.layers.surfaces)
