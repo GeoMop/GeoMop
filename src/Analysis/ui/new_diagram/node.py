@@ -1,5 +1,11 @@
+"""
+Start script that initializes main window and runs APP
+@author: Tomáš Blažek
+@contact: tomas.blazek@tul.cz
+"""
+
 from PyQt5 import QtWidgets, QtCore, QtGui
-from port import Port
+from .port import Port
 
 class Node(QtWidgets.QGraphicsPathItem):
     WIDTH = 100

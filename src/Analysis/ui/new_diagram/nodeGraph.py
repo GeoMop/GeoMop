@@ -1,6 +1,14 @@
-import sys
+"""
+Start script that initializes main window and runs APP
+@author: Tomáš Blažek
+@contact: tomas.blazek@tul.cz
+"""
+
+
+import os, sys
+sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 from PyQt5.QtWidgets import QApplication, QWidget
-from main_widget import MainWidget
+from new_diagram.main_widget import MainWidget
 
 
 if __name__ == "__main__":

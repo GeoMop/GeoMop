@@ -1,5 +1,12 @@
+"""
+Start script that initializes main window and runs APP
+@author: Tomáš Blažek
+@contact: tomas.blazek@tul.cz
+"""
+import os, sys
+sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 from PyQt5 import QtWidgets, QtCore, QtGui
-from workspace import Workspace
+from .workspace import Workspace
 
 class MainWidget(QtWidgets.QMainWindow):
     def __init__(self, parent=None):

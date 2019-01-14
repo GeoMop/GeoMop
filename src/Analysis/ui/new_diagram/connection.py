@@ -1,13 +1,19 @@
+"""
+Representation of connection between two ports
+@author: Tomáš Blažek
+@contact: tomas.blazek@tul.cz
+"""
 from PyQt5 import QtWidgets, QtCore, QtGui
-from port import Port
+from .port import Port
 
 
 class Connection(QtWidgets.QGraphicsPathItem):
+    """Representation of connection between two ports"""
     def __init__(self, port1, port2=None, parent=None):
         super(Connection, self).__init__(parent)
-        self.connnection_set = False if port2 is None else True
+        self.connection_set = False if port2 is None else True
         self.port1 = port1
-        self.port2 = port2 if self.connnection_set else Port(self.port1.get_connection_point())
+        self.port2 = port2 if self.connection_set else Port(self.port1.get_connection_point())
         self.setPen(QtCore.Qt.black)
         self.setZValue(1)
 

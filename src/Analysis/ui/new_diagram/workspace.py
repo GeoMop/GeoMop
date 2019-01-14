@@ -1,10 +1,17 @@
+"""
+Start script that initializes main window and runs APP
+@author: Tomáš Blažek
+@contact: tomas.blazek@tul.cz
+"""
+
 from PyQt5 import QtWidgets, QtCore, QtGui
-from node import Node
-from node_editor_menu import NodeEditorMenu
-from connection import Connection
+from .node import Node
+from .node_editor_menu import NodeEditorMenu
+from .connection import Connection
 
 
 class Workspace(QtWidgets.QGraphicsView):
+
     def __init__(self, parent=None):
         super(Workspace, self).__init__(parent)
         self.scene = QtWidgets.QGraphicsScene(self)
@@ -35,7 +42,6 @@ class Workspace(QtWidgets.QGraphicsView):
             self.new_connection.set_port2(port)
             self.connections.append(self.new_connection)
             self.new_connection = None
-
 
     def mouseMoveEvent(self, event):
         super(Workspace, self).mouseMoveEvent(event)

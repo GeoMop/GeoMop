@@ -1,3 +1,9 @@
+"""
+Start script that initializes main window and runs APP
+@author: Tomáš Blažek
+@contact: tomas.blazek@tul.cz
+"""
+
 from PyQt5 import QtWidgets
 
 
