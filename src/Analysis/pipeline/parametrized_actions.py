@@ -293,12 +293,14 @@ class FunctionAction(ParametrizedActionType):
         # add params and Expression to hash
         if 'Params' in self._variables and \
                 isinstance(self._variables['Params'], list):
+            self._hash.update(bytes("Params:{};".format(len(self._variables['Params'])), "utf-8"))
             for par in self._variables['Params']:
-                self._hash.update(bytes(par, "utf-8"))
+                self._hash.update(bytes("{};{}".format(len(par), par), "utf-8"))
         if 'Expressions' in self._variables and \
                 isinstance(self._variables['Expressions'], list):
+            self._hash.update(bytes("Expressions:{};".format(len(self._variables['Expressions'])), "utf-8"))
             for ex in self._variables['Expressions']:
-                self._hash.update(bytes(ex, "utf-8"))
+                self._hash.update(bytes("{};{}".format(len(ex), ex), "utf-8"))
 
         self._output = self.__func_output()
 
