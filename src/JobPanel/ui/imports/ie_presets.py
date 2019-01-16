@@ -78,7 +78,7 @@ class IEPbs(IE):
     
 class IESsh(IE):
     items = ["env", "host", "name", "pbs_system", "port", "geomop_root", "workspace", "uid",
-             "tested", "home_dir", "executables"]
+             "tested", "home_dir", "geomop_version", "geomop_revision", "executables"]
     default_items = {"key":"", "pwd":"", "to_pc": False, "to_remote": False, 
     "use_tunneling": False}
         

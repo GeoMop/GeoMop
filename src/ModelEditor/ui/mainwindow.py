@@ -208,14 +208,6 @@ class MainWindow(QtWidgets.QMainWindow):
         if not self._model_editor.save_old_file():
             return event.ignore()
 
-        # back up clipboard
-        try:
-            # pyperclip in try/except block - throws exception on Win XP
-            import pyperclip
-            clipboard = QtWidgets.QApplication.clipboard()
-            pyperclip.copy(clipboard.text())
-        except Exception:
-            cfg.logger.error("Could not persist clipboard contents on application exit.")
         super(MainWindow, self).closeEvent(event)
 
     def config_changed(self):

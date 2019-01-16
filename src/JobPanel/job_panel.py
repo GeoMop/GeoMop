@@ -56,7 +56,7 @@ class JobPanel(object):
         self._app = QtWidgets.QApplication(args)
         
         #icon
-        self._app.setWindowIcon(icon.get_app_icon("jp-geomap"))
+        self._app.setWindowIcon(icon.get_app_icon("geomap"))
 
         # load data container
         self._data = DataContainer()

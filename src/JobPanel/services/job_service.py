@@ -70,8 +70,10 @@ class Job(service_base.ServiceBase):
     def _job_run(self):
         # find executable
         if self.job_executable.path == "":
-            executables = self.request_get_executables_from_installation()
-            if executables is None:
+            installation = self.request_get_installation_info()
+            if (installation is not None) and ("executables" in installation):
+                executables = installation["executables"]
+            else:
                 logging.error("Unable to load installation executables.")
                 self.error = True
                 return

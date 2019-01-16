@@ -266,6 +266,10 @@ class Calibration(WrapperActionType):
     def _inicialize(self):
         """inicialize action run variables"""
         super()._inicialize()
+
+        # update hash
+        # todo:
+
         self.__make_output()
 
     def _get_output_to_wrapper(self):

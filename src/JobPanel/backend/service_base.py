@@ -561,19 +561,19 @@ class ServiceBase(JsonData):
         return executor.kill()
 
     @LongRequest
-    def request_get_executables_from_installation(self, geomop_root=None):
+    def request_get_installation_info(self, geomop_root=None):
         """
-        Return executables from installation where service running.
+        Return installation info from environment where service running.
         Parameter geomop_root is used because Delegator does not have set service_host_connection.
         :return:
         """
         if geomop_root is None:
             geomop_root = self.get_geomop_root()
-        file = os.path.join(geomop_root, "executables.json")
+        file = os.path.join(geomop_root, "installation.json")
         try:
             with open(file, 'r') as fd:
-                executables = json.load(fd)
+                installation = json.load(fd)
         except Exception as e:
-            logging.error("Loading installation executables error: {0}".format(e))
+            logging.error("Loading installation info error: {0}".format(e))
             return None
-        return executables
+        return installation
