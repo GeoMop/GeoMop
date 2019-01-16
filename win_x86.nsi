@@ -2,6 +2,11 @@
 # 
 #--------------------------------
 
+
+# Maximum compression.
+SetCompressor /SOLID lzma
+
+
 # installation only for current user
 !define MULTIUSER_EXECUTIONLEVEL Standard
 !include MultiUser.nsh
@@ -24,10 +29,6 @@
 # Include the tools we use.
 !include MUI2.nsh
 !include LogicLib.nsh
-
-
-# Maximum compression.
-SetCompressor /SOLID lzma
 
 
 # Read version information from file.
