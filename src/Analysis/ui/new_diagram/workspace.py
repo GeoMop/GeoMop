@@ -47,6 +47,7 @@ class Workspace(QtWidgets.QGraphicsView):
         super(Workspace, self).mouseMoveEvent(event)
         if self.new_connection is not None:
             self.new_connection.set_port2_pos(self.mapToScene(event.pos()))
-        self.scene.update()
+
+
 
 

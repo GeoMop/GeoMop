@@ -17,7 +17,15 @@ class Connection(QtWidgets.QGraphicsPathItem):
         self.setPen(QtCore.Qt.black)
         self.setZValue(1)
 
+    def __repr__(self):
+        return "Connection from: " + str(self.port1) + " to: " + str(self.port2)
+
     def paint(self, painter, style, widget=None):
+        self.update_gfx()
+        super(Connection, self).paint(painter, style, widget)
+
+    def update_gfx(self):
+        self.prepareGeometryChange()
         path = QtGui.QPainterPath()
         p1 = self.port1.get_connection_point()
         p2 = self.port2.get_connection_point()
@@ -26,10 +34,11 @@ class Connection(QtWidgets.QGraphicsPathItem):
         path.moveTo(p1)
         path.cubicTo(c1, c2, p2)
         self.setPath(path)
-        super(Connection, self).paint(painter, style, widget)
 
     def set_port2_pos(self, pos):
         self.port2.setPos(self.mapFromScene(pos))
+        self.update_gfx()
 
     def set_port2(self, port):
         self.port2 = port
+        self.update_gfx()

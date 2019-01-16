@@ -8,22 +8,25 @@ from PyQt5 import QtWidgets, QtCore, QtGui
 
 
 class Port(QtWidgets.QGraphicsPathItem):
-    RADIUS = 5
+    RADIUS = 6
+    BORDER = 3
+    SIZE = RADIUS * 2 + BORDER * 2
 
     def __init__(self, pos, parent=None):
         super(Port, self).__init__(parent)
-
+        if pos is not None:
+            self.setPos(pos)
         p = QtGui.QPainterPath()
         p.addEllipse(QtCore.QRectF(0, 0, self.RADIUS * 2, self.RADIUS * 2))
         p.moveTo(self.RADIUS, self.RADIUS)
         self.setPath(p)
-        if pos is not None:
-            self.setPos(pos)
         self.setPen(QtCore.Qt.black)
         self.setBrush(QtCore.Qt.white)
         self.setFlag(self.ItemIsSelectable)
         self.up_dir = None
-        print(self.contains(QtCore.QPoint(0, 0)))
+
+    def __repr__(self):
+        return "Port: " + str(self.mapToScene(self.pos()))
 
     def mousePressEvent(self, event):
         self.scene().parent().add_connection(self)
@@ -36,7 +39,6 @@ class Port(QtWidgets.QGraphicsPathItem):
         p = QtGui.QPainterPath()
         p.addRect(self.path().boundingRect())
         return p
-
 
 
 class InputPort(Port):
