@@ -2,11 +2,14 @@
 # 
 #--------------------------------
 
+# installation only for current user
+!define MULTIUSER_EXECUTIONLEVEL Standard
+!include MultiUser.nsh
+
 # Define directories.
 !define GIT_DIR "."
 !define SRC_DIR "${GIT_DIR}\src"
 !define BUILD_DIR "${GIT_DIR}\build\win_x86"
-!define APP_HOME_DIR "$APPDATA\GeoMop"
 !define DATA_DIR "${GIT_DIR}\data"
 
 !define PYTHON_MAJOR   "3"
@@ -33,15 +36,15 @@ SetCompressor /SOLID lzma
 
 Name "GeoMop ${VERSION}"
 Caption "GeoMop ${VERSION} Setup"
-InstallDir "$PROGRAMFILES\GeoMop"
+#InstallDir "$PROGRAMFILES\GeoMop"
 OutFile "${GIT_DIR}\dist\geomop_${VERSION}_x86_64.exe"
 
 # Registry key to check for directory (so if you install again, it will 
 # overwrite the old one automatically)
-InstallDirRegKey HKLM "Software\GeoMop" "Install_Dir"
+InstallDirRegKey HKCU "Software\GeoMop" "Install_Dir"
 
 # Request application privileges for Windows Vista and newer
-RequestExecutionLevel admin
+#RequestExecutionLevel admin
 
 #--------------------------------
 
@@ -66,6 +69,10 @@ Var PYTHON_EXE
 Var PYTHON_SCRIPTS
 
 Function .onInit
+
+  !insertmacro MULTIUSER_INIT
+
+  !define APP_HOME_DIR "$APPDATA\GeoMop"
 
   CheckPython:
     # Check if Python is installed.
@@ -277,10 +284,10 @@ Section "JobPanel" SecJobPanel
   CreateDirectory "$INSTDIR\JobPanel\versions"
 
   # Grant jobs, lock folder permissions to Users
-  ExecWait 'icacls "$INSTDIR\JobPanel\jobs" /grant *S-1-5-32-545:(F)'
-  ExecWait 'icacls "$INSTDIR\JobPanel\lock" /grant *S-1-5-32-545:(F)'
-  ExecWait 'icacls "$INSTDIR\JobPanel\log" /grant *S-1-5-32-545:(F)'
-  ExecWait 'icacls "$INSTDIR\JobPanel\versions" /grant *S-1-5-32-545:(F)'
+  #ExecWait 'icacls "$INSTDIR\JobPanel\jobs" /grant *S-1-5-32-545:(F)'
+  #ExecWait 'icacls "$INSTDIR\JobPanel\lock" /grant *S-1-5-32-545:(F)'
+  #ExecWait 'icacls "$INSTDIR\JobPanel\log" /grant *S-1-5-32-545:(F)'
+  #ExecWait 'icacls "$INSTDIR\JobPanel\versions" /grant *S-1-5-32-545:(F)'
 
 SectionEnd
 
@@ -431,13 +438,13 @@ Section -post
   WriteUninstaller "uninstall.exe"
 
   ; Write the installation path into the registry
-  WriteRegStr HKLM SOFTWARE\GeoMop "Install_Dir" "$INSTDIR"
+  WriteRegStr HKCU SOFTWARE\GeoMop "Install_Dir" "$INSTDIR"
   
   ; Write the uninstall keys for Windows
-  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\GeoMop" "DisplayName" "GeoMop"
-  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\GeoMop" "UninstallString" "$\"$INSTDIR\uninstall.exe$\""
-  WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\GeoMop" "NoModify" 1
-  WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\GeoMop" "NoRepair" 1
+  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\GeoMop" "DisplayName" "GeoMop"
+  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\GeoMop" "UninstallString" "$\"$INSTDIR\uninstall.exe$\""
+  WriteRegDWORD HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\GeoMop" "NoModify" 1
+  WriteRegDWORD HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\GeoMop" "NoRepair" 1
   
 SectionEnd
 
@@ -477,8 +484,8 @@ SectionEnd
 Section "Uninstall"
   
   # Remove registry keys
-  DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\GeoMop"
-  DeleteRegKey HKLM SOFTWARE\GeoMop
+  DeleteRegKey HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\GeoMop"
+  DeleteRegKey HKCU SOFTWARE\GeoMop
 
   # Delete desktop icons.
   Delete "$DESKTOP\JobPanel.lnk"
@@ -487,6 +494,9 @@ Section "Uninstall"
 
   # Remove start menu shortcuts.
   RMDir /r "$SMPROGRAMS\GeoMop"
+
+  # Uninstall Flow123d
+  #ExecWait '"$INSTDIR\flow123d\uninstall.bat"'
 
   # Remove GeoMop installation directory and all files within.
   RMDir /r "$INSTDIR"
