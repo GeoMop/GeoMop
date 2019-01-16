@@ -140,16 +140,6 @@ Section "Runtime Environment" SecRuntime
   File "${BUILD_DIR}\PyYAML-3.13-cp36-cp36m-win_amd64.whl"
   ExecWait '"$PYTHON_SCRIPTS\python.exe" -m pip install "$INSTDIR\prerequisites\PyYAML-3.13-cp36-cp36m-win_amd64.whl"'
 
-  # Install six.
-  SetOutPath $INSTDIR\prerequisites
-  File "${BUILD_DIR}\six-1.11.0-py2.py3-none-any.whl"
-  ExecWait '"$PYTHON_SCRIPTS\python.exe" -m pip install "$INSTDIR\prerequisites\six-1.11.0-py2.py3-none-any.whl"'
-
-  # Install pyperclip.
-  SetOutPath $INSTDIR\prerequisites
-  File "${BUILD_DIR}\pyperclip-1.7.0.tar.gz"
-  ExecWait '"$PYTHON_SCRIPTS\python.exe" -m pip install "$INSTDIR\prerequisites\pyperclip-1.7.0.tar.gz"'
-
   # Install PyQt5.
   SetOutPath $INSTDIR\prerequisites
   File "${BUILD_DIR}\PyQt5_sip-4.19.13-cp36-none-win_amd64.whl"
