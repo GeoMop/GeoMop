@@ -7,7 +7,8 @@
 SetCompressor /SOLID lzma
 
 
-InstallDir "$PROGRAMFILES\GeoMop"
+#InstallDir "$PROGRAMFILES\GeoMop"
+!define MULTIUSER_INSTALLMODE_INSTDIR "GeoMop"
 
 # installation only for current user
 !define MULTIUSER_EXECUTIONLEVEL Standard
