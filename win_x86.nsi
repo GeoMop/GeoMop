@@ -7,11 +7,9 @@
 SetCompressor /SOLID lzma
 
 
-#InstallDir "$PROGRAMFILES\GeoMop"
-!define MULTIUSER_INSTALLMODE_INSTDIR "GeoMop"
-
 # installation only for current user
 !define MULTIUSER_EXECUTIONLEVEL Standard
+!define MULTIUSER_INSTALLMODE_INSTDIR "GeoMop"
 !include MultiUser.nsh
 
 # Define directories.
@@ -228,7 +226,6 @@ Section "Runtime Environment" SecRuntime
 SectionEnd
 
 
-/*
 # Flow123d with support for GeoMop.
 Section "Flow123d" SecFlow
 
@@ -241,7 +238,6 @@ Section "Flow123d" SecFlow
   ExecWait '"$INSTDIR\flow123d\install.bat"'
 
 SectionEnd
-*/
 
 
 Section "-JobsScheduler" SecJobsScheduler
@@ -460,9 +456,9 @@ SectionEnd
 # Section description text.
 !insertmacro MUI_FUNCTION_DESCRIPTION_BEGIN
 !insertmacro MUI_DESCRIPTION_TEXT ${SecRuntime} \
-"The runtime environment for GeoMop - Python 3.4 with PyQt5."
-# !insertmacro MUI_DESCRIPTION_TEXT ${SecFlow} \
-# "Flow123d with support for GeoMop."
+"The runtime environment for GeoMop - Python 3.6 with PyQt5."
+!insertmacro MUI_DESCRIPTION_TEXT ${SecFlow} \
+"Flow123d with support for GeoMop."
 !insertmacro MUI_DESCRIPTION_TEXT ${SecJobsScheduler} \
 "Remove jobs scheduler."
 !insertmacro MUI_DESCRIPTION_TEXT ${SecAnalysis} \
@@ -504,7 +500,7 @@ Section "Uninstall"
   RMDir /r "$SMPROGRAMS\GeoMop"
 
   # Uninstall Flow123d
-  #ExecWait '"$INSTDIR\flow123d\uninstall.bat"'
+  ExecWait '"$INSTDIR\flow123d\uninstall.bat"'
 
   # Remove GeoMop installation directory and all files within.
   RMDir /r "$INSTDIR"
