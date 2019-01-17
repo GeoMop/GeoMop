@@ -330,6 +330,8 @@ class ServiceFrontend(ServiceBase):
 
             service_data["listen_address_substitute"] = ["192.168.99.100", host_port]
 
+            service_data["process"]["fterm_path"] = os.path.join(self.get_geomop_root(), "flow123d\\bin\\fterm.bat")
+
         # start backend
         child_id = self.request_start_child(service_data)
         self._backend_proxy = self._child_services[child_id]

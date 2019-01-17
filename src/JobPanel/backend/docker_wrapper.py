@@ -7,9 +7,8 @@ import os
 import sys
 import subprocess
 
+from gm_base.global_const import GEOMOP_INTERNAL_DIR_NAME
 
-GEOMOP_INTERNAL_DIR_NAME = ".geomop"
-"""We do not import from gm_base.config due to potential import error."""
 
 args = sys.argv[1:]
 if not args:
