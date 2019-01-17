@@ -7,6 +7,8 @@
 SetCompressor /SOLID lzma
 
 
+InstallDir "$PROGRAMFILES\GeoMop"
+
 # installation only for current user
 !define MULTIUSER_EXECUTIONLEVEL Standard
 !include MultiUser.nsh
@@ -99,6 +101,10 @@ Function .onInit
     # Set the path to the python.exe instead of directory.
     StrCpy $PYTHON_EXE "$PYTHON_EXEpython.exe"
 
+FunctionEnd
+
+Function un.onInit
+  !insertmacro MULTIUSER_UNINIT
 FunctionEnd
 
 #--------------------------------
@@ -425,8 +431,8 @@ Section "-Default resources data" SecDefaultResourcesData
   IfFileExists "${APP_HOME_DIR}" +4 0
     CreateDirectory "${APP_HOME_DIR}"
     # fill data home to default resources data
-    SetOutPath "${APP_HOME_DIR}"
-    File /r "${DATA_DIR}/*"
+    #SetOutPath "${APP_HOME_DIR}"
+    #File /r "${DATA_DIR}/*"
 
 SectionEnd
 
