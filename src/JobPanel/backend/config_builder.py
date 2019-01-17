@@ -73,7 +73,7 @@ def build(data_app, mj_id):
     # docker flow123d executable
     # todo: v budoucnu bude brat z executables.json, ktery bude primo v dockeru
     docker_flow123d = {"__class__": "Executable",
-                       "name": "flow123d",
+                       "name": "flow123d_3.0.0",
                        "path": "/opt/flow123d/bin/flow123d"}
 
     # mj environment

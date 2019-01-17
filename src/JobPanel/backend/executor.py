@@ -444,6 +444,8 @@ class ProcessDocker(ProcessBase):
     def __init__(self, process_config):
         self.docker_port_expose = (0, 0)
         """Docker port expose (host_port, container_port)"""
+        self.fterm_path = ""
+        """Path to fterm.bat (only used on win)"""
         super().__init__(process_config)
 
     def start(self):
@@ -461,7 +463,10 @@ class ProcessDocker(ProcessBase):
         cwd = self.environment.geomop_analysis_workspace + "/" + self.exec_args.work_dir
 
         # wrapper
-        args = [self.environment.python, self.environment.geomop_root + "/JobPanel/backend/docker_wrapper.py"]
+        wrapper_path = self.environment.geomop_root + "/JobPanel/backend/docker_wrapper.py"
+        if sys.platform == "win32":
+            wrapper_path = "/" + wrapper_path
+        args = [self.environment.python, wrapper_path]
 
         args.extend(self._get_limit_args())
 
@@ -483,7 +488,11 @@ class ProcessDocker(ProcessBase):
             flags = "-d"
             if arg_p != "":
                 flags += " -p " + arg_p
-            base_args = ["fterm.bat", "--", flags, "/" + cwd]
+            if self.fterm_path != "":
+                base_args = [self.fterm_path]
+            else:
+                base_args = ["fterm.bat"]
+            base_args.extend(["--", flags, "/" + cwd])
             output = subprocess.check_output(base_args + args, universal_newlines=True)
             self.process_id = output.splitlines()[-1].strip()
         else:
