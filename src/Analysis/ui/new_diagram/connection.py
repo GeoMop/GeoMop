@@ -39,6 +39,7 @@ class Connection(QtWidgets.QGraphicsPathItem):
         super(Connection, self).paint(painter, style, widget)
 
     def update_gfx(self):
+        #todo: draw short line from the port
         if self.isSelected():
             self.setPen(self.dash_pen)
         else:

@@ -27,6 +27,27 @@ class Workspace(QtWidgets.QGraphicsView):
         self.nodes = []
         self.connections = []
         self.new_connection = None
+        self.setDragMode(self.ScrollHandDrag)
+
+        self.scale = 1.0
+
+    def wheelEvent(self, event):
+        degrees = event.angleDelta() / 8
+        steps = degrees.y() / 15
+        scale_factor = 1.2
+        min_factor = 0.1
+        max_factor = 10.0
+
+        if steps > 0:
+            self.scale = min(max_factor, self.scale * scale_factor)
+
+        else:
+            self.scale = max(min_factor, self.scale / scale_factor)
+
+        tr = self.transform()
+
+        self.setTransformationAnchor(self.AnchorUnderMouse)
+        self.setTransform(QtGui.QTransform().scale(self.scale, self.scale))
 
     def contextMenuEvent(self, event):
         self.new_node_pos = self.mapToScene(event.pos())
