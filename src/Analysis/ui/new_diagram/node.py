@@ -32,6 +32,10 @@ class Node(QtWidgets.QGraphicsPathItem):
         self.setFlag(self.ItemIsMovable)
         self.setFlag(self.ItemIsSelectable)
 
+    @staticmethod
+    def is_node():
+        return True
+
     @property
     def width(self):
         return self._width

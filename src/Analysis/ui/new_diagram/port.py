@@ -22,7 +22,6 @@ class Port(QtWidgets.QGraphicsPathItem):
         self.setPath(p)
         self.setPen(QtCore.Qt.black)
         self.setBrush(QtCore.Qt.white)
-        self.setFlag(self.ItemIsSelectable)
         self.up_dir = None
 
     def __repr__(self):
