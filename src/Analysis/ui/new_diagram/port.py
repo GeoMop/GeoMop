@@ -29,7 +29,6 @@ class Port(QtWidgets.QGraphicsPathItem):
 
     def mousePressEvent(self, event):
         self.scene().parent().add_connection(self)
-        super(Port, self).mousePressEvent(event)
 
     def get_connection_point(self):
         return self.mapToScene(QtCore.QPoint(self.RADIUS, self.RADIUS))

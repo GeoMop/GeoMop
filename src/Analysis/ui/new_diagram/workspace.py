@@ -27,27 +27,26 @@ class Workspace(QtWidgets.QGraphicsView):
         self.nodes = []
         self.connections = []
         self.new_connection = None
-        self.setDragMode(self.ScrollHandDrag)
+        self.setDragMode(self.RubberBandDrag)
 
-        self.scale = 1.0
+        # settings for zooming the workspace
+        self.zoom = 1.0
+        self.max_zoom = 10.0
+        self.min_zoom = 0.1
+        self.zoom_factor = 1.2
 
     def wheelEvent(self, event):
         degrees = event.angleDelta() / 8
         steps = degrees.y() / 15
-        scale_factor = 1.2
-        min_factor = 0.1
-        max_factor = 10.0
 
         if steps > 0:
-            self.scale = min(max_factor, self.scale * scale_factor)
+            self.zoom = min(self.max_zoom, self.zoom * self.zoom_factor)
 
         else:
-            self.scale = max(min_factor, self.scale / scale_factor)
-
-        tr = self.transform()
+            self.zoom = max(self.min_zoom, self.zoom / self.zoom_factor)
 
         self.setTransformationAnchor(self.AnchorUnderMouse)
-        self.setTransform(QtGui.QTransform().scale(self.scale, self.scale))
+        self.setTransform(QtGui.QTransform().scale(self.zoom, self.zoom))
 
     def contextMenuEvent(self, event):
         self.new_node_pos = self.mapToScene(event.pos())
@@ -73,7 +72,6 @@ class Workspace(QtWidgets.QGraphicsView):
             self.new_connection.set_port2_pos(self.mapToScene(event.pos()))
 
     def delete_items(self):
-        print(self.scene.selectedItems())
         for item in self.scene.selectedItems():
             if item.is_node():
                 conn_to_delete = []

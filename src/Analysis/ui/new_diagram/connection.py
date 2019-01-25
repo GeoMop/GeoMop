@@ -33,13 +33,22 @@ class Connection(QtWidgets.QGraphicsPathItem):
     def __repr__(self):
         return "Connection from: " + str(self.port1) + " to: " + str(self.port2)
 
+    def mousePressEvent(self, event):
+        super(Connection, self).mousePressEvent(event)
+        if self.port1.contains(self.mapToItem(self.port1, event.pos())):
+            event.ignore()
+            self.setSelected(False)
+
+        if self.port2.contains(self.mapToItem(self.port2, event.pos())):
+            event.ignore()
+            self.setSelected(False)
+
     def paint(self, painter, style, widget=None):
         style.state &= ~QtWidgets.QStyle.State_Selected
         self.update_gfx()
         super(Connection, self).paint(painter, style, widget)
 
     def update_gfx(self):
-        #todo: draw short line from the port
         if self.isSelected():
             self.setPen(self.dash_pen)
         else:
@@ -59,5 +68,6 @@ class Connection(QtWidgets.QGraphicsPathItem):
         self.update_gfx()
 
     def set_port2(self, port):
+        self.connection_set = True
         self.port2 = port
         self.update_gfx()
