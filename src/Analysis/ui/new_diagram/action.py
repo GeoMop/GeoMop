@@ -8,9 +8,9 @@ from PyQt5 import QtWidgets, QtCore, QtGui
 from .port import Port, InputPort, OutputPort
 
 
-class Node(QtWidgets.QGraphicsPathItem):
+class Action(QtWidgets.QGraphicsPathItem):
     def __init__(self, parent=None, position=QtCore.QPoint(0, 0)):
-        super(Node, self).__init__(parent)
+        super(Action, self).__init__(parent)
         self.in_ports = []
         self.out_ports = []
         self.redraw = False
@@ -31,9 +31,10 @@ class Node(QtWidgets.QGraphicsPathItem):
         self.setBrush(QtCore.Qt.darkGray)
         self.setFlag(self.ItemIsMovable)
         self.setFlag(self.ItemIsSelectable)
+        self.setFlag(self.ItemSendsGeometryChanges)
 
     @staticmethod
-    def is_node():
+    def is_action():
         return True
 
     @property
@@ -54,11 +55,17 @@ class Node(QtWidgets.QGraphicsPathItem):
         self._height = value
         self.redraw = True
 
+    def itemChange(self, change_type, value):
+        for port in self.ports():
+            for conn in port.connections:
+                conn.update_gfx()
+        return super(Action, self).itemChange(change_type, value)
+
     def paint(self, paint, item, widget=None):
         if self.redraw:
             self.redraw = False
             self._update_gfx()
-        super(Node, self).paint(paint, item, widget)
+        super(Action, self).paint(paint, item, widget)
 
     def _update_gfx(self):
         self.prepareGeometryChange()

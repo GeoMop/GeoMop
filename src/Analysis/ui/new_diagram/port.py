@@ -23,6 +23,7 @@ class Port(QtWidgets.QGraphicsPathItem):
         self.setPen(QtCore.Qt.black)
         self.setBrush(QtCore.Qt.white)
         self.up_dir = None
+        self.connections = []
 
     def __repr__(self):
         return "Port: " + str(self.mapToScene(self.pos()))

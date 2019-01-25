@@ -7,12 +7,12 @@ Start script that initializes main window and runs APP
 from PyQt5 import QtWidgets, QtCore, QtGui
 
 
-class NodeEditorMenu(QtWidgets.QMenu):
+class ActionEditorMenu(QtWidgets.QMenu):
     def __init__(self, parent):
-        super(NodeEditorMenu, self).__init__(parent)
+        super(ActionEditorMenu, self).__init__(parent)
         self.setTitle("Edit")
-        self.new_node = QtWidgets.QAction("New node")
-        self.addAction(self.new_node)
+        self.new_action = QtWidgets.QAction("New action")
+        self.addAction(self.new_action)
 
         self.delete = QtWidgets.QAction("Delete")
         self.delete.setShortcut(QtGui.QKeySequence.Delete)

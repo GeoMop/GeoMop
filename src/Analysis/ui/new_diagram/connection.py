@@ -20,7 +20,7 @@ class Connection(QtWidgets.QGraphicsPathItem):
         self.setZValue(1)
 
     @staticmethod
-    def is_node():
+    def is_action():
         return False
 
     def is_connected(self, port):
@@ -44,15 +44,14 @@ class Connection(QtWidgets.QGraphicsPathItem):
             self.setSelected(False)
 
     def paint(self, painter, style, widget=None):
-        style.state &= ~QtWidgets.QStyle.State_Selected
-        self.update_gfx()
-        super(Connection, self).paint(painter, style, widget)
-
-    def update_gfx(self):
         if self.isSelected():
             self.setPen(self.dash_pen)
         else:
             self.setPen(self.full_pen)
+        style.state &= ~QtWidgets.QStyle.State_Selected
+        super(Connection, self).paint(painter, style, widget)
+
+    def update_gfx(self):
         self.prepareGeometryChange()
         path = QtGui.QPainterPath()
         p1 = self.port1.get_connection_point()

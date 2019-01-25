@@ -5,7 +5,7 @@ Start script that initializes main window and runs APP
 """
 
 from PyQt5 import QtWidgets, QtCore, QtGui
-from .node import Node
+from .action import Action
 from .connection import Connection
 
 
@@ -18,11 +18,11 @@ class Workspace(QtWidgets.QGraphicsView):
         self.setRenderHint(QtGui.QPainter.Antialiasing, True)
 
         self.edit_menu = self.parent().edit_menu
-        self.edit_menu.new_node.triggered.connect(self.add_node)
+        self.edit_menu.new_action.triggered.connect(self.add_action)
         self.edit_menu.delete.triggered.connect(self.delete_items)
-        self.new_node_pos = QtCore.QPoint()
+        self.new_action_pos = QtCore.QPoint()
         self.setMouseTracking(True)
-        self.nodes = []
+        self.actions = []
         self.connections = []
         self.new_connection = None
         self.setDragMode(self.RubberBandDrag)
@@ -47,19 +47,21 @@ class Workspace(QtWidgets.QGraphicsView):
         self.setTransform(QtGui.QTransform().scale(self.zoom, self.zoom))
 
     def contextMenuEvent(self, event):
-        self.new_node_pos = self.mapToScene(event.pos())
+        self.new_action_pos = self.mapToScene(event.pos())
         self.edit_menu.exec_(event.globalPos())
 
-    def add_node(self):
-        self.nodes.append(Node(None, self.new_node_pos))
-        self.scene.addItem(self.nodes[-1])
+    def add_action(self):
+        self.actions.append(Action(None, self.new_action_pos))
+        self.scene.addItem(self.actions[-1])
 
     def add_connection(self, port):
         if self.new_connection is None:
             self.new_connection = Connection(port)
             self.scene.addItem(self.new_connection)
+            port.connections.append(self.new_connection)
         else:
             self.new_connection.set_port2(port)
+            port.connections.append(self.new_connection)
             self.new_connection.setFlag(QtWidgets.QGraphicsPathItem.ItemIsSelectable)
             self.connections.append(self.new_connection)
             self.new_connection = None
@@ -72,7 +74,7 @@ class Workspace(QtWidgets.QGraphicsView):
     def delete_items(self):
         while self.scene.selectedItems():
             item = self.scene.selectedItems()[0]
-            if item.is_node():
+            if item.is_action():
                 conn_to_delete = []
                 for conn in self.connections:
                     for port in item.ports():
@@ -85,15 +87,17 @@ class Workspace(QtWidgets.QGraphicsView):
                     except:
                         print("Tried to delete connection again... probably...")
 
-                self.delete_node(item)
+                self.delete_action(item)
             else:
                 self.delete_connection(item)
 
-    def delete_node(self, node):
-        self.nodes.remove(node)
-        self.scene.removeItem(node)
+    def delete_action(self, action):
+        self.actions.remove(action)
+        self.scene.removeItem(action)
 
     def delete_connection(self, conn):
+        conn.port1.connections.remove(conn)
+        conn.port2.connections.remove(conn)
         self.connections.remove(conn)
         self.scene.removeItem(conn)
 
