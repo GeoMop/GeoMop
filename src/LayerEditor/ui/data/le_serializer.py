@@ -32,7 +32,7 @@ class LESerializer():
 
     def _get_first_geometry(self):
         lname = "Layer_1"
-        gf = GeometryFactory()
+        gf = GeometryFactory(base_dir=None)
         gf.set_default()
 
         regions = ([], [], []) # No node, segment, polygon or regions.
@@ -138,7 +138,8 @@ class LESerializer():
         curr_topology = 0
         curr_block = 0
         # curr_topology and curr_block is for mapping topology to consistent line
-        gf = GeometryFactory(geometry)
+        base_dir = os.path.dirname(path)
+        gf = GeometryFactory(base_dir, geometry)
         self.gf = gf
         gf._base_dir = os.path.dirname(path)
         errors = gf.check_file_consistency()        
@@ -224,7 +225,7 @@ class LESerializer():
         diagram.import_decomposition(decomp)
 
     def save(self, cfg, path=""):
-        lg = self.cfg_to_geometry(cfg)
+        lg = self.cfg_to_geometry(cfg, path)
         if path:
             with open(path, 'w') as f:
                 json.dump(lg.serialize(), f, indent=4, sort_keys=True)
@@ -233,9 +234,10 @@ class LESerializer():
             return json.dumps(lg.serialize(), indent=4, sort_keys=True)
 
 
-    def cfg_to_geometry(self, cfg):
+    def cfg_to_geometry(self, cfg, path):
         """Save diagram data to set file"""
-        gf = GeometryFactory()
+        base_dir = os.path.dirname(path)
+        gf = GeometryFactory(base_dir=base_dir)
         for reg in cfg.diagram.regions.regions.values():
             gf.add_region(reg.color, reg.name, reg.dim, reg.mesh_step, reg.boundary, reg.not_used)
         gf.save_surfaces(cfg.layers.surfaces)
@@ -331,6 +333,10 @@ class LESerializer():
         else:
             out_tp_idx = self._tp_idx_to_out_tp_idx[diagram.topology_idx]
         gf.add_node_set(out_tp_idx, nodes)
+
+
+
+
 
 class LESerializerException(Exception):
     def __init__(self, message, errors):

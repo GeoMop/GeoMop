@@ -245,17 +245,17 @@ class Polygon():
         """Return polygon regions"""
         return Diagram.regions.get_region(2, self.id)
         
-    def cmp_polygon_regions(self, diagram, del_spolygon):
-        """Compare regions. if regions is different, return new regions for seetings, lse none"""
-        ret = None
-        default = diagram.get_default_regions()
-        reg1 = self.get_regions()
-        reg2 = del_spolygon.get_regions()
-        for i in range (0, len(default)):
-            if reg1[i]==reg2[i]:
-                default[i] = reg1[i]
-                ret = default
-        return ret
+    # def cmp_polygon_regions(self, diagram, del_spolygon):
+    #     """Compare regions. if regions is different, return new regions for seetings, lse none"""
+    #     ret = None
+    #     default = diagram.get_default_regions()
+    #     reg1 = self.get_regions()
+    #     reg2 = del_spolygon.get_regions()
+    #     for i in range (0, len(default)):
+    #         if reg1[i]==reg2[i]:
+    #             default[i] = reg1[i]
+    #             ret = default
+    #     return ret
         
     def set_regions(self, diagram, regions, label, not_history):
         """Set diagram regions in polygon topology""" 
@@ -399,7 +399,8 @@ class Diagram():
     """diagram area"""    
     zooming = Zoom()
     """zoom variable"""
-    
+
+
     @classmethod
     def add_region(cls, color, name, reg_id, dim, step, boundary=False, not_used=False):
         """Add region"""
@@ -425,9 +426,10 @@ class Diagram():
         regions = cls.regions.get_shapes_from_region(is_fracture, layer_id)        
         remapped_regions = [[], [], []]
         if is_fracture:
-            diagram = cls.topologies[cls.regions.find_top_id(-layer_id-1)][0]
+            topology_id = cls.regions.find_top_id(-layer_id - 1)
         else:
-            diagram = cls.topologies[cls.regions.find_top_id(layer_id)][0]
+            topology_id = cls.regions.find_top_id(layer_id)
+        diagram = cls.topologies[topology_id][0]
         tmp = {}
         for point in diagram.points:
             point_orig_id = diagram.po.get_point_origin_id(point.de_id)
@@ -444,7 +446,39 @@ class Diagram():
         remapped_regions[2] = [value for (key, value) in sorted(poly_id_to_reg.items())]
 
         return remapped_regions
-                
+
+
+    def __init__(self, topology_idx, global_history):
+        global __next_diagram_uid__
+        self.uid = __next_diagram_uid__
+        """Unique diagram id"""
+        __next_diagram_uid__ += 1
+        self.topology_idx = topology_idx
+        """Topology index"""
+        self._rect = None
+        """canvas Rect"""
+        self.points = []
+        """list of points"""
+        self.lines = []
+        """list of lines"""
+        self.polygons = []
+        """list of polygons"""
+        self.topology_owner = False
+        """First diagram in topology is topology owner, and is 
+        responsible for its saving"""
+        if not topology_idx in self.topologies:
+            self.topology_owner = True
+            self.topologies[topology_idx] = []
+        self.topologies[topology_idx].append(self)
+        self.new_polygons = []
+        """list of polygons that has not still graphic object"""
+        self.deleted_polygons = []
+        """list of polygons that should be remove from graphic object"""
+        self._history = DiagramHistory(self, global_history)
+        """history"""
+        self.po = PolygonOperation()
+        """Help variable for polygons structures"""
+
     def region_color_changed(self, region_idx):
         """Region collor was changed"""
         for polygon in self.polygons:
@@ -625,37 +659,7 @@ class Diagram():
         return cls.topologies[top_id][0]
         
 
-    def __init__(self, topology_idx, global_history): 
-        global __next_diagram_uid__
-        self.uid = __next_diagram_uid__
-        """Unique diagram id"""
-        __next_diagram_uid__ += 1  
-        self.topology_idx = topology_idx
-        """Topology index"""
-        self._rect = None
-        """canvas Rect"""
-        self.points = []
-        """list of points"""
-        self.lines = []
-        """list of lines"""
-        self.polygons = []
-        """list of polygons"""
-        self.topology_owner = False
-        """First diagram in topology is topology owner, and is 
-        responsible for its saving"""
-        if not topology_idx in self.topologies:
-            self.topology_owner = True
-            self.topologies[topology_idx] = []
-        self.topologies[topology_idx].append(self)
-        self.new_polygons = []
-        """list of polygons that has not still graphic object"""
-        self.deleted_polygons = []
-        """list of polygons that should be remove from graphic object"""
-        self._history = DiagramHistory(self, global_history)
-        """history"""
-        self.po = PolygonOperation()
-        """Help variable for polygons structures"""
-        
+
     def join(self):
         """Add diagram to topologies"""
         self.topology_owner = False
@@ -790,9 +794,9 @@ class Diagram():
             return False
         return True
         
-    def get_default_regions(self):
-        """Get default regions list"""
-        return self.regions.get_default_regions(self.topology_idx)    
+    # def get_default_regions(self):
+    #     """Get default regions list"""
+    #     return self.regions.get_default_regions(self.topology_idx)
     
     def get_point_by_id(self, id):
         """return point or None if not exist"""

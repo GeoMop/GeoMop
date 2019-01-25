@@ -11,22 +11,24 @@ from .bspline_io import bs_zsurface_read, bs_zsurface_write
 class GeometryFactory:
     """Class for creating geometry file from graphic representation of object"""
 
-    def make_rel_path(self, abs_path):
-        rel_path = os.path.relpath(abs_path, self._base_dir)
-        if (rel_path[0:2] == ".."):
-            print("Warning: referenced file is out of the base directory, rel path: %s\n"%(rel_path))
-        return rel_path
-
-    def make_abs_path(self, rel_path):
-        return  os.path.normpath(os.path.join(self._base_dir, rel_path))
-
-    def __init__(self, geometry = None):
+    def __init__(self, base_dir, geometry = None):
         if geometry is None:
             self.geometry =  LayerGeometry()
             self.geometry.version = [0, 5, 5]
         else:
             self.geometry = geometry
         self.used_interfaces = {}
+        self.base_dir = base_dir
+
+    def make_rel_path(self, abs_path):
+        rel_path = os.path.relpath(abs_path, self.base_dir)
+        if (rel_path[0:2] == ".."):
+            print("Warning: referenced file is out of the base directory, rel path: %s\n"%(rel_path))
+        return rel_path
+
+    def make_abs_path(self, rel_path):
+        return  os.path.normpath(os.path.join(self.base_dir, rel_path))
+
 
     def set_default(self):
         default_regions = [                                                                                # Stratum layer
@@ -39,11 +41,11 @@ class GeometryFactory:
         """Add new topology and return its idx"""
         self.geometry.topologies.append( topology)
         return len(self.geometry.topologies)-1
-        
+
     def get_regions(self):
         """Get list of regions"""
         return self.geometry.regions
-    
+
     def load_surfaces(self):
         """Generator for surfaces of the LayerGeometry."""
         for surface in self.geometry.surfaces:
@@ -65,7 +67,7 @@ class GeometryFactory:
         """Get list of regions"""
         region = Region(dict(color=color, name=name, dim=dim, mesh_step=step, boundary=boundary, not_used=not_used))
         return self.geometry.regions.append(region)
-        
+
 
     def get_topology(self, node_set_idx):
         """Get node set topology idx"""
@@ -75,7 +77,7 @@ class GeometryFactory:
 
     def set_topology(self, tp_idx, topology):
         topology = self.add_topologies_to_count(tp_idx)
-      
+
     def get_gl_topology(self, gl):
         """Get gl topology idx"""
         if type(gl) is ShadowLayer:
@@ -91,7 +93,7 @@ class GeometryFactory:
         while len(self.geometry.topologies)<=i:
             self.add_topology()
         return self.geometry.topologies[i]
-        
+
     def get_interpolated_ns(self, ns1_idx, ns2_idx, interface_idx, interface_idx_1=None, interface_idx_2= None):
         """Create and return interpolated node set"""
         interface_idx_1 = interface_idx
@@ -100,7 +102,7 @@ class GeometryFactory:
         surf_nodesets = ( dict( nodeset_id=ns1_idx, interface_id=interface_idx_1 ), dict( nodeset_id=ns2_idx, interface_id=interface_idx_2 ) )
         ns = InterpolatedNodeSet(dict(surf_nodesets=surf_nodesets, interface_id=interface_idx) )
         return ns
-        
+
     def get_interface_ns(self, ns_idx, interface_idx):
         """Create and return interface node set"""
         ns = InterfaceNodeSet(dict( nodeset_id=ns_idx, interface_id=interface_idx ))
@@ -119,7 +121,7 @@ class GeometryFactory:
         return len(self.geometry.interfaces)-1
 
     def add_interface(self, interface):
-        """Add new main layer""" 
+        """Add new main layer"""
         if interface in self.used_interfaces:
             return self.geometry.interfaces.index(self.used_interfaces[interface])
         if interface.surface_id is None:
@@ -128,7 +130,7 @@ class GeometryFactory:
             transform_z = interface.transform_z
         new_interface = Interface({
             "elevation":interface.elevation,
-            "surface_id":interface.surface_id, 
+            "surface_id":interface.surface_id,
             "transform_z":transform_z})
         self.used_interfaces[interface] = new_interface
         self.geometry.interfaces.append(new_interface)
@@ -160,7 +162,7 @@ class GeometryFactory:
         gl.segment_region_ids = regions_idx[1]
         gl.polygon_region_ids = regions_idx[2]
         self.geometry.layers.append(gl)
-        
+
         return  len(self.geometry.layers)-1
 
     def add_node_set(self, topology_idx, points=[]):
@@ -168,7 +170,7 @@ class GeometryFactory:
         ns = NodeSet(dict(topology_id = topology_idx, nodes = points ))
         self.geometry.node_sets.append(ns)
         return  len(self.geometry.node_sets)-1
-        
+
     def reset(self):
         """Remove all data from base structure"""
         self.geometry.node_sets = []
@@ -179,12 +181,12 @@ class GeometryFactory:
         self.geometry.layers = []
         self.geometry.curves = []
         self.used_interfaces = {}
-        
+
 
     def get_nodes(self, node_set_idx):
         """Get list of nodes"""
         return
-     
+
 
     # TODO: move checks into clases ??
 
@@ -214,7 +216,7 @@ class GeometryFactory:
                 else:
                     used_top.append(curr_top)
         return errors
-        
+
     """
     TODO: 
     - rename UserSupplement

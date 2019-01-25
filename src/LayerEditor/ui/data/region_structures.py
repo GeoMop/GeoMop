@@ -84,7 +84,7 @@ class Regions():
         self._history = RegionHistory(global_history)
         """History class"""
         self.current_layer_id = None
-        """Id of selected layer in region panel"""
+        #"""Id of selected layer in region panel"""
         self.current_topology_id = None
         """Id of selected topology in region panel"""
         self.current_regions = {}
@@ -98,12 +98,12 @@ class Regions():
         """Call if data file changed"""
         self._history = RegionHistory(cfg.history)
 
-    def get_default_regions(self, topology_id):
-        """Return default region"""
-        default = []
-        for layer_id in self.layers_topology[self.current_topology_id]:
-            default.append(self.DEFAULT_REGION)
-        return default
+    # def get_default_regions(self, topology_id):
+    #     """Return default region"""
+    #     default = []
+    #     for layer_id in self.layers_topology[topology_id]:
+    #         default.append(self.DEFAULT_REGION)
+    #     return default
 
     # region panels functions
 
