@@ -72,22 +72,23 @@ class Workspace(QtWidgets.QGraphicsView):
             self.new_connection.set_port2_pos(self.mapToScene(event.pos()))
 
     def delete_items(self):
-        for item in self.scene.selectedItems():
+        while self.scene.selectedItems():
+            item = self.scene.selectedItems()[0]
             if item.is_node():
                 conn_to_delete = []
                 for conn in self.connections:
                     for port in item.ports():
-                        if conn.is_connected(port):
-                            try:
-                                conn_to_delete.append(conn)
-                            except:
-                                print("Tried to delete connection again... probably...")
+                        if conn.is_connected(port) and conn not in conn_to_delete:
+                            conn_to_delete.append(conn)
 
                 for conn in conn_to_delete:
-                    self.delete_connection(conn)
+                    try:
+                        self.delete_connection(conn)
+                    except:
+                        print("Tried to delete connection again... probably...")
+
                 self.delete_node(item)
             else:
-                pass
                 self.delete_connection(item)
 
     def delete_node(self, node):
