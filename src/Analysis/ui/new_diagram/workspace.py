@@ -5,9 +5,7 @@ Start script that initializes main window and runs APP
 """
 
 from PyQt5 import QtWidgets, QtCore, QtGui
-import abc
 from .node import Node
-from .node_editor_menu import NodeEditorMenu
 from .connection import Connection
 
 

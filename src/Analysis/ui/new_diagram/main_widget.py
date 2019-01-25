@@ -17,9 +17,14 @@ class MainWidget(QtWidgets.QMainWindow):
         self.edit_menu = NodeEditorMenu(self)
         self.menu.addMenu(self.edit_menu)
 
-        self.dock = QtWidgets.QDockWidget("Diagram", self)
-        self.dock.setAllowedAreas(QtCore.Qt.LeftDockWidgetArea | QtCore.Qt.RightDockWidgetArea)
-        self.addDockWidget(QtCore.Qt.LeftDockWidgetArea, self.dock)
+        #self.dock = QtWidgets.QDockWidget("Diagram", self)
+        #self.dock.setAllowedAreas(QtCore.Qt.LeftDockWidgetArea | QtCore.Qt.RightDockWidgetArea)
 
-        w = Workspace(self)
-        self.dock.setWidget(w)
+        #self.placeholder_view = QtWidgets.QGraphicsView(self.dock)
+        #self.placeholder_view.resize(40,-1)
+        #self.dock.setWidget(self.placeholder_view)
+        #self.addDockWidget(QtCore.Qt.LeftDockWidgetArea, self.dock)
+
+
+        self.w = Workspace(self)
+        self.setCentralWidget(self.w)
