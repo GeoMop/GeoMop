@@ -235,6 +235,7 @@ Section "Flow123d" SecFlow
   RMDir /r "$INSTDIR\flow123d"
   SetOutPath $INSTDIR
   File /r "${BUILD_DIR}\flow123d"
+  SetOutPath "$INSTDIR\flow123d"
   ExecWait '"$INSTDIR\flow123d\install.bat"'
 
 SectionEnd
