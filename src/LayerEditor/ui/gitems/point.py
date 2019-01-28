@@ -115,13 +115,13 @@ class Point(QtWidgets.QGraphicsEllipseItem):
         pos = QtCore.QPointF(self.point_data.x, self.point_data.y) + shift
         self.move_point(pos, new_state, ungrab)
         
-    def select_point(self):
+    def select(self):
         """set selected and repaint point"""
         if self.state==ItemStates.standart:
             self.state = ItemStates.selected
             self.update_color()
         
-    def deselect_point(self):
+    def deselect(self):
         """set unselected and repaint point"""
         if self.state==ItemStates.selected:
             self.state = ItemStates.standart

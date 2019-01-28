@@ -3,3 +3,4 @@
 """
 
 from .leconfig import LEConfig as cfg
+from .leconfig import LayerHeads

@@ -99,14 +99,7 @@ class AddRegionDlg(QtWidgets.QDialog):
         self.region_dim.addItem(self.REGION_DESCRIPTION[RegionDim.fracture], RegionDim.fracture)
         self.region_dim.addItem(self.REGION_DESCRIPTION[RegionDim.bulk], RegionDim.bulk)
 
-        selected_regions = cfg.main_window.diagramScene.selection
-        max_selected_dim = 3
-        if not selected_regions.selected_polygons:
-            max_selected_dim -= 1
-            if not selected_regions.selected_lines:
-                max_selected_dim -= 1
-                if not selected_regions.selected_points:
-                    max_selected_dim -= 1
+        max_selected_dim = cfg.main_window.diagramScene.selection.max_selected_dim()
         if cfg.diagram.regions.current_layer_id < 0:
             max_selected_dim -= 1
 

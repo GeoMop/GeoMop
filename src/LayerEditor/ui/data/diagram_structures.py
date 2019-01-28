@@ -13,6 +13,8 @@ class Point():
     """
     Class for graphic presentation of point
     """
+    dim = 0
+
     def __init__(self, x, y, id=None):
         global __next_id__
         self.x = x 
@@ -31,7 +33,8 @@ class Point():
         self.de_id = self.id
         """Decomposition id"""
         assert(isinstance(self.id,int))
-            
+
+
     def qpointf(self):
         """return QPointF coordinates"""
         return QtCore.QPointF(self.x, self.y)
@@ -73,14 +76,15 @@ class Point():
             assert self is other
             return True
         return False       
-       
+
+
     def get_color(self):
         """Return line color"""       
         return Diagram.regions.get_region_color(0, self.id)
 
-    def set_current_region(self):
+    def set_region(self, region):
         """Set point region to current region"""
-        return Diagram.regions.set_region(0, self.id, True, "Set Region")
+        return Diagram.regions.set_region(0, self.id, region, True, "Set Region")
         
     def set_default_region(self):
         """Set point region to default region"""
@@ -103,6 +107,8 @@ class Line():
     """
     Class for graphic presentation of line
     """
+    dim = 1
+
     def __init__(self, p1, p2, id=None):
         global __next_id__
         self.p1 = p1
@@ -196,6 +202,8 @@ class Polygon():
     """
     Class for graphic presentation of polygon
     """
+    dim = 2
+
     def __init__(self, lines, id=None):
         global __next_id__
         self.lines = []
@@ -493,16 +501,11 @@ class Diagram():
 
     def layer_region_changed(self):
         """Layer color is changed, refresh all region colors"""
-        for polygon in self.polygons:
-            if polygon.object is not None:
-                polygon.object.update_color()
-        for line in self.lines:
-            if line.object is not None:
-                line.object.update_color()
-        for point in self.points:
-            if point.object is not None:
-                point.object.update_color()
-                
+        for shapes in [self.polygons. self.lines, self.points]:
+            for shape in shapes:
+                if shape.object is not None:
+                    shape.object.update_color()
+
     def get_polygon_lines(self, id):
         """Return polygon lines ndexes"""
         for polygon in self.polygons:
@@ -589,11 +592,12 @@ class Diagram():
         return rect
     
     @classmethod
-    def release_all(cls, history):
+    def reinit(cls, layer_heads, history):
         """Discard all links"""
         cls.views = []    
         cls.views_object = {}
         cls.topologies = {}
+        #cls.regions = Regions(layer_heads, history)
         cls.regions = Regions(history)
         
     @classmethod

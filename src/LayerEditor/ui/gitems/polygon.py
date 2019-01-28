@@ -60,13 +60,13 @@ class Polygon(QtWidgets.QGraphicsPolygonItem):
         self.setPolygon(self.polygon_data.qtpolygon)
 
 
-    def select_polygon(self):
+    def select(self):
         """set selected and repaint polygon"""
         if self.state == ItemStates.standart:
             self.state = ItemStates.selected
             self.update_brush()
 
-    def deselect_polygon(self):
+    def deselect(self):
         """set unselected and repaint polygon"""
         if self.state == ItemStates.selected:
             self.state = ItemStates.standart

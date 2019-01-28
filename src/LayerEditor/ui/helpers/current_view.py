@@ -17,9 +17,9 @@ class CurrentView():
     def __init__(self, event_location):
         self.diagram_id = self.cfg.diagram_id()
         """Current diagram id"""
-        self.tab_id = self.cfg.main_window.regions.currentIndex()
+        self.tab_id = self.cfg.main_window.wg_regions.currentIndex()
         """Current layer tab id in region panel"""
-        self.region_id = self.cfg.main_window.regions.get_current_region()
+        self.region_id = self.cfg.main_window.wg_regions.get_current_region()
         """Current region id in region panel"""
         self.diagram_zoom =  self.cfg.diagram.zoom
         """Current diagram zoom"""

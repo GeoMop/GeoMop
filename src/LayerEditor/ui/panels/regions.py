@@ -27,6 +27,8 @@ class Regions(QtWidgets.QToolBox):
             parent (QWidget): parent window ( empty is None)
         """
         super(Regions, self).__init__(parent)
+        self.layer_heads = cfg.layer_heads
+
         self.topology_idx = 0
         """Current topology idx"""
         self.layer_idx = 0
@@ -47,20 +49,21 @@ class Regions(QtWidgets.QToolBox):
     def update_regions_panel(self):
         """Refresh the region panel based upon data layer"""
         # TODO: Rewrite whole region panel to utilize this function. When any change occurs outside of this scope, this function should be called as well.
-        data = cfg.diagram.regions
+        regions = cfg.diagram.regions
         reg_idx = self.get_current_region()
-        shapes = data.get_shapes_of_region(reg_idx)
+        shapes = regions.get_shapes_of_region(reg_idx)
         # cannot remove default or utilized region
+        topology_layers = regions.layers_topology[self.layer_heads.current_topology_id]
         if reg_idx == 0:
-            for layer_id in data.layers_topology[data.current_topology_id]:
+            for layer_id in topology_layers:
                 self.remove_button[layer_id].setEnabled(False)
                 self.remove_button[layer_id].setToolTip('Default region cannot be removed!')
         elif shapes:
-            for layer_id in data.layers_topology[data.current_topology_id]:
+            for layer_id in topology_layers:
                 self.remove_button[layer_id].setEnabled(False)
                 self.remove_button[layer_id].setToolTip('Region is still in use!')
         else:
-            for layer_id in data.layers_topology[data.current_topology_id]:
+            for layer_id in topology_layers:
                 self.remove_button[layer_id].setEnabled(True)
                 self.remove_button[layer_id].setToolTip('Remove selected region')
 
@@ -79,15 +82,15 @@ class Regions(QtWidgets.QToolBox):
         self.topology_idx = top_idx
         self._show_layers()
 
-    def select_current_regions(self, regions):
-        """Select current regions in topology"""
-        data = cfg.diagram.regions
-        self._emit_regionChanged = False
-        for i in range(0, len(regions)):
-            layer_id = data.layers_topology[self.topology_idx][i]
-            new_index = self.regions[layer_id].findData(regions[i])
-            self.regions[layer_id].setCurrentIndex(new_index)
-        self._emit_regionChanged = True
+    # def select_current_regions(self, regions):
+    #     """Select current regions in topology"""
+    #     region_data = cfg.diagram.regions
+    #     self._emit_regionChanged = False
+    #     for i in range(0, len(regions)):
+    #         layer_id = region_data.layers_topology[self.topology_idx][i]
+    #         new_index = self.regions[layer_id].findData(regions[i])
+    #         self.regions[layer_id].setCurrentIndex(new_index)
+    #     self._emit_regionChanged = True
         
     def _show_layers(self):
         """Refresh layers view"""
@@ -155,7 +158,8 @@ class Regions(QtWidgets.QToolBox):
         for i in range(0, len(data.regions)):            
             label = data.regions[i].name + " (" + AddRegionDlg.REGION_DESCRIPTION_DIM[data.regions[i].dim] + ")"
             self.regions[layer_id].addItem(label,  i)
-            data.current_regions[layer_id] = region
+            self.layer_heads.select_region(layer_id, region.reg_id)
+
         curr_index = self.regions[layer_id].findData([key for key, value in data.regions.items() if value == region][0])
         self._emit_regionChanged = False
         self.regions[layer_id].setCurrentIndex(curr_index)
@@ -397,12 +401,13 @@ class Regions(QtWidgets.QToolBox):
             
     def _region_set(self, layer_id):
         """Region in combo box was changed"""
-        data = cfg.diagram.regions
+        regions = cfg.diagram.regions
         region_id = self.regions[layer_id].currentData()
-        region = data.regions[region_id]
+        region = regions.regions[region_id]
         self._update_layer_controls(region, layer_id)
         self.last_region[self.layers[layer_id]] = region.name
-        data.current_regions[layer_id] = region
+
+        self.layer_heads.select_region(layer_id, region_id)
         tab_id = self.layers_id.index(layer_id)
         self._set_box_title(tab_id, layer_id)
         if self._emit_regionChanged:
@@ -441,12 +446,11 @@ class Regions(QtWidgets.QToolBox):
         """Next layer tab is selected"""
         if self.removing_items:
             return
-        data = cfg.diagram.regions
         index = self.currentIndex()
         if index == -1:
            return 
         layer_id = self.layers_id[index]
-        data.current_layer_id = layer_id
+        self.layer_heads.select_layer(layer_id)
         self.last_layer[self.topology_idx] = index
         cfg.diagram.layer_region_changed()
         

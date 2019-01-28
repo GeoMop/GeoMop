@@ -7,6 +7,7 @@ import PyQt5.QtCore as QtCore
 import PyQt5.QtGui as QtGui
 from . import panels
 from LayerEditor.leconfig import cfg
+from LayerEditor import leconfig
 from .menus.edit import EditMenu
 from .menus.file import MainFileMenu
 from .menus.analysis import AnalysisMenu
@@ -20,67 +21,73 @@ class MainWindow(QtWidgets.QMainWindow):
     def __init__(self, layer_editor):
         """Initialize the class."""
         super(MainWindow, self).__init__()
-        self._layer_editor = layer_editor
 
+
+        self._layer_editor = layer_editor
+        assert cfg.diagram.regions
+        #self.wg_regions = panels.Regions(cfg.diagram.regions, cfg.layer_heads, self)
+        self.wg_regions = panels.Regions(self)
+        self.make_widgets()
+
+    def make_widgets(self):
         self.setMinimumSize(1060, 660)
 
-       # splitters
+        # splitters
         self._hsplitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal, self)
         self.setCentralWidget(self._hsplitter)
-        
+
         # left pannels
         self._vsplitter1 = QtWidgets.QSplitter(QtCore.Qt.Vertical, self._hsplitter)
-        self._vsplitter1.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)        
+        self._vsplitter1.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
 
         self.scroll_area1 = QtWidgets.QScrollArea()
-        # self._scroll_area.setWidgetResizable(True)  
+        # self._scroll_area.setWidgetResizable(True)
         self.layers = panels.Layers(self.scroll_area1)
-        self.scroll_area1.setWidget(self.layers)        
-        self._vsplitter1.addWidget(self.scroll_area1)        
-        
-        self.regions = panels.Regions()        
-        self._vsplitter1.addWidget(self.regions)  
-        
+        self.scroll_area1.setWidget(self.layers)
+        self._vsplitter1.addWidget(self.scroll_area1)
+
+        self._vsplitter1.addWidget(self.wg_regions)
+
         # scene
         self.diagramScene = panels.Diagram(self._hsplitter)
-        self.diagramView =QtWidgets.QGraphicsView(self.diagramScene,self._hsplitter)
+        self.diagramView = QtWidgets.QGraphicsView(self.diagramScene, self._hsplitter)
         self.diagramView.setResizeAnchor(QtWidgets.QGraphicsView.NoAnchor)
         self.diagramView.setTransformationAnchor(QtWidgets.QGraphicsView.NoAnchor)
         self.diagramView.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
-        self.diagramView.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)  
+        self.diagramView.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         self.diagramView.setSizePolicy(QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Maximum)
         self.diagramView.setMouseTracking(True)
         self._hsplitter.addWidget(self.diagramView)
-        
+
         self._hsplitter.setSizes([300, 760])
-        
-        # right pannels  
+
+        # right pannels
         self._vsplitter2 = QtWidgets.QSplitter(QtCore.Qt.Vertical, self._hsplitter)
-        self._vsplitter2.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)        
-       
+        self._vsplitter2.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
+
         self.scroll_area2 = QtWidgets.QScrollArea()
-        self.scroll_area2.setWidgetResizable(True) 
-        self.wg_surface_panel = panels.Surfaces(cfg.layers, cfg.config.data_dir, parent = self.scroll_area2)
+        self.scroll_area2.setWidgetResizable(True)
+        self.wg_surface_panel = panels.Surfaces(cfg.layers, cfg.config.data_dir, parent=self.scroll_area2)
         self.scroll_area2.setWidget(self.wg_surface_panel)
         self._vsplitter2.addWidget(self.scroll_area2)
-        
+
         self.shp = panels.ShpFiles(cfg.diagram.shp, self._vsplitter2)
-        self._vsplitter2.addWidget(self.shp) 
+        self._vsplitter2.addWidget(self.shp)
         if cfg.diagram.shp.is_empty():
-            self.shp.hide()   
-            
+            self.shp.hide()
+
         if not cfg.diagram.shp.is_empty():
             self.refresh_diagram_shp()
-        
+
         # Menu bar
         self._menu = self.menuBar()
         self._edit_menu = EditMenu(self, self.diagramScene)
-        self._file_menu = MainFileMenu(self, layer_editor)
+        self._file_menu = MainFileMenu(self, self._layer_editor)
         self._analysis_menu = AnalysisMenu(self, cfg.config)
-        self._settings_menu = MainSettingsMenu(self, layer_editor)
-        self._mesh_menu = MeshMenu(self, layer_editor)
+        self._settings_menu = MainSettingsMenu(self, self._layer_editor)
+        self._mesh_menu = MeshMenu(self, self._layer_editor)
         self.update_recent_files(0)
-        
+
         self._menu.addMenu(self._file_menu)
         self._menu.addMenu(self._edit_menu)
         self._menu.addMenu(self._analysis_menu)
@@ -106,8 +113,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self._status.addPermanentWidget(self._column)
         self.setStatusBar(self._status)
         self._status.showMessage("Ready", 5000)
-        
-        # signals        
+
+        # signals
         self.diagramScene.cursorChanged.connect(self._cursor_changed)
         self.diagramScene.possChanged.connect(self._move)
         self.diagramScene.regionsUpdateRequired.connect(self._update_regions)
@@ -118,9 +125,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.layers.topologyChanged.connect(self.set_topology)
         self.layers.refreshArea.connect(self._refresh_area)
         self.layers.clearDiagramSelection.connect(self.clear_diagram_selection)
-        self.regions.regionChanged.connect(self._region_changed)
+        self.wg_regions.regionChanged.connect(self._region_changed)
         self.wg_surface_panel.show_grid.connect(self._show_grid)
-        #self.surfaces.refreshArea.connect(self._refresh_area)
+        # self.surfaces.refreshArea.connect(self._refresh_area)
 
         # initialize components
         self.config_changed()
@@ -267,7 +274,9 @@ class MainWindow(QtWidgets.QMainWindow):
         
     def set_topology(self):
         """Current topology or its structure is changed"""
-        self.regions.set_topology(cfg.diagram.topology_idx)
+        #self.layer_heads.set_topology(cfg.diagram.topology_idx)
+        cfg.diagram.regions.current_topology_id = cfg.diagram.topology_idx
+        self.regions.update_tabs()
 
     def clear_diagram_selection(self):
         """Selection has to be emptied"""
@@ -277,8 +286,7 @@ class MainWindow(QtWidgets.QMainWindow):
         """Update region panel, eventually set tab according to the selection in diagram"""
         regions_of_layers = self.diagramScene.selection.get_selected_regions(cfg.diagram)
         if regions_of_layers:
-            self.regions.select_current_regions(regions_of_layers)
-        self.regions.update_regions_panel()
+            self.wg_regions.set_selected_regions(regions_of_layers)
             
     def config_changed(self):
         """Handle changes of config."""

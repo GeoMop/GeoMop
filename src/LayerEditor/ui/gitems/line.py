@@ -101,13 +101,13 @@ class Line(QtWidgets.QGraphicsLineItem):
         """Refresh line after point changes"""
         self.setLine(self.line_data.p1.x, self.line_data.p1.y, self.line_data.p2.x, self.line_data.p2.y)
             
-    def select_line(self):
+    def select(self):
         """set selected and repaint line"""
         if self.state==ItemStates.standart:
             self.state = ItemStates.selected
             self.update_color()
 
-    def deselect_line(self):
+    def deselect(self):
         """set unselected and repaint line"""
         if self.state==ItemStates.selected:
             self.state = ItemStates.standart

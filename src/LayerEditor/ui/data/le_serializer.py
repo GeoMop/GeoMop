@@ -25,7 +25,7 @@ class LESerializer():
 
     def cfg_reset(self, cfg):
         #TODO: move definiftion and calls to cfg
-        cfg.release_all()
+        cfg.reinit()
         cfg.diagrams = []
         cfg.layers.delete()
         cfg.diagram = None
