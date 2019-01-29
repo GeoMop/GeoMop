@@ -25,8 +25,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self._layer_editor = layer_editor
         assert cfg.diagram.regions
-        #self.wg_regions = panels.Regions(cfg.diagram.regions, cfg.layer_heads, self)
-        self.wg_regions = panels.Regions(self)
+        self.wg_regions = panels.Regions(cfg.layer_heads, self)
+        #self.wg_regions = panels.Regions(self)
         self.make_widgets()
 
     def make_widgets(self):
@@ -126,6 +126,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.layers.refreshArea.connect(self._refresh_area)
         self.layers.clearDiagramSelection.connect(self.clear_diagram_selection)
         self.wg_regions.regionChanged.connect(self._region_changed)
+        self.wg_regions.colorChanged.connect(cfg.diagram.layer_region_changed)
         self.wg_surface_panel.show_grid.connect(self._show_grid)
         # self.surfaces.refreshArea.connect(self._refresh_area)
 
@@ -275,8 +276,8 @@ class MainWindow(QtWidgets.QMainWindow):
     def set_topology(self):
         """Current topology or its structure is changed"""
         #self.layer_heads.set_topology(cfg.diagram.topology_idx)
-        cfg.diagram.regions.current_topology_id = cfg.diagram.topology_idx
-        self.regions.update_tabs()
+        #cfg.diagram.regions.current_topology_id = cfg.diagram.topology_idx
+        self.wg_regions.set_topology()
 
     def clear_diagram_selection(self):
         """Selection has to be emptied"""
@@ -286,8 +287,9 @@ class MainWindow(QtWidgets.QMainWindow):
         """Update region panel, eventually set tab according to the selection in diagram"""
         regions_of_layers = self.diagramScene.selection.get_selected_regions(cfg.diagram)
         if regions_of_layers:
-            self.wg_regions.set_selected_regions(regions_of_layers)
-            
+            cfg.layer_heads.selected_regions = dict(regions_of_layers)
+
+
     def config_changed(self):
         """Handle changes of config."""
         analysis = cfg.config.analysis or '(No Analysis)'

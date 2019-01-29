@@ -25,6 +25,10 @@ class Polygon(QtWidgets.QGraphicsPolygonItem):
         self.setZValue(self.MIN_ZVALUE+self.depth)
         self.update_brush()
 
+    @property
+    def shape_data(self):
+        return self.polygon_data
+
     def update_geometry(self):
         """Update geometry according to actual zoom"""
         self.update_brush()

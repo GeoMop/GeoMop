@@ -35,6 +35,10 @@ class Point(QtWidgets.QGraphicsEllipseItem):
             self.set_tmp()
         self.update_color()
 
+    @property
+    def shape_data(self):
+        return self.point_data
+
     def set_size(self):
         """Set point size according to actual zoom"""
         ps = self.POINT_SIZE

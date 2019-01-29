@@ -82,7 +82,7 @@ class Point():
         """Return line color"""       
         return Diagram.regions.get_region_color(0, self.id)
 
-    def set_region(self, region):
+    def set_region(self, region, layer_id=None):
         """Set point region to current region"""
         return Diagram.regions.set_region(0, self.id, region, True, "Set Region")
         
@@ -94,9 +94,9 @@ class Point():
         """Return polygon regions"""
         return Diagram.regions.get_region(0, self.id)
         
-    def set_current_regions(self):
-        """Set point region to current region"""
-        return Diagram.regions.set_regions(0, self.id, True, "Set Regions")
+    # def set_current_regions(self):
+    #     """Set point region to current region"""
+    #     return Diagram.regions.set_regions(0, self.id, True, "Set Regions")
         
     def get_regions(self):
         """Return polygon regions"""
@@ -177,17 +177,17 @@ class Line():
         """Return line color"""
         return Diagram.regions.get_region_color(1, self.id)
         
-    def set_current_region(self):
+    def set_region(self, region, layer_id=None):
         """Set polygon region to current region"""
-        return Diagram.regions.set_region(1, self.id, True, "Set Region")
+        return Diagram.regions.set_region(1, self.id, region, layer_id, True, "Set Region")
         
     def get_region(self):
         """Return polygon regions"""
         return Diagram.regions.get_region(1, self.id)
         
-    def set_current_regions(self):
-        """Set polygon region to current region"""
-        return Diagram.regions.set_regions(1, self.id, True, "Set Regions")
+    # def set_current_regions(self):
+    #     """Set polygon region to current region"""
+    #     return Diagram.regions.set_regions(1, self.id, True, "Set Regions")
     
     def set_default_region(self):
         """Set line region to default region"""
@@ -233,14 +233,14 @@ class Polygon():
         """Return region color"""
         return Diagram.regions.get_region_color(2, self.id)
 
-    def set_current_region(self):
+    def set_region(self, region, layer_id=None):
         """Set polygon region to current region"""
-        return Diagram.regions.set_region(2, self.id, True, "Set Region")
+        return Diagram.regions.set_region(2, self.id, region, layer_id, True, "Set Region")
         
-    def set_current_regions(self):
-        """Set polygon region to current region"""
-        return Diagram.regions.set_regions(2, self.id, True, "Set Regions")
-        
+    # def set_current_regions(self):
+    #     """Set polygon region to current region"""
+    #     return Diagram.regions.set_regions(2, self.id, True, "Set Regions")
+    #
     def set_default_region(self):
         """Set polygon region to default region"""
         return Diagram.regions.set_default(2, self.id, True, "Set Default Region")
@@ -487,17 +487,17 @@ class Diagram():
         self.po = PolygonOperation()
         """Help variable for polygons structures"""
 
-    def region_color_changed(self, region_idx):
-        """Region collor was changed"""
-        for polygon in self.polygons:
-            if self.regions.get_region_id(2, polygon.id)==region_idx:
-                polygon.object.update_color()
-        for line in self.lines:
-            if self.regions.get_region_id(1, line.id)==region_idx:
-                line.object.update_color()
-        for point in self.points:
-            if self.regions.get_region_id(0, point.id)==region_idx:
-                point.object.update_color()
+    # def region_color_changed(self, region_idx):
+    #     """Region collor was changed"""
+    #     for polygon in self.polygons:
+    #         if self.regions.get_region_id(2, polygon.id)==region_idx:
+    #             polygon.object.update_color()
+    #     for line in self.lines:
+    #         if self.regions.get_region_id(1, line.id)==region_idx:
+    #             line.object.update_color()
+    #     for point in self.points:
+    #         if self.regions.get_region_id(0, point.id)==region_idx:
+    #             point.object.update_color()
 
     def layer_region_changed(self):
         """Layer color is changed, refresh all region colors"""
@@ -597,8 +597,8 @@ class Diagram():
         cls.views = []    
         cls.views_object = {}
         cls.topologies = {}
-        #cls.regions = Regions(layer_heads, history)
-        cls.regions = Regions(history)
+        cls.regions = Regions(layer_heads, history)
+
         
     @classmethod
     def move_diagram_topologies(cls, id, diagrams):

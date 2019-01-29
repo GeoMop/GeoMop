@@ -641,21 +641,11 @@ class Diagram(QtWidgets.QGraphicsScene):
             if event.modifiers()==QtCore.Qt.NoModifier and not end_moving:
                 self.selection.deselect_selected()
                 if event.gobject is not None:
-                    if isinstance(event.gobject, Line):
-                        self.selection.select_line(event.gobject.line_data, True)
-                    elif isinstance(event.gobject, Point):
-                        self.selection.select_point(event.gobject.point_data)
-                    elif isinstance(event.gobject, Polygon):
-                        self.selection.select_polygon(event.gobject.polygon_data)
+                    self.selection.select(event.gobject.shape_data)
                     self.regionsUpdateRequired.emit()
             if event.modifiers()==QtCore.Qt.ShiftModifier:
                 if event.gobject is not None:
-                    if isinstance(event.gobject, Line):
-                        self.selection.select_line(event.gobject.line_data, True)
-                    elif isinstance(event.gobject, Point):
-                        self.selection.select_point(event.gobject.point_data)
-                    elif isinstance(event.gobject, Polygon):
-                        self.selection.select_polygon(event.gobject.polygon_data)
+                    self.selection.select(event.gobject.shape_data)
                     if not self.selection.is_empty():
                         self.regionsUpdateRequired.emit()
             if event.modifiers()==QtCore.Qt.ControlModifier:
@@ -663,16 +653,15 @@ class Diagram(QtWidgets.QGraphicsScene):
                     self.selection.select_current_region()
             if event.modifiers()==QtCore.Qt.ControlModifier | QtCore.Qt.AltModifier:
                 if event.gobject is not None:
-                    if isinstance(event.gobject, Polygon):
-                        event.gobject.polygon_data.set_current_regions()
-                        event.gobject.update_color()
-                    elif isinstance(event.gobject, Line):
-                        event.gobject.line_data.set_current_regions()
-                        event.gobject.update_color()
-                    elif isinstance(event.gobject, Point):
-                        event.gobject.point_data.set_current_regions()
-                        event.gobject.update_color()
-            
+                    # set all regions from region panel
+                    shape_data = event.gobject.shape_data
+
+                    for layer_id in cfg.diagram.regions.layers_topology[cfg.diagram.regions.current_topology_id]:
+                        region = cfg.layer_heads.selected_regions[layer_id]
+                        cfg.diagram.regions.set_region(shape_data.dim, shape_data.id, region, layer_id,
+                                                       True, "Set Regions")
+                    event.gobject.update_color()
+
     def mousePressEvent(self,event):
         """Standart mouse event"""
         event.gobject = None

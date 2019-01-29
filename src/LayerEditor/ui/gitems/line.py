@@ -32,6 +32,11 @@ class Line(QtWidgets.QGraphicsLineItem):
             self.set_tmp()
         self.update_color()
 
+    @property
+    def shape_data(self):
+        return self.line_data
+
+
     def set_tmp(self):
         """set style and z"""
         self._tmp = True

@@ -15,7 +15,7 @@ from gm_base.geomop_dialogs import GMErrorDialog
 from gm_base.geomop_analysis import Analysis, InvalidAnalysis
 from LayerEditor.ui import data as le_data
 from LayerEditor.ui.helpers import CurrentView
-
+from LayerEditor.ui.panels import regions
 
 class _Config:
     """Class for Analyzis serialization"""
@@ -195,7 +195,10 @@ class LEConfig:
     """Current geometry data file path"""
     geomop_root = ""
     """Path to the root directory of the GeoMop installation."""
-    
+    layer_heads = None
+    # Data model for Regions panel.
+
+
     @classmethod
     def reload_surfaces(cls, id=None):
         """Reload surface panel"""
@@ -291,7 +294,7 @@ class LEConfig:
     @classmethod
     def reinit(cls):
         """Release all diagram data"""
-        cls.layer_heads = LayerHeads(cls)
+        cls.layer_heads = regions.LayerHeads(cls)
         le_data.Diagram.reinit(cls.layer_heads, cls.history)
     
     @classmethod
@@ -441,53 +444,3 @@ class LEConfig:
         return None
 
 
-class LayerHeads:
-    """
-    TODO: refactor to the class for supplement GUI states.
-    Adaptor to access layer names and
-    to store currently selected regions.
-    """
-    def __init__(self, layers_geometry):
-        self.lc = layers_geometry
-        # Data object used to retrieve data
-
-        self._selected_regions = {}
-        # Current regions in region panel { layer_id: region_id }
-
-        self._current_layer_id = None
-
-    @property
-    def current_topology_id(self):
-        return self.lc.diagram.topology_idx
-
-    @property
-    def selected_region(self):
-        return self._selected_regions[self.current_layer_id]
-
-    @property
-    def current_layer_id(self):
-        """ Layer ID for current teb in Region Panel."""
-        return self._current_layer_id
-
-
-
-    def layer_names(self):
-        """
-        Return list of
-        :return: [ (layer_id, layer_name), .. ]
-        """
-        return self.lc.diagram.regions.get_layers(self.current_topology_id)
-
-    def selected_regions(self):
-        """
-        Return list of selected region IDs.
-        :return: [ (layer_id, region_id), ... ]
-        """
-        return self._selected_regions.items()
-
-    def select_region(self, layer_id, region_id):
-        #assert layer_id in self._selected_regions
-        self._selected_regions[layer_id] = region_id
-
-    def select_layer(self, layer_id):
-        self._current_layer_id = layer_id
