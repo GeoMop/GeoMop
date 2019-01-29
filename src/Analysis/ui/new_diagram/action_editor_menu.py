@@ -1,13 +1,13 @@
 """
-Start script that initializes main window and runs APP
+Definition of menu
 @author: Tomáš Blažek
 @contact: tomas.blazek@tul.cz
 """
-
 from PyQt5 import QtWidgets, QtCore, QtGui
 
 
 class ActionEditorMenu(QtWidgets.QMenu):
+    """Definition of menu containing editing options"""
     def __init__(self, parent):
         super(ActionEditorMenu, self).__init__(parent)
         self.setTitle("Edit")

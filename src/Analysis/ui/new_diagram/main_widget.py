@@ -1,5 +1,5 @@
 """
-Start script that initializes main window and runs APP
+Main window
 @author: Tomáš Blažek
 @contact: tomas.blazek@tul.cz
 """
@@ -12,7 +12,6 @@ from .action_editor_menu import ActionEditorMenu
 class MainWidget(QtWidgets.QMainWindow):
     def __init__(self, parent=None):
         super(MainWidget, self).__init__(parent)
-
         self.menu = self.menuBar()
         self.edit_menu = ActionEditorMenu(self)
         self.menu.addMenu(self.edit_menu)
