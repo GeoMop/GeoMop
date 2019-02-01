@@ -1,5 +1,5 @@
 """
-Start script that initializes main window and runs APP
+Start script that initializes main window and runs APP.
 @author: Tomáš Blažek
 @contact: tomas.blazek@tul.cz
 """

@@ -1,5 +1,5 @@
 """
-Main window
+Main window.
 @author: Tomáš Blažek
 @contact: tomas.blazek@tul.cz
 """

@@ -1,5 +1,5 @@
 """
-Representation of connection between two ports
+Representation of connection between two ports.
 @author: Tomáš Blažek
 @contact: tomas.blazek@tul.cz
 """
@@ -8,12 +8,12 @@ from .port import Port, OutputPort
 
 
 class Connection(QtWidgets.QGraphicsPathItem):
-    """Representation of connection between two ports"""
+    """Representation of connection between two ports."""
     def __init__(self, port1, port2=None, parent=None):
-        """Initializes connection
-        :param port1: OutputPort or any port if port2 is None
-        :param port2: InputPort
-        :param parent: Action which holds this connection: this connection is inside parent action
+        """Initializes connection.
+        :param port1: OutputPort or any port if port2 is None.
+        :param port2: InputPort.
+        :param parent: Action which holds this connection: this connection is inside parent action.
         """
         super(Connection, self).__init__(parent)
         self.connection_set = False if port2 is None else True
@@ -23,10 +23,10 @@ class Connection(QtWidgets.QGraphicsPathItem):
         self.full_pen = QtGui.QPen(QtCore.Qt.black, 2)
         self.dash_pen = QtGui.QPen(QtCore.Qt.black, 2, QtCore.Qt.DashLine)
         self.setPen(self.full_pen)
-        self.setZValue(1)
+        self.setZValue(10.0)
 
     def is_connected(self, port):
-        """Returns True if this connection is attached to specified port"""
+        """Returns True if this connection is attached to specified port."""
         if port == self.port1 or port == self.port2:
             return True
         else:
@@ -39,7 +39,7 @@ class Connection(QtWidgets.QGraphicsPathItem):
             return "Connection from: (" + str(self.port1) + ")"
 
     def mousePressEvent(self, event):
-        """Mouse press is ignored by this connection if it is inside port"""
+        """Mouse press is ignored by this connection if it is inside port."""
         super(Connection, self).mousePressEvent(event)
         if self.port1.contains(self.mapToItem(self.port1, event.pos())) or \
                 self.port2.contains(self.mapToItem(self.port2, event.pos())):
@@ -47,7 +47,7 @@ class Connection(QtWidgets.QGraphicsPathItem):
             self.setSelected(False)
 
     def paint(self, painter, style, widget=None):
-        """If connection is selected, draw it as dash line"""
+        """If connection is selected, draw it as dash line."""
         if self.isSelected():
             self.setPen(self.dash_pen)
         else:
@@ -56,7 +56,7 @@ class Connection(QtWidgets.QGraphicsPathItem):
         super(Connection, self).paint(painter, style, widget)
 
     def update_gfx(self):
-        """Updates model of the connection"""
+        """Updates model of the connection."""
         self.prepareGeometryChange()
         path = QtGui.QPainterPath()
         p1 = self.port1.get_connection_point()
@@ -68,13 +68,13 @@ class Connection(QtWidgets.QGraphicsPathItem):
         self.setPath(path)
 
     def set_port2_pos(self, pos):
-        """Sets port2's position to allow tracking mouse movement before connection is set"""
+        """Sets port2's position to allow tracking mouse movement before connection is set."""
         if not self.connection_set:
             self.port2.setPos(self.mapFromScene(pos))
             self.update_gfx()
 
     def set_port2(self, port):
-        """Set port2 to finish creation of connection"""
+        """Set port2 to finish creation of connection."""
         if not self.connection_set:
             self.connection_set = True
             if type(port) is OutputPort:
