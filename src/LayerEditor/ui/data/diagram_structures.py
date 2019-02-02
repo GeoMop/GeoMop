@@ -499,7 +499,7 @@ class Diagram():
     #         if self.regions.get_region_id(0, point.id)==region_idx:
     #             point.object.update_color()
 
-    def layer_region_changed(self):
+    def region_color_changed(self):
         """Layer color is changed, refresh all region colors"""
         for shapes in [self.polygons. self.lines, self.points]:
             for shape in shapes:

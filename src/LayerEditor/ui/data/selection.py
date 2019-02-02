@@ -185,7 +185,7 @@ class Selection():
         """
         selected_region = cfg.layer_heads.selected_region
         layer_id = cfg.layer_heads.current_layer_id
-        for shape in self.selected.values().copy():
+        for shape in list(self.selected.values()):
             if selected_region.cmp_shape_dim(layer_id, shape.dim):
                 shape.set_region(selected_region)
                 shape.object.update_color()

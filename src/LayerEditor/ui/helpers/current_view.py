@@ -19,7 +19,7 @@ class CurrentView():
         """Current diagram id"""
         self.tab_id = self.cfg.main_window.wg_regions.currentIndex()
         """Current layer tab id in region panel"""
-        self.region_id = self.cfg.main_window.wg_regions.get_current_region()
+        self.region_id = self.cfg.layer_heads.selected_region_id
         """Current region id in region panel"""
         self.diagram_zoom =  self.cfg.diagram.zoom
         """Current diagram zoom"""
