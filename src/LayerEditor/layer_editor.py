@@ -39,13 +39,11 @@ QLabel[status="error"] {
 class LayerEditor:
     """Analyzis editor main class"""
     
-    def __init__(self, init_dialog=True):
-        # main window
-        self._app = QtWidgets.QApplication(sys.argv)
-        self._app.setStyleSheet(style_sheet)
-        #print("Layer app: ", str(self._app))
-        self._app.setWindowIcon(icon.get_app_icon("le-geomap"))
-        
+    def __init__(self, app):
+        self._app = app
+        self.qapp_setup()
+        self.parse_args()
+
         # load config        
         cfg.init()
 
@@ -70,15 +68,11 @@ class LayerEditor:
         if self._restore_backup():
             init_dlg_result = QtWidgets.QDialog.Accepted
         else:
-            if init_dialog:
-                init_dlg = SetDiagramDlg()
-                init_dlg_result = init_dlg.exec_()
-                if init_dlg.closed:
-                    self.exit = True
-                    return
-            else:
-                init_dlg_result = QtWidgets.QDialog.Accepted
-                cfg.diagram.area.set_area([0, 0, 100, 100],[0, 100, 100, 0])
+            init_dlg = SetDiagramDlg()
+            init_dlg_result = init_dlg.exec_()
+            if init_dlg.closed:
+                self.exit = True
+                return
 
 
         # show
@@ -97,6 +91,64 @@ class LayerEditor:
         # set default values
         self.mainwindow.paint_new_data()
         self._update_document_name()
+
+    def qapp_setup(self):
+        """
+        Modify setup of QApp object.
+        :return:
+        """
+        self._app.setStyleSheet(style_sheet)
+        self._app.setWindowIcon(icon.get_app_icon("le-geomap"))
+        QtCore.QLocale.setDefault(QtCore.QLocale(QtCore.QLocale.English, QtCore.QLocale.UnitedStates))
+
+        # enable Ctrl+C from console to kill the application
+        signal.signal(signal.SIGINT, signal.SIG_DFL)
+
+    def parse_args(self):
+        """
+        Parse cmd line args.
+        :return:
+        """
+        parser = argparse.ArgumentParser(description='LayerEditor')
+        parser.add_argument('--debug', action='store_true', help='Enable debug mode')
+        args = parser.parse_args()
+
+        if args.debug:
+            cfg.config.__class__.DEBUG_MODE = True
+            self.setup_logging()
+
+    def setup_logging(self):
+        from gm_base.geomop_util.logging import log_unhandled_exceptions
+
+        def on_unhandled_exception(type_, exception, tback):
+            """Unhandled exception callback."""
+            # pylint: disable=unused-argument
+            from gm_base.geomop_dialogs import GMErrorDialog
+            err_dialog = GMErrorDialog(layer_editor.mainwindow)
+            err_dialog.open_error_dialog("Unhandled Exception!", error=exception)
+            sys.exit(1)
+
+        #            from geomop_dialogs import GMErrorDialog
+        #            if layer_editor is not None:
+        #                err_dialog = None
+        #                # display message box with the exception
+        #                if layer_editor.mainwindow is not None:
+        #                    err_dialog = GMErrorDialog(layer_editor.mainwindow)
+        #
+        #                # try to reload editor to avoid inconsistent state
+        #                if callable(layer_editor.mainwindow.reload):
+        #                    try:
+        #                        layer_editor.mainwindow.reload()
+        #                    except:
+        #                        if err_dialog is not None:
+        #                            err_dialog.open_error_dialog("Application performed invalid operation!",
+        #                                                         error=exception)
+        #                            sys.exit(1)
+        #
+        #                if err_dialog is not None:
+        #                    err_dialog.open_error_dialog("Unhandled Exception!", error=exception)
+        #
+        log_unhandled_exceptions(cfg.config.__class__.CONTEXT_NAME, on_unhandled_exception)
 
     def _restore_backup(self):
         """recover file from backup file if it exists and if user wishes so"""
@@ -234,7 +286,7 @@ class LayerEditor:
                 self.autosave.delete_backup()
         return True
 
-    def main(self):
+    def run(self):
         """go"""
         self._app.exec()
         
@@ -248,69 +300,12 @@ class LayerEditor:
         self.mainwindow.setWindowTitle(title)
 
 
-def main():
-    """LayerEditor application entry point."""
-    parser = argparse.ArgumentParser(description='LayerEditor')
-    parser.add_argument('--debug', action='store_true', help='Enable debug mode')
-    args = parser.parse_args()
-
-    if args.debug:
-        cfg.config.__class__.DEBUG_MODE = True
-        
-    #set locale    
-    QtCore.QLocale.setDefault(QtCore.QLocale(QtCore.QLocale.English, QtCore.QLocale.UnitedStates))
-
-    # logging
-    if not args.debug:
-        from gm_base.geomop_util.logging import log_unhandled_exceptions
-
-        def on_unhandled_exception(type_, exception, tback):
-            """Unhandled exception callback."""
-            # pylint: disable=unused-argument
-            from gm_base.geomop_dialogs import GMErrorDialog
-            err_dialog = GMErrorDialog(layer_editor.mainwindow)
-            err_dialog.open_error_dialog("Unhandled Exception!", error=exception)
-            sys.exit(1)
-            
-            
-            
-#            from geomop_dialogs import GMErrorDialog
-#            if layer_editor is not None:
-#                err_dialog = None
-#                # display message box with the exception
-#                if layer_editor.mainwindow is not None:
-#                    err_dialog = GMErrorDialog(layer_editor.mainwindow)
-#
-#                # try to reload editor to avoid inconsistent state
-#                if callable(layer_editor.mainwindow.reload):
-#                    try:
-#                        layer_editor.mainwindow.reload()
-#                    except:
-#                        if err_dialog is not None:
-#                            err_dialog.open_error_dialog("Application performed invalid operation!",
-#                                                         error=exception)
-#                            sys.exit(1)
-#
-#                if err_dialog is not None:
-#                    err_dialog.open_error_dialog("Unhandled Exception!", error=exception)
-#
-        log_unhandled_exceptions(cfg.config.__class__.CONTEXT_NAME, on_unhandled_exception)
-
-    # enable Ctrl+C from console to kill the application
-    signal.signal(signal.SIGINT, signal.SIG_DFL)
-
-    # launch the application
-    layer_editor = LayerEditor()
-    if not layer_editor.exit:
-        layer_editor.main()
-
-    layer_editor._app.quit()
-    del layer_editor._app
-    del layer_editor
-    sys.exit(0)
 
 
 if __name__ == "__main__":
-    main()
+    app = QtWidgets.QApplication(sys.argv)
+    layer_editor = LayerEditor(app)
+    if not layer_editor.exit:
+        layer_editor.run()
 
 

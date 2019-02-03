@@ -3,6 +3,7 @@ from PyQt5.QtTest import QTest
 from PyQt5.QtCore import QTimer, Qt
 import testing.LayerEditor.mock.mock_config as mockcfg
 import pytest
+import pytestqt
 import sys
 
 @pytest.mark.qt
@@ -26,8 +27,6 @@ def test_err_dialog():
     #sys.exit(0)
 
 
-
-    
     assert dialog_result['title'] == "GeoMop Layer Editor - New File"
     assert dialog_result['closed_window'] is True
 
@@ -41,3 +40,13 @@ def start_dialog(editor):
     QTest.keyPress(editor.mainwindow, Qt.Key_Q,  Qt.ControlModifier)
     dialog_result['closed_window'] = editor.mainwindow.close()
     editor._app.quit()
+
+
+
+def test_region_panel(qbot, qapp):
+    """
+    Proof of concept for testing LAyer editor GUI.
+    :param qbot: ptest-qt, qbot to test widgets
+    :param qapp: common QApplication instance for all tests.
+    :return:
+    """
