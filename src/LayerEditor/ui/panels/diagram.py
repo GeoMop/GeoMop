@@ -381,10 +381,10 @@ class Diagram(QtWidgets.QGraphicsScene):
         for point in cfg.diagram.points:
             p = Point(point)
             self.add_graphical_object(p)
-            for polygon in cfg.diagram.polygons:
-                if polygon.object is None:
-                    p = Polygon(polygon)
-                    self.add_graphical_object(p)
+        for polygon in cfg.diagram.polygons:
+            if polygon.object is None:
+                p = Polygon(polygon)
+                self.add_graphical_object(p)
         self._add_polygons()
         
     def blink_start(self, rect):

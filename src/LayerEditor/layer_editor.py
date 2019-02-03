@@ -39,54 +39,28 @@ QLabel[status="error"] {
 class LayerEditor:
     """Analyzis editor main class"""
     
-    def __init__(self, app):
+    def __init__(self, app, args=None):
         self._app = app
+        self._cfg = cfg
         self.qapp_setup()
-        self.parse_args()
+        if args:
+            self.parse_args(args)
 
         # load config        
         cfg.init()
 
-        # set default font to layers
-        #cfg.layers.font = self._app.font()
-
         # set geomop root dir
-        cfg.geomop_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
         self.mainwindow = MainWindow(self)
         cfg.set_main(self.mainwindow)
-
         self.exit = False
 
 
-        # save_fn = lambda: json.dumps(cfg.le_serializer.cfg_to_geometry(
-        #                              cfg, self.autosave.backup_filename()).serialize(),
-        #                                             indent=4, sort_keys=True)
         save_fn = lambda c=cfg: cfg.le_serializer.save(c)
-        self.autosave = Autosave(cfg.config.CONFIG_DIR, lambda: cfg.curr_file, save_fn)
-
-        # Try to restore Untitled.yaml.
-        if self._restore_backup():
-            init_dlg_result = QtWidgets.QDialog.Accepted
-        else:
-            init_dlg = SetDiagramDlg()
-            init_dlg_result = init_dlg.exec_()
-            if init_dlg.closed:
-                self.exit = True
-                return
-
+        self.autosave = Autosave(cfg.config.current_workdir, lambda: cfg.curr_file, save_fn)
+        self._restore_backup()
 
         # show
         self.mainwindow.show()
-
-        if init_dlg_result != QtWidgets.QDialog.Accepted:
-            if not self.open_file():
-                self.mainwindow.close()
-                self.mainwindow._layer_editor = None
-                del self.mainwindow
-                self.exit = True
-                return
-
-        # set default values
         self.mainwindow.paint_new_data()
         self._update_document_name()
 
@@ -105,14 +79,14 @@ class LayerEditor:
         # enable Ctrl+C from console to kill the application
         signal.signal(signal.SIGINT, signal.SIG_DFL)
 
-    def parse_args(self):
+    def parse_args(self, args):
         """
         Parse cmd line args.
         :return:
         """
         parser = argparse.ArgumentParser(description='LayerEditor')
         parser.add_argument('--debug', action='store_true', help='Enable debug mode')
-        args = parser.parse_args()
+        args = parser.parse_args(args)
 
         if args.debug:
             cfg.config.__class__.DEBUG_MODE = True
@@ -305,7 +279,7 @@ class LayerEditor:
 
 if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
-    layer_editor = LayerEditor(app)
+    layer_editor = LayerEditor(app, sys.argv[1:])
     if not layer_editor.exit:
         layer_editor.run()
 

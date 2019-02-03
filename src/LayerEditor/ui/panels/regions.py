@@ -60,8 +60,10 @@ class LayerHeads(QtCore.QObject):
         self.layer_changed.emit()
 
     def add_region(self, name, dim, color):
-        self.regions.add_new_region(color, name, dim, True, "Add Region")
+        region = self.regions.add_new_region(color, name, dim, True, "Add Region")
+        self._selected_regions[self.current_layer_id] = region.reg_id
         self.region_list_changed.emit()
+        return region
 
     def remove_region(self, reg_id):
         shapes = self.regions.get_shapes_of_region(reg_id)
@@ -323,7 +325,9 @@ class Regions(QtWidgets.QToolBox):
             dim = dialog.region_dim.currentData()
             color = dialog.get_some_color(self.layer_heads.regions._get_available_reg_id() - 1).name()
             #color = dialog.get_some_color(data._get_available_reg_id()-1).name()
-            self.layer_heads.add_region(name, dim, color)
+            region = self.layer_heads.add_region(name, dim, color)
+
+
 
             #region = self.regions.add_new_region(color, name, dim, True, "Add Region")
 
@@ -537,15 +541,17 @@ class RegionLayerTab(QtWidgets.QWidget):
         Update combobox according to the region list.
         :return:
         """
-        self.wg_region_combo.setUpdatesEnabled(False) # Disable repainting until combobox is filled.
-        self.wg_region_combo.clear()
-        self._combo_id_to_idx = {}
-        sorted_regions = self.layer_heads.regions.regions.values()
-        for idx, reg in enumerate(sorted_regions):
-            self._combo_id_to_idx[reg.reg_id] = idx
-            self.wg_region_combo.addItem(self.make_combo_label(reg), reg.reg_id)
-        self.wg_region_combo.setCurrentIndex(self._combo_id_to_idx[self.region_id])
-        self.wg_region_combo.setUpdatesEnabled(True)
+        with nosignal(self.wg_region_combo) as combo:
+            #self.wg_region_combo.setUpdatesEnabled(False) # Disable repainting until combobox is filled.
+            combo.clear()
+            self._combo_id_to_idx = {}
+            sorted_regions = self.layer_heads.regions.regions.values()
+            for idx, reg in enumerate(sorted_regions):
+                self._combo_id_to_idx[reg.reg_id] = idx
+                combo.addItem(self.make_combo_label(reg), reg.reg_id)
+            #self.wg_region_combo.setUpdatesEnabled(True)
+        self._update_region_content()
+        #combo.update()
 
     def make_combo_label(self, region):
         return region.name + " (" + AddRegionDlg.REGION_DESCRIPTION_DIM[region.dim] + ")"
@@ -581,6 +587,7 @@ class RegionLayerTab(QtWidgets.QWidget):
         self.wg_boundary.setChecked(region.boundary)
         self.wg_notused.setChecked(region.not_used)
         self.wg_mesh_step_edit.setText("{:8.4g}".format(region.mesh_step))
+        self.update()
 
 
 
@@ -637,8 +644,8 @@ class RegionLayerTab(QtWidgets.QWidget):
         Handle change in region combo box.
         """
         self._region_id = region_id
-        self.layer_heads.select_regions( {self._layer_id: self.region_id} )
-        self._update_region_content()
+        self.layer_heads.select_regions( {self._layer_id: region_id} )
+        #self._update_region_content() # update called through connected signal layer_heads.region_changed
 
     def _name_editing_finished(self):
         """
@@ -680,7 +687,7 @@ class RegionLayerTab(QtWidgets.QWidget):
         self.parent().colorChanged.emit()
 
     def _boundary_changed(self):
-        self.region.set_region_boundary(self.region_id, self.wg_boundary.isChecked(),
+        self.layer_heads.regions.set_region_boundary(self.region_id, self.wg_boundary.isChecked(),
             True, "Set region boundary")
 
     def _not_used_checked(self):
