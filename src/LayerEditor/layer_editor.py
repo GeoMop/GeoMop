@@ -86,11 +86,12 @@ class LayerEditor:
                 self.exit = True
                 return
 
-        self.mainwindow.diagramScene.regionsUpdateRequired.connect(self.autosave.on_content_change)
-        
         # set default values
         self.mainwindow.paint_new_data()
         self._update_document_name()
+
+        self.mainwindow.diagramScene.regionsUpdateRequired.connect(self.autosave.on_content_change)
+
 
     def qapp_setup(self):
         """
