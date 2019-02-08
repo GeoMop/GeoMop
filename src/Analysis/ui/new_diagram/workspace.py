@@ -40,7 +40,7 @@ class Workspace(QtWidgets.QGraphicsView):
         self.zoom = 1.0
         self.zoom_factor = 1.1
         self.max_zoom = pow(self.zoom_factor, 10)
-        self.min_zoom = pow(1/self.zoom_factor, 10)
+        self.min_zoom = pow(1/self.zoom_factor, 20)
 
 
         timer = QtCore.QTimer(self)

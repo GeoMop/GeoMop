@@ -66,6 +66,7 @@ class ResizeHandle(QtWidgets.QGraphicsRectItem):
             super(ResizeHandle, self).mousePressEvent(press_event)
 
     def mouseMoveEvent(self, move_event):
+        print("move mouse resize")
         move = move_event.pos() - move_event.lastPos()
         if self.pressed:
             self.parentItem().prepareGeometryChange()

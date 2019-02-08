@@ -32,9 +32,17 @@ class Port(QtWidgets.QGraphicsPathItem):
         self.connections = []
         self.setAcceptHoverEvents(True)
         self.setZValue(1.0)
+        self.setFlag(self.ItemSendsGeometryChanges)
 
     def __repr__(self):
         return "Action: '" + self.parentItem().name + "' Port: '" + self.name + "'"
+
+    def itemChange(self, change_type, value):
+        if change_type == QtWidgets.QGraphicsItem.ItemPositionHasChanged:
+            print("port posiiton changed")
+            for conn in self.connections:
+                conn.update_gfx()
+        return super(Port, self).itemChange(change_type, value)
 
     def mousePressEvent(self, event):
         """If the port is pressed create a connection."""

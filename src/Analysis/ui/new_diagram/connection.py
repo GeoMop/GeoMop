@@ -49,12 +49,16 @@ class Connection(QtWidgets.QGraphicsPathItem):
             event.ignore()
             self.setSelected(False)
 
+    def itemChange(self, change_type, value):
+        if change_type == QtWidgets.QGraphicsItem.ItemSelectedHasChanged:
+            if self.isSelected():
+                self.setPen(self.dash_pen)
+            else:
+                self.setPen(self.full_pen)
+        return super(Connection, self).itemChange(change_type, value)
+
     def paint(self, painter, style, widget=None):
         """If connection is selected, draw it as dash line."""
-        if self.isSelected():
-            self.setPen(self.dash_pen)
-        else:
-            self.setPen(self.full_pen)
         style.state &= ~QtWidgets.QStyle.State_Selected     # remove selection box
         super(Connection, self).paint(painter, style, widget)
 
@@ -64,7 +68,6 @@ class Connection(QtWidgets.QGraphicsPathItem):
         self.setPath(self.update_path())
 
     def update_path(self):
-        print("path update")
         path = QtGui.QPainterPath()
         p1 = self.port1.get_connection_point()
         p2 = self.port2.get_connection_point() if self.connection_set else self.port2.pos()
