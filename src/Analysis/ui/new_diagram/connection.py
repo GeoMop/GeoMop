@@ -3,6 +3,7 @@ Representation of connection between two ports.
 @author: Tomáš Blažek
 @contact: tomas.blazek@tul.cz
 """
+
 from PyQt5 import QtWidgets, QtCore, QtGui
 from .port import Port, OutputPort
 
@@ -25,6 +26,7 @@ class Connection(QtWidgets.QGraphicsPathItem):
         self.setPen(self.full_pen)
         self.setZValue(10.0)
         self.setCacheMode(self.DeviceCoordinateCache)
+        self._shape = QtGui.QPainterPath()
 
     def is_connected(self, port):
         """Returns True if this connection is attached to specified port."""
@@ -59,6 +61,10 @@ class Connection(QtWidgets.QGraphicsPathItem):
     def update_gfx(self):
         """Updates model of the connection."""
         self.prepareGeometryChange()
+        self.setPath(self.update_path())
+
+    def update_path(self):
+        print("path update")
         path = QtGui.QPainterPath()
         p1 = self.port1.get_connection_point()
         p2 = self.port2.get_connection_point() if self.connection_set else self.port2.pos()
@@ -66,7 +72,31 @@ class Connection(QtWidgets.QGraphicsPathItem):
         c2 = QtCore.QPointF(p2.x(), (p2.y() + p1.y()) / 2)
         path.moveTo(p1)
         path.cubicTo(c1, c2, p2)
-        self.setPath(path)
+
+        direction = (p1 - p2)
+        direction = direction/direction.manhattanLength()
+        direction.setY(-direction.y())
+        margin = 1.5 * QtCore.QPointF(direction.y(),direction.x())
+
+        self._shape = QtGui.QPainterPath()
+        self._shape.moveTo(p1 - margin)
+        left_curve = path.translated(-margin)
+        self._shape.connectPath(left_curve)
+
+        trans = QtGui.QTransform()
+        trans.rotate(180)
+        right_curve = trans.map(path)
+        right_curve.translate(p1 + p2 + margin)
+
+        self._shape.connectPath(right_curve)
+        self._shape.closeSubpath()
+
+
+        return path
+
+    def shape(self):
+        return self._shape
+
 
     def set_port2_pos(self, pos):
         """Sets port2's position to allow tracking mouse movement before connection is set."""

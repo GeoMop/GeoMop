@@ -64,6 +64,7 @@ class Action(QtWidgets.QGraphicsPathItem):
 
     @width.setter
     def width(self, value):
+        print("width")
         self._width = max(value, self.width_of_ports(), self._name.boundingRect().width() + 2 * self.resize_handle_width)
         self.update()
         self.redraw = True
@@ -89,9 +90,10 @@ class Action(QtWidgets.QGraphicsPathItem):
 
     def itemChange(self, change_type, value):
         """Update all connections which are attached to this action."""
-        for port in self.ports():
-            for conn in port.connections:
-                conn.update_gfx()
+        if change_type == QtWidgets.QGraphicsItem.ItemPositionChange:
+            for port in self.ports():
+                for conn in port.connections:
+                    conn.update_gfx()
         return super(Action, self).itemChange(change_type, value)
 
     def paint(self, paint, item, widget=None):
