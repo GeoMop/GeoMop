@@ -43,6 +43,7 @@ class ResizeHandle(QtWidgets.QGraphicsRectItem):
         self.pressed = False
         self.setRect(self.get_handle_rect[dock](width, parent.boundingRect()))
         self.setPen(QtGui.QPen(Qt.NoPen))
+        self.setFlag(self.ItemHasNoContents)
 
     def hoverMoveEvent(self, move_event):
         """Executed when the mouse moves over the shape (NOT PRESSED)."""

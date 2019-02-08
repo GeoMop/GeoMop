@@ -3,7 +3,9 @@ Workspace where all user input is processed.
 @author: Tomáš Blažek
 @contact: tomas.blazek@tul.cz
 """
-
+import cProfile
+import time
+import random
 from PyQt5 import QtWidgets, QtCore, QtGui, QtOpenGL
 from .action import Action
 from .connection import Connection
@@ -21,19 +23,34 @@ class Workspace(QtWidgets.QGraphicsView):
         self.edit_menu = self.parent().edit_menu
         self.edit_menu.new_action.triggered.connect(self.add_action)
         self.edit_menu.delete.triggered.connect(self.delete_items)
+        self.edit_menu.add_random.triggered.connect(self.add_random_items)
         self.new_action_pos = QtCore.QPoint()
         self.setMouseTracking(True)
         self.actions = []
         self.connections = []
         self.new_connection = None
         self.setDragMode(self.RubberBandDrag)
-        self.setSceneRect(QtCore.QRectF(QtCore.QPoint(0, 0), QtCore.QPoint(10000000, 10000000)))
+        self.setSceneRect(QtCore.QRectF(QtCore.QPoint(-10000000, -10000000), QtCore.QPoint(10000000, 10000000)))
+        self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+        self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+        self.setViewportUpdateMode(self.BoundingRectViewportUpdate)
+
 
         # settings for zooming the workspace
         self.zoom = 1.0
-        self.max_zoom = 5.0
-        self.min_zoom = 0.3
-        self.zoom_factor = 1.2
+        self.zoom_factor = 1.1
+        self.max_zoom = pow(self.zoom_factor, 10)
+        self.min_zoom = pow(1/self.zoom_factor, 10)
+
+
+        timer = QtCore.QTimer(self)
+        timer.timeout.connect(self.show_fps)
+        timer.start(1000)
+        self.fps_count = 0
+        self.frame_time = 0
+
+        self.prof = cProfile.Profile()
+        self.prof.enable()
 
     @staticmethod
     def is_action(obj):
@@ -42,6 +59,36 @@ class Workspace(QtWidgets.QGraphicsView):
             return True
         else:
             return False
+
+    def add_random_items(self):
+        if not self.items():
+            self.new_action_pos = QtCore.QPoint(0, 0)
+            self.add_action()
+        for i in range(200):
+            if i > 100:
+                action = self.actions[random.randint(0,len(self.actions) - 1)]
+                self.add_connection(action.ports()[random.randint(0,len(action.ports()) - 1)])
+                action = self.actions[random.randint(0, len(self.actions) - 1)]
+                self.add_connection(action.ports()[random.randint(0, len(action.ports()) - 1)])
+            else:
+                action = self.actions[random.randint(0, len(self.actions) - 1)]
+                self.new_action_pos = action.pos() + QtCore.QPoint(random.randint(-500, 500), random.randint(-500, 500))
+                self.add_action()
+
+
+    def show_fps(self):
+
+        print("Fps: " + str(self.fps_count))
+        print("Avarage frame time: " + str(self.frame_time / (self.fps_count if self.fps_count else 1)))
+        self.frame_time = 0
+        self.fps_count = 0
+
+        self.prof.disable()
+        self.prof.print_stats()
+        self.prof.clear()
+
+        self.prof = cProfile.Profile()
+        self.prof.enable()
 
     def wheelEvent(self, event):
         """Handle zoom on wheel rotation."""
@@ -55,6 +102,14 @@ class Workspace(QtWidgets.QGraphicsView):
 
         self.setTransformationAnchor(self.AnchorUnderMouse)
         self.setTransform(QtGui.QTransform().scale(self.zoom, self.zoom))
+
+    def paintEvent(self, event):
+        start = time.time()
+
+        super(Workspace, self).paintEvent(event)
+        self.frame_time += time.time() - start
+        self.fps_count += 1
+
 
     def contextMenuEvent(self, event):
         """Open context menu on right mouse button click."""

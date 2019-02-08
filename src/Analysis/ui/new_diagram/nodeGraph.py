@@ -12,10 +12,10 @@ from new_diagram.main_widget import MainWidget
 
 
 if __name__ == "__main__":
-    app = QApplication(sys.argv )
+    app = QApplication(sys.argv)
     w = MainWidget()
-    w.resize(400, 600)
-    w.move(300, 300)
+    w.resize(500, 720)
+    w.move(300, 50)
     w.setWindowTitle('Simple')
     w.show()
 

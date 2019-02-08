@@ -24,6 +24,7 @@ class Connection(QtWidgets.QGraphicsPathItem):
         self.dash_pen = QtGui.QPen(QtCore.Qt.black, 2, QtCore.Qt.DashLine)
         self.setPen(self.full_pen)
         self.setZValue(10.0)
+        self.setCacheMode(self.DeviceCoordinateCache)
 
     def is_connected(self, port):
         """Returns True if this connection is attached to specified port."""

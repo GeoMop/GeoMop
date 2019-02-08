@@ -26,4 +26,6 @@ class MainWidget(QtWidgets.QMainWindow):
 
 
         self.w = Workspace(self)
+        self.resize(500, 500)
         self.setCentralWidget(self.w)
+

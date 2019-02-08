@@ -48,6 +48,7 @@ class Action(QtWidgets.QGraphicsPathItem):
         self.resize_handles = RectResizeHandles(self, self.resize_handle_width)
 
         self.update_gfx()
+        self.setCacheMode(self.DeviceCoordinateCache)
 
     @property
     def name(self):
@@ -64,6 +65,7 @@ class Action(QtWidgets.QGraphicsPathItem):
     @width.setter
     def width(self, value):
         self._width = max(value, self.width_of_ports(), self._name.boundingRect().width() + 2 * self.resize_handle_width)
+        self.update()
         self.redraw = True
 
     @property
@@ -73,6 +75,7 @@ class Action(QtWidgets.QGraphicsPathItem):
     @height.setter
     def height(self, value):
         self._height = max(value, self._name.boundingRect().height() + Port.SIZE)
+        self.update()
         self.redraw = True
 
     def inner_area(self):
@@ -104,7 +107,7 @@ class Action(QtWidgets.QGraphicsPathItem):
         p = QtGui.QPainterPath()
         p.addRoundedRect(QtCore.QRectF(0, 0, self.width, self.height), 6, 6)
         p.addRoundedRect(self.inner_area(), 4, 4)
-        self.setPath(p)
+        self.setPath(p.simplified())
         self.position_ports()
         self.resize_handles.update_handles()
 

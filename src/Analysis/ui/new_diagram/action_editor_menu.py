@@ -18,3 +18,6 @@ class ActionEditorMenu(QtWidgets.QMenu):
         self.delete.setShortcut(QtGui.QKeySequence.Delete)
         self.addAction(self.delete)
 
+        self.add_random = QtWidgets.QAction("Add random action (for test purposes)")
+        self.addAction(self.add_random)
+
