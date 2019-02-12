@@ -7,6 +7,8 @@ import os
 import sys
 import subprocess
 
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))))
+
 from gm_base.global_const import GEOMOP_INTERNAL_DIR_NAME
 
 
