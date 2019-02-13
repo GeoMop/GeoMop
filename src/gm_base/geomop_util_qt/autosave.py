@@ -23,12 +23,11 @@ class Autosave:
         """
         self.curr_filename_fnc = curr_filename_fnc
         self.text = string_to_save_fnc
-
+        self.content_hash = None
         self.autosave_timer = QtCore.QTimer()
         """timer for periodical saving"""
         #self.autosave_timer.setSingleShot(True)
         self.autosave_timer.timeout.connect(self._autosave)
-        self.autosave_timer.start(self.AUTOSAVE_INTERVAL)
         if not os.path.isdir(default_backup_dir):
             try:
                 os.makedirs(default_backup_dir)
@@ -50,7 +49,6 @@ class Autosave:
 
     def _autosave(self):
         """Periodically saves specified string (current file)."""
-        print("autosave")
         content = self.text()
         content_hash = hash(content)
         if self.content_hash != content_hash:
@@ -87,8 +85,6 @@ class Autosave:
         """Delete backup file if is no longer needed."""
         if os.path.exists(self.backup_filename()):
             os.remove(self.backup_filename())
-        self.autosave_timer.stop()
 
-    def on_content_change(self):
-        """Restart timer when current document changed."""
-        #self.autosave_timer.start(self.AUTOSAVE_INTERVAL)
+    def start_autosave(self):
+        self.autosave_timer.start(self.AUTOSAVE_INTERVAL)
