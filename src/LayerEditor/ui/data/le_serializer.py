@@ -225,6 +225,7 @@ class LESerializer():
         diagram.import_decomposition(decomp)
 
     def save(self, cfg, path=""):
+        print("Saving to ", path)
         lg = self.cfg_to_geometry(cfg, path)
         if path:
             with open(path, 'w') as f:
