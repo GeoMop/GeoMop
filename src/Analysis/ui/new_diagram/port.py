@@ -39,7 +39,6 @@ class Port(QtWidgets.QGraphicsPathItem):
 
     def itemChange(self, change_type, value):
         if change_type == QtWidgets.QGraphicsItem.ItemPositionHasChanged:
-            print("port posiiton changed")
             for conn in self.connections:
                 conn.update_gfx()
         return super(Port, self).itemChange(change_type, value)

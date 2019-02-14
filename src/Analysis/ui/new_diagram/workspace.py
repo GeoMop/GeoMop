@@ -42,9 +42,8 @@ class Workspace(QtWidgets.QGraphicsView):
         self.max_zoom = pow(self.zoom_factor, 10)
         self.min_zoom = pow(1/self.zoom_factor, 20)
 
-
         timer = QtCore.QTimer(self)
-        timer.timeout.connect(self.show_fps)
+        #timer.timeout.connect(self.show_fps)
         timer.start(1000)
         self.fps_count = 0
         self.frame_time = 0
@@ -67,7 +66,7 @@ class Workspace(QtWidgets.QGraphicsView):
         for i in range(200):
             if i > 100:
                 action = self.actions[random.randint(0,len(self.actions) - 1)]
-                self.add_connection(action.ports()[random.randint(0,len(action.ports()) - 1)])
+                self.add_connection(action.ports()[random.randint(0, len(action.ports()) - 1)])
                 action = self.actions[random.randint(0, len(self.actions) - 1)]
                 self.add_connection(action.ports()[random.randint(0, len(action.ports()) - 1)])
             else:
@@ -75,9 +74,7 @@ class Workspace(QtWidgets.QGraphicsView):
                 self.new_action_pos = action.pos() + QtCore.QPoint(random.randint(-500, 500), random.randint(-500, 500))
                 self.add_action()
 
-
     def show_fps(self):
-
         print("Fps: " + str(self.fps_count))
         print("Avarage frame time: " + str(self.frame_time / (self.fps_count if self.fps_count else 1)))
         self.frame_time = 0
@@ -109,7 +106,6 @@ class Workspace(QtWidgets.QGraphicsView):
         super(Workspace, self).paintEvent(event)
         self.frame_time += time.time() - start
         self.fps_count += 1
-
 
     def contextMenuEvent(self, event):
         """Open context menu on right mouse button click."""

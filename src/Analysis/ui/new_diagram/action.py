@@ -38,7 +38,8 @@ class Action(QtWidgets.QGraphicsPathItem):
         self.setZValue(0.0)
         self._name = EditableLabel("Testing", self)
 
-        self.resize_handles = RectResizeHandles(self, self.resize_handle_width)
+        self.resize_handles = RectResizeHandles(self, self.resize_handle_width,
+                                                self.resize_handle_width * 2,)
 
         self.add_ports()
 
@@ -60,8 +61,8 @@ class Action(QtWidgets.QGraphicsPathItem):
     def width(self, value):
         self._width = max(value, self.width_of_ports(), self._name.boundingRect().width() + 2 * self.resize_handle_width)
         self.position_ports()
-        self.resize_handles.update_handles()
         self.update_gfx()
+        self.resize_handles.update_handles()
 
     @property
     def height(self):

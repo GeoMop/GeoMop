@@ -1,15 +1,16 @@
 from PyQt5 import QtWidgets, QtGui
 from PyQt5.QtCore import Qt, QRectF, QPointF
 
+
 class ResizeHandle(QtWidgets.QGraphicsRectItem):
     top_left = 1
     top_middle = 2
-    top_right = 3
-    middle_left = 4
-    middle_right = 5
-    bottom_left = 6
-    bottom_middle = 7
-    bottom_right = 8
+    top_right = 4
+    middle_left = 8
+    middle_right = 16
+    bottom_left = 32
+    bottom_middle = 64
+    bottom_right = 128
 
     cursors = {
         top_left: Qt.SizeFDiagCursor,
@@ -23,27 +24,33 @@ class ResizeHandle(QtWidgets.QGraphicsRectItem):
     }
     
     get_handle_rect = {
-        top_left: lambda w, rect: QRectF(rect.left(), rect.top(), w, w),
-        top_middle: lambda w, rect: QRectF(rect.left() + w, rect.top(), rect.width() - 2 * w, w),
-        top_right: lambda w, rect: QRectF(rect.right() - w, rect.top(), w, w),
-        middle_left: lambda w, rect: QRectF(rect.left(), rect.top() + w, w, rect.height() - 2 * w),
-        middle_right: lambda w, rect: QRectF(rect.right() - w, rect.top() + w, w, rect.height() - 2 * w),
-        bottom_left: lambda w, rect: QRectF(rect.left(), rect.bottom() - w, w, w),
-        bottom_middle: lambda w, rect: QRectF(rect.left() + w, rect.bottom() - w, rect.width() - 2 * w, w),
-        bottom_right: lambda w, rect: QRectF(rect.right() - w, rect.bottom() - w, w, w),
+        top_left: lambda w, cs, rect: QRectF(rect.left(), rect.top(), cs, cs),
+        top_middle: lambda w, cs, rect: QRectF(rect.left() + cs, rect.top(), rect.width() - 2 * cs, w),
+        top_right: lambda w, cs, rect: QRectF(rect.right() - cs, rect.top(), cs, cs),
+        middle_left: lambda w, cs, rect: QRectF(rect.left(), rect.top() + cs, w, rect.height() - 2 * cs),
+        middle_right: lambda w, cs, rect: QRectF(rect.right() - w, rect.top() + cs, w, rect.height() - 2 * cs),
+        bottom_left: lambda w, cs, rect: QRectF(rect.left(), rect.bottom() - cs, cs, cs),
+        bottom_middle: lambda w, cs, rect: QRectF(rect.left() + cs, rect.bottom() - w, rect.width() - 2 * cs, w),
+        bottom_right: lambda w, cs, rect: QRectF(rect.right() - cs, rect.bottom() - cs, cs, cs),
     }
 
-    def __init__(self, resize_handler, parent, width, dock):
-        super(ResizeHandle, self).__init__(parent)
+    def __init__(self, resize_handler, parent_item, width, dock, corner_size=None, corners=True):
+        super(ResizeHandle, self).__init__(parent_item)
+        self.corner_size = corner_size if corner_size is not None else width
+        self.corners = corners
         self.setZValue(0.5)
         self.resize_handler = resize_handler
         self.width = width
         self.dock = dock
         self.setAcceptHoverEvents(True)
         self.pressed = False
-        self.setRect(self.get_handle_rect[dock](width, parent.boundingRect()))
+        self.setRect(self.get_rect())
         self.setPen(QtGui.QPen(Qt.NoPen))
         self.setFlag(self.ItemHasNoContents)
+
+    def get_rect(self):
+        return self.get_handle_rect[self.dock](self.width, self.corner_size if self.corners else 0,
+                                               self.parentItem().boundingRect())
 
     def hoverMoveEvent(self, move_event):
         """Executed when the mouse moves over the shape (NOT PRESSED)."""
@@ -57,7 +64,7 @@ class ResizeHandle(QtWidgets.QGraphicsRectItem):
         super().hoverLeaveEvent(move_event)
 
     def update_handle(self):
-        self.setRect(self.get_handle_rect[self.dock](self.width, self.parentItem().boundingRect()))
+        self.setRect(self.get_rect())
 
     def mousePressEvent(self, press_event):
         if self.parentItem().isSelected():
@@ -66,7 +73,6 @@ class ResizeHandle(QtWidgets.QGraphicsRectItem):
             super(ResizeHandle, self).mousePressEvent(press_event)
 
     def mouseMoveEvent(self, move_event):
-        print("move mouse resize")
         move = move_event.pos() - move_event.lastPos()
         if self.pressed:
             self.parentItem().prepareGeometryChange()
