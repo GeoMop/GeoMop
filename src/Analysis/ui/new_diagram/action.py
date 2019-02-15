@@ -24,7 +24,7 @@ class Action(QtWidgets.QGraphicsPathItem):
         self.in_ports = []
         self.out_ports = []
 
-        self.resize_handle_width = 5
+        self.resize_handle_width = 8
 
         self.setPos(position)
         self.handles = []
@@ -39,7 +39,7 @@ class Action(QtWidgets.QGraphicsPathItem):
         self._name = EditableLabel("Testing", self)
 
         self.resize_handles = RectResizeHandles(self, self.resize_handle_width,
-                                                self.resize_handle_width * 2,)
+                                                self.resize_handle_width * 2)
 
         self.add_ports()
 
@@ -72,8 +72,8 @@ class Action(QtWidgets.QGraphicsPathItem):
     def height(self, value):
         self._height = max(value, self._name.boundingRect().height() + Port.SIZE)
         self.position_ports()
-        self.resize_handles.update_handles()
         self.update_gfx()
+        self.resize_handles.update_handles()
 
     def add_ports(self):
         for i in range(2):
@@ -94,10 +94,14 @@ class Action(QtWidgets.QGraphicsPathItem):
 
     def itemChange(self, change_type, value):
         """Update all connections which are attached to this action."""
-        if change_type == QtWidgets.QGraphicsItem.ItemPositionHasChanged:
+        if change_type == self.ItemPositionHasChanged:
             for port in self.ports():
                 for conn in port.connections:
                     conn.update_gfx()
+        '''
+        elif change_type == self.ItemParentChange:
+            self.setPos(self.mapToItem(value, self.mapToScene(self.pos())))
+        '''
         return super(Action, self).itemChange(change_type, value)
 
     def paint(self, paint, item, widget=None):

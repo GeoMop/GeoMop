@@ -5,7 +5,7 @@ Special action which can contain subactions for repeating processes.
 """
 from .action import Action
 from .port import Port
-from PyQt5 import QtGui, QtCore
+from PyQt5 import QtGui, QtCore, QtWidgets
 
 
 class ActionForSubactions(Action):
@@ -16,7 +16,7 @@ class ActionForSubactions(Action):
         :param position: Position of this action.
         """
         super(ActionForSubactions, self).__init__(parent, position)
+        self.name = "While loop"
         self.width = 200
         self.height = 200
-
 

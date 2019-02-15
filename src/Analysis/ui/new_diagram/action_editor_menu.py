@@ -21,3 +21,5 @@ class ActionEditorMenu(QtWidgets.QMenu):
         self.add_random = QtWidgets.QAction("Add random action (for test purposes)")
         self.addAction(self.add_random)
 
+        self.add_while = QtWidgets.QAction("Add while loop")
+        self.addAction(self.add_while)
