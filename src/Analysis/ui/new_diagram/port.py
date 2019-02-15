@@ -45,7 +45,7 @@ class Port(QtWidgets.QGraphicsPathItem):
 
     def mousePressEvent(self, event):
         """If the port is pressed create a connection."""
-        self.scene().parent().add_connection(self)
+        self.scene().add_connection(self)
 
     def get_connection_point(self):
         """Return scene coordinates to draw connection."""
