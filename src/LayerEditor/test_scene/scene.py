@@ -62,6 +62,10 @@ class Point:
         self.xy[0] = x
         self.xy[1] = y
 
+        # testing boundary
+        if x < 200:
+            self.xy[0] = 200
+
     def segments(self):
         """
         Generator of connected segments.
@@ -94,8 +98,8 @@ class Polygon:
 
 class GsPoint(QtWidgets.QGraphicsEllipseItem):
     SIZE = 6
-    STD_ZVALUE = 1
-    SELECTED_ZVALUE = 0
+    STD_ZVALUE = 20
+    SELECTED_ZVALUE = 21
     __pen_table={}
 
     no_brush = QtGui.QBrush(QtCore.Qt.NoBrush)
@@ -120,19 +124,22 @@ class GsPoint(QtWidgets.QGraphicsEllipseItem):
         self.setFlag(QtWidgets.QGraphicsItem.ItemIgnoresTransformations, True)
             # do not scale points whenzooming
         self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, True)
-        self.setFlag(QtWidgets.QGraphicsItem.ItemIsSelectable, True)
+        #self.setFlag(QtWidgets.QGraphicsItem.ItemIsSelectable, True)
         self.setFlag(QtWidgets.QGraphicsItem.ItemSendsGeometryChanges, True)
             # Keep point shape (used for mouse interaction) having same size as the point itself.
         #self.setFlag(QtWidgets.QGraphicsItem.ItemClipsToShape, True)
-        self.setCacheMode(QtWidgets.QGraphicsItem.DeviceCoordinateCache)
+        #self.setCacheMode(QtWidgets.QGraphicsItem.DeviceCoordinateCache)
             # Caching: Points can move.
+        # if enabled QGraphicsScene.update() don't repaint
+
         self.setCursor(Cursor.point)
         self.setAcceptedMouseButtons(QtCore.Qt.LeftButton | QtCore.Qt.RightButton)
         self.update()
 
     def paint(self, painter, option, widget):
         print("option: ", option.state)
-        if option.state & QtWidgets.QStyle.State_Selected:
+        #if option.state & QtWidgets.QStyle.State_Selected:
+        if self.scene().selection.is_selected(self.pt):
             painter.setBrush(GsPoint.no_brush)
             painter.setPen(self.region_pen)
         else:
@@ -141,7 +148,9 @@ class GsPoint(QtWidgets.QGraphicsEllipseItem):
         painter.drawEllipse(self.rect())
 
     def update(self):
+        self.setFlag(QtWidgets.QGraphicsItem.ItemSendsGeometryChanges, False)
         self.setPos(self.pt.xy[0], self.pt.xy[1])
+        self.setFlag(QtWidgets.QGraphicsItem.ItemSendsGeometryChanges)
         self.region_brush, self.region_pen = GsPoint.pen_table(self.pt.region.color)
         self.setZValue(self.STD_ZVALUE)
         super().update()
@@ -149,8 +158,11 @@ class GsPoint(QtWidgets.QGraphicsEllipseItem):
 
     def move_to(self, x, y):
         self.pt.set_xy(x, y)
-        for gseg in self.pt.g_segments():
-            gseg.update()
+        # for gseg in self.pt.g_segments():
+        #     gseg.update()
+        if self.scene():
+            self.scene().update_all_segments()
+            self.scene().update_all_polygons()
         self.update()
 
 
@@ -164,7 +176,8 @@ class GsPoint(QtWidgets.QGraphicsEllipseItem):
         """
         #print("change: ", change, "val: ", value)
         if change == QtWidgets.QGraphicsItem.ItemPositionHasChanged:
-            self.pt.set_xy(value.x(), value.y())
+            #self.pt.set_xy(value.x(), value.y())
+            self.move_to(value.x(), value.y())
         if change == QtWidgets.QGraphicsItem.ItemSelectedChange:
             if self.isSelected():
                 self.setZValue(self.SELECTED_ZVALUE)
@@ -187,8 +200,8 @@ class GsSegment(QtWidgets.QGraphicsLineItem):
     __pen_table={}
 
     WIDTH = 3.0
-    STD_ZVALUE = 11
-    SELECTED_ZVALUE = 10
+    STD_ZVALUE = 10
+    SELECTED_ZVALUE = 11
     no_pen = QtGui.QPen(QtCore.Qt.NoPen)
 
 
@@ -211,23 +224,29 @@ class GsSegment(QtWidgets.QGraphicsLineItem):
         super().__init__()
         #self.setFlag(QtWidgets.QGraphicsItem.ItemIgnoresTransformations, True)
         self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, True)
-        self.setFlag(QtWidgets.QGraphicsItem.ItemIsSelectable, True)
+        #self.setFlag(QtWidgets.QGraphicsItem.ItemIsSelectable, True)
         self.setFlag(QtWidgets.QGraphicsItem.ItemSendsGeometryChanges)
-        self.setCacheMode(QtWidgets.QGraphicsItem.DeviceCoordinateCache)
+        #self.setCacheMode(QtWidgets.QGraphicsItem.DeviceCoordinateCache)
+        # if enabled QGraphicsScene.update() don't repaint
+
         self.setCursor(Cursor.segment)
         self.setAcceptedMouseButtons(QtCore.Qt.LeftButton | QtCore.Qt.RightButton)
         self.setZValue(self.STD_ZVALUE)
         self.update()
-        pass
 
     def update(self):
         pt_from, pt_to = self.segment.points
-        self.setLine(pt_from.xy[0], pt_from.xy[1], pt_to.xy[0], pt_to.xy[1])
+        #self.setLine(pt_from.xy[0], pt_from.xy[1], pt_to.xy[0], pt_to.xy[1])
+        self.setFlag(QtWidgets.QGraphicsItem.ItemSendsGeometryChanges, False)
+        self.setPos(QtCore.QPointF(pt_from.xy[0], pt_from.xy[1]))
+        self.setFlag(QtWidgets.QGraphicsItem.ItemSendsGeometryChanges)
+        self.setLine(0, 0, pt_to.xy[0] - pt_from.xy[0], pt_to.xy[1] - pt_from.xy[1])
         self.region_pen, self.region_selected_pen  = GsSegment.pen_table(self.segment.region.color)
         super().update()
 
     def paint(self, painter, option, widget):
-        if option.state & (QtWidgets.QStyle.State_Sunken | QtWidgets.QStyle.State_Selected):
+        #if option.state & (QtWidgets.QStyle.State_Sunken | QtWidgets.QStyle.State_Selected):
+        if self.scene().selection.is_selected(self.segment):
             painter.setPen(self.region_selected_pen)
         else:
             painter.setPen(self.region_pen)
@@ -235,8 +254,20 @@ class GsSegment(QtWidgets.QGraphicsLineItem):
 
     def itemChange(self, change, value):
         #print("change: ", change, "val: ", value)
-        #if change == QtWidgets.QGraphicsItem.ItemPositionHasChanged:
-        #    self.pt.set_xy(value.x(), value.y())
+        if change == QtWidgets.QGraphicsItem.ItemPositionChange:
+            # set new values to data layer
+            p0 = self.segment.points[0]
+            p1 = self.segment.points[1]
+            p0.set_xy(p0.xy[0] + value.x() - self.pos().x(), p0.xy[1] + value.y() - self.pos().y())
+            p1.set_xy(p1.xy[0] + value.x() - self.pos().x(), p1.xy[1] + value.y() - self.pos().y())
+
+            # update graphic layer
+            p0.gpt.update()
+            p1.gpt.update()
+            self.scene().update_all_segments()
+            self.scene().update_all_polygons()
+
+            return self.pos()
         if change == QtWidgets.QGraphicsItem.ItemSelectedChange:
             if self.isSelected():
                 self.setZValue(self.SELECTED_ZVALUE)
@@ -244,13 +275,18 @@ class GsSegment(QtWidgets.QGraphicsLineItem):
                 self.setZValue(self.STD_ZVALUE)
         return super().itemChange(change, value)
 
+    def update_zoom(self, value):
+        pen = QtGui.QPen()
+        pen.setWidthF(self.WIDTH * 2 / value)
+        self.setPen(pen)
+
 
 class GsPolygon(QtWidgets.QGraphicsPolygonItem):
     __brush_table={}
 
     SQUARE_SIZE = 20
-    STD_ZVALUE = -10
-    SELECTED_ZVALUE = -11
+    STD_ZVALUE = 0
+    SELECTED_ZVALUE = 1
     no_pen = QtGui.QPen(QtCore.Qt.NoPen)
 
 
@@ -269,10 +305,12 @@ class GsPolygon(QtWidgets.QGraphicsPolygonItem):
         polygon.g_polygon = self
         super().__init__()
         #self.setFlag(QtWidgets.QGraphicsItem.ItemIgnoresTransformations, True)
-        self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, True)
-        self.setFlag(QtWidgets.QGraphicsItem.ItemIsSelectable, True)
+        #self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, True)
+        #self.setFlag(QtWidgets.QGraphicsItem.ItemIsSelectable, True)
         self.setFlag(QtWidgets.QGraphicsItem.ItemSendsGeometryChanges)
-        self.setCacheMode(QtWidgets.QGraphicsItem.DeviceCoordinateCache)
+        #self.setCacheMode(QtWidgets.QGraphicsItem.DeviceCoordinateCache)
+        # if enabled QGraphicsScene.update() don't repaint
+
         self.setCursor(Cursor.polygon)
         self.setAcceptedMouseButtons(QtCore.Qt.LeftButton | QtCore.Qt.RightButton)
         self.setZValue(self.STD_ZVALUE)
@@ -304,7 +342,8 @@ class GsPolygon(QtWidgets.QGraphicsPolygonItem):
 
     def paint(self, painter, option, widget):
         painter.setPen(self.no_pen)
-        if option.state & (QtWidgets.QStyle.State_Sunken | QtWidgets.QStyle.State_Selected):
+        #if option.state & (QtWidgets.QStyle.State_Sunken | QtWidgets.QStyle.State_Selected):
+        if self.scene().selection.is_selected(self.polygon_data):
             brush = QtGui.QBrush(self.region_brush)
             brush.setStyle(QtCore.Qt.Dense4Pattern)
             tr = painter.worldTransform()
@@ -334,6 +373,39 @@ class TmpSegment(Segment):
     def __init__(self):
         super().__init__(0, 0, Region.adding)
 
+
+class Selection():
+    def __init__(self, diagram):
+        self._diagram = diagram
+        self._selected = []
+
+    def select_item(self, item):
+        self.deselect_all()
+        self.select_add_item(item)
+        self._diagram.update()
+
+    def select_add_item(self, item):
+        if item in self._selected:
+            self._selected.remove(item)
+        else:
+            self._selected.append(item)
+        self._diagram.update()
+
+    def select_all(self):
+        self._selected.clear()
+        self._selected.extend(self._diagram.points)
+        self._selected.extend(self._diagram.segments)
+        self._selected.extend(self._diagram.polygons)
+        self._diagram.update()
+
+    def deselect_all(self):
+        self._selected.clear()
+        self._diagram.update()
+
+    def is_selected(self, item):
+        return item in self._selected
+
+
 class Diagram(QtWidgets.QGraphicsScene):
 
     def __init__(self, parent):
@@ -348,6 +420,14 @@ class Diagram(QtWidgets.QGraphicsScene):
         self.aux_pt, self.aux_seg = self.create_aux_segment()
         self.hide_aux_line()
 
+        self._zoom_value = 1.0
+        self.selection = Selection(self)
+        self._press_screen_pos = QtCore.QPoint()
+
+        # testing boundary
+        pen = QtGui.QPen()
+        pen.setWidthF(0)
+        self.addLine(200, 0, 200, 1000, pen)
 
     def create_aux_segment(self):
         pt_size = GsPoint.SIZE
@@ -356,9 +436,11 @@ class Diagram(QtWidgets.QGraphicsScene):
         pt = self.addEllipse(-pt_size, -pt_size, 2*pt_size, 2*pt_size, no_pen, add_brush)
         pt.setFlag(QtWidgets.QGraphicsItem.ItemIgnoresTransformations, True)
         pt.setCursor(Cursor.draw)
+        pt.setZValue(100)
         add_pen = QtGui.QPen(QtGui.QColor(QtCore.Qt.darkGreen), GsSegment.WIDTH)
         add_pen.setCosmetic(True)
         line = self.addLine(0,0,0,0, add_pen)
+        line.setZValue(100)
         return pt, line
 
     def move_aux_segment(self, tip, origin=None):
@@ -394,6 +476,7 @@ class Diagram(QtWidgets.QGraphicsScene):
     def add_segment(self, gpt1, gpt2):
         seg = Segment(gpt1.pt, gpt2.pt, Region.none)
         gseg = GsSegment(seg)
+        gseg.update_zoom(self._zoom_value)
         self.segments.append(seg)
         self.addItem(gseg)
 
@@ -446,11 +529,35 @@ class Diagram(QtWidgets.QGraphicsScene):
             self.hide_aux_line()
 
     def mouse_create_event(self, event):
-        transform = self.parent().transform()
-        below_item = self.itemAt(event.scenePos(), transform)
+        #transform = self.parent().transform()
+        #below_item = self.itemAt(event.scenePos(), transform)
+        below_item = self.below_item(event.scenePos())
         close = event.modifiers() & mouse.Event.Ctrl
         self.new_point(event.scenePos(), below_item, close)
         event.accept()
+
+    def below_item(self, scene_pos):
+        below_item = None
+        for item in self.items(scene_pos, deviceTransform=self.parent().transform()):
+            if (item is self.aux_pt) or (item is self.aux_seg):
+                continue
+            below_item = item
+            break
+        return below_item
+
+    def update_zoom(self, value):
+        self._zoom_value = value
+
+        for seg in self.segments:
+            seg.g_segment.update_zoom(value)
+
+    def update_all_segments(self):
+        for seg in self.segments:
+            seg.g_segment.update()
+
+    def update_all_polygons(self):
+        for pol in self.polygons:
+            pol.g_polygon.update()
 
     def mousePressEvent(self, event):
         """
@@ -458,8 +565,10 @@ class Diagram(QtWidgets.QGraphicsScene):
         :return:
         """
         #print("P last: ", event.lastScenePos())
-        if event.button() == mouse.Event.Right and self.last_point is None:
-            self.mouse_create_event(event)
+        # if event.button() == mouse.Event.Right and self.last_point is None:
+        #     self.mouse_create_event(event)
+
+        self._press_screen_pos = event.screenPos()
 
         super().mousePressEvent(event)
 
@@ -469,8 +578,31 @@ class Diagram(QtWidgets.QGraphicsScene):
         :return:
         """
         #print("R last: ", event.lastScenePos())
-        if event.button() == mouse.Event.Right:
+        below_item = self.below_item(event.scenePos())
+        screen_pos_not_changed = event.screenPos() == self._press_screen_pos
+
+        if event.button() == mouse.Event.Left and screen_pos_not_changed:
             self.mouse_create_event(event)
+
+        if event.button() == mouse.Event.Right and screen_pos_not_changed:
+            data_item = None
+            if below_item is not None:
+                if type(below_item) is GsPoint:
+                    data_item = below_item.pt
+                elif type(below_item) is GsSegment:
+                    data_item = below_item.segment
+                elif type(below_item) is GsPolygon:
+                    data_item = below_item.polygon_data
+
+            if event.modifiers() & mouse.Event.Shift:
+                if data_item is not None:
+                    self.selection.select_add_item(data_item)
+            else:
+                if data_item is not None:
+                    self.selection.select_item(data_item)
+                else:
+                    self.selection.deselect_all()
+
         super().mouseReleaseEvent(event)
 
 
@@ -508,14 +640,14 @@ class DiagramView(QtWidgets.QGraphicsView):
     #    pass
 
 
-    def mousePressEvent(self, event):
-        return super().mousePressEvent(mouse.event_swap_buttons(event, QtCore.QEvent.MouseButtonPress))
-
-    def mouseReleaseEvent(self, event):
-        return super().mouseReleaseEvent(mouse.event_swap_buttons(event, QtCore.QEvent.MouseButtonRelease))
-
-    def mouseMoveEvent(self, event):
-        return super().mouseMoveEvent(mouse.event_swap_buttons(event, QtCore.QEvent.MouseMove))
+    # def mousePressEvent(self, event):
+    #     return super().mousePressEvent(mouse.event_swap_buttons(event, QtCore.QEvent.MouseButtonPress))
+    #
+    # def mouseReleaseEvent(self, event):
+    #     return super().mouseReleaseEvent(mouse.event_swap_buttons(event, QtCore.QEvent.MouseButtonRelease))
+    #
+    # def mouseMoveEvent(self, event):
+    #     return super().mouseMoveEvent(mouse.event_swap_buttons(event, QtCore.QEvent.MouseMove))
 
 
 
@@ -559,6 +691,8 @@ class DiagramView(QtWidgets.QGraphicsView):
             factor = 0.8
             self._zoom -= 1
         self.scale(factor, factor)
+
+        self._scene.update_zoom(self.transform().m11())
 
     # def toggleDragMode(self):
     #     if self.dragMode() == QtWidgets.QGraphicsView.ScrollHandDrag:
