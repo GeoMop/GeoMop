@@ -324,13 +324,15 @@ class ServiceFrontend(ServiceBase):
         if sys.platform == "win32":
             container_port = 33033
             host_port = random.randrange(30001, 60000)
-            service_data["process"]["docker_port_expose"] = [host_port, container_port]
+            # we suppose that port is not occupied (sometimes not true)
+            host_interface = "127.0.0.1"
+            service_data["process"]["docker_port_expose"] = [host_interface, host_port, container_port]
 
             service_data["requested_listen_port"] = container_port
 
-            service_data["listen_address_substitute"] = ["192.168.99.100", host_port]
+            service_data["listen_address_substitute"] = [host_interface, host_port]
 
-            service_data["process"]["fterm_path"] = os.path.join(self.get_geomop_root(), "flow123d\\bin\\fterm.bat")
+            #service_data["process"]["fterm_path"] = os.path.join(self.get_geomop_root(), "flow123d\\bin\\fterm.bat")
 
         # start backend
         child_id = self.request_start_child(service_data)

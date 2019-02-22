@@ -617,4 +617,4 @@ def list_flow123d_versions():
 
 
 #FLOW123D_VERSION_LIST = list_flow123d_versions()
-FLOW123D_VERSION_LIST = ["2.2.0", "3.0.0", "3.1.0"]
+FLOW123D_VERSION_LIST = ["2.2.1", "3.0.0", "3.0.1"]
