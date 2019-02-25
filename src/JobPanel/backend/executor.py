@@ -449,6 +449,14 @@ class ProcessDocker(ProcessBase):
         """Path to fterm.bat (only used on win)"""
         super().__init__(process_config)
 
+    @staticmethod
+    def _is_docker_machine_running():
+        try:
+            subprocess.check_output(["docker", "ps"], stderr=subprocess.DEVNULL)
+        except (OSError, subprocess.CalledProcessError):
+            return False
+        return True
+
     def start(self):
         """
         See client_test_py for a docker starting process.
@@ -492,6 +500,14 @@ class ProcessDocker(ProcessBase):
         args.extend(self.exec_args.secret_args)
 
         if sys.platform == "win32":
+            # start docker machine
+            subprocess.check_output(["dockerd.bat"], stderr=subprocess.DEVNULL)
+            if not self._is_docker_machine_running():
+                time.sleep(1)
+                while not self._is_docker_machine_running():
+                    time.sleep(1)
+                time.sleep(5)
+
             # flags = "-d"
             # if arg_p != "":
             #     flags += " -p " + arg_p

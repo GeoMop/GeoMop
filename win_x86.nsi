@@ -243,7 +243,7 @@ Section "Flow123d" SecFlow
   #ExecWait '"$INSTDIR\flow123d\install.bat"'
   SetOutPath $INSTDIR\prerequisites
   File "${BUILD_DIR}\flow123d_3.0.1_windows_install.exe"
-  ExecWait '"$INSTDIR\prerequisites\flow123d_3.0.1_windows_install.exe"'
+  ExecShellWait "" '"$INSTDIR\prerequisites\flow123d_3.0.1_windows_install.exe"'
 
 SectionEnd
 
