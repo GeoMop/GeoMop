@@ -102,7 +102,7 @@ class Flow123dAction(ParametrizedActionType):
         var = super(Flow123dAction, self)._get_variables_script()
         var.append(["YAMLFile='{0}'".format(self._variables["YAMLFile"])])
         if "Executable" in self._variables:
-            v = "Executable={0}".format(self._variables["Executable"])
+            v = "Executable='{0}'".format(self._variables["Executable"])
             var.append([v])
         return var
 
