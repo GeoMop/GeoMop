@@ -3,6 +3,7 @@ from .root_action import RootAction
 from .action import Action
 from .connection import Connection
 from .action_for_subactions import ActionForSubactions
+from .tree_model import TreeModel
 import random
 
 class Scene(QtWidgets.QGraphicsScene):

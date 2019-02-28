@@ -3,7 +3,7 @@ from .tree_item import TreeItem
 
 
 class TreeModel(QtCore.QAbstractItemModel):
-    def __init__(self, headers, data="", parent=0):
+    def __init__(self, headers, data="", parent=None):
         super(TreeModel, self).__init__(parent)
         self._root_item = TreeItem(headers)
         self.setup_model_data(data.split("\n"), self._root_item)
@@ -20,7 +20,7 @@ class TreeModel(QtCore.QAbstractItemModel):
     def column_count(self):
         return self._root_item.column_count()
 
-    def data(self, index, role):
+    def data(self, index, role = QtCore.Qt.DisplayRole):
         if not index.isValid():
             return None
         if role != QtCore.Qt.DisplayRole and role != QtCore.Qt.EditRole:
@@ -67,7 +67,7 @@ class TreeModel(QtCore.QAbstractItemModel):
         if index.isValid():
             return QtCore.Qt.ItemIsEditable | QtCore.QAbstractItemModel.flags(index)
         else:
-            return 0
+            return QtCore.Qt.NoItemFlags
 
     def setData(self, index, value, role=QtCore.Qt.EditRole):
         if role != QtCore.Qt.EditRole:
@@ -164,5 +164,23 @@ class TreeModel(QtCore.QAbstractItemModel):
                 parent.insert_children(parent.child_count(), 1, self._root_item.column_count())
                 for column in range(len(column_data)):
                     parent.child(parent.child_count() - 1).set_data(column, column_data[column])
-            
+
             number += 1
+
+if __name__ == "__main__":
+    import sys
+    from PyQt5 import QtWidgets
+    app = QtWidgets.QApplication(sys.argv)
+    with open("test.txt",'r') as file:
+        text = file.read()
+    print(text)
+    model = TreeModel(['c1','c2','c3'], text)
+    index = model.index(1, 1)
+    model.insertRows(0, 2, index)
+
+    w = QtWidgets.QTreeView()
+    w.setModel(model)
+    w.setWindowTitle('Simple')
+    w.show()
+
+    sys.exit(app.exec_())

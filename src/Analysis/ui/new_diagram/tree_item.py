@@ -6,7 +6,7 @@ class TreeItem:
         self._parent_item = parent_item
 
     def column_count(self):
-        len(self._item_data)
+        return len(self._item_data)
 
     def child(self, number):
         return self._child_items[number]
@@ -17,12 +17,12 @@ class TreeItem:
     def data(self, column):
         return self._item_data[column]
 
-    def insert_children(self, position, count):
+    def insert_children(self, position, count, columns):
         if position < 0 or position > len(self._child_items):
             return False
 
         for row in range(count):
-            data = [None]*4
+            data = [None]*columns
             self._child_items.insert(position, TreeItem(data, self))
         return True
 
