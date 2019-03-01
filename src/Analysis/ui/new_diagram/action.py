@@ -13,14 +13,14 @@ from .rect_resize_handles import RectResizeHandles
 
 class Action(QtWidgets.QGraphicsPathItem):
     """Base class for all actions."""
-    def __init__(self, parent=None, position=QtCore.QPoint(0, 0)):
+    def __init__(self, index, data_item, parent=None, position=QtCore.QPoint(0, 0), width=50, height=50):
         """Initializes action.
         :param parent: Action which holds this subaction: this action is inside parent action.
         :param position: Position of this action inside parent.
         """
         super(Action, self).__init__(parent)
-        self._width = 50
-        self._height = 50
+        self._width = width
+        self._height = height
         self.in_ports = []
         self.out_ports = []
 
@@ -44,6 +44,9 @@ class Action(QtWidgets.QGraphicsPathItem):
         self.add_ports()
 
         self.setCacheMode(self.DeviceCoordinateCache)
+
+        self.index = index
+        self.data_item = data_item
 
     @property
     def name(self):
@@ -75,6 +78,12 @@ class Action(QtWidgets.QGraphicsPathItem):
         self.update_gfx()
         self.resize_handles.update_handles()
 
+    def get_port(self, input, index):
+        if input:
+            return self.in_ports[index]
+        else:
+            return self.out_ports[index]
+
     def add_ports(self):
         for i in range(2):
             self._add_port(True, "Input Port" + str(i))
@@ -88,6 +97,16 @@ class Action(QtWidgets.QGraphicsPathItem):
         return QRectF(self.resize_handle_width, Port.SIZE / 2,
                       self.width - 2 * self.resize_handle_width, self.height - Port.SIZE)
 
+    def mouseReleaseEvent(self, release_event):
+        super(Action, self).mouseReleaseEvent(release_event)
+        if release_event.buttonDownScenePos(Qt.LeftButton) != release_event.pos():
+            for item in self.scene().selectedItems():
+                if self.scene().is_action(item):
+                    self.scene().move(item.data_item, item.pos())
+
+    def mouseMoveEvent(self, move_event):
+        super(Action, self).mouseMoveEvent(move_event)
+
     def mouseDoubleClickEvent(self, event):
         if self._name.contains(self.mapToItem(self._name, event.pos())):
             self._name.mouseDoubleClickEvent(event)
@@ -98,6 +117,7 @@ class Action(QtWidgets.QGraphicsPathItem):
             for port in self.ports():
                 for conn in port.connections:
                     conn.update_gfx()
+
         '''
         elif change_type == self.ItemParentChange:
             self.setPos(self.mapToItem(value, self.mapToScene(self.pos())))
@@ -122,9 +142,9 @@ class Action(QtWidgets.QGraphicsPathItem):
         :param is_input: Decides if the new port will be input or output.
         """
         if is_input:
-            self.in_ports.append(InputPort(QtCore.QPoint(0, 0), name, self))
+            self.in_ports.append(InputPort(len(self.in_ports), QtCore.QPoint(0, 0), name, self))
         else:
-            self.out_ports.append(OutputPort(QtCore.QPoint(0, 0), name, self))
+            self.out_ports.append(OutputPort(len(self.out_ports), QtCore.QPoint(0, 0), name, self))
 
     def position_ports(self):
         if len(self.in_ports):

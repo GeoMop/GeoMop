@@ -14,7 +14,7 @@ class Port(QtWidgets.QGraphicsPathItem):
     BORDER = 3
     SIZE = RADIUS * 2 + BORDER * 2
 
-    def __init__(self, pos, name="", parent=None):
+    def __init__(self, index, pos, name="", parent=None):
         """Initializes class.
         :param pos: Position of this action inside parent action.
         :param parent: This port will be part of parent action.
@@ -33,6 +33,8 @@ class Port(QtWidgets.QGraphicsPathItem):
         self.setAcceptHoverEvents(True)
         self.setZValue(1.0)
         self.setFlag(self.ItemSendsGeometryChanges)
+
+        self.index = index
 
     def __repr__(self):
         return "Action: '" + self.parentItem().name + "' Port: '" + self.name + "'"
@@ -54,19 +56,19 @@ class Port(QtWidgets.QGraphicsPathItem):
 
 class InputPort(Port):
     """Class for input data."""
-    def __init__(self, pos, name="", parent=None):
+    def __init__(self, index, pos, name="", parent=None):
         """Initializes class.
         :param pos: Position of this action inside parent action.
         :param parent: This port will be part of parent action.
         """
-        super(InputPort, self).__init__(pos, name, parent)
+        super(InputPort, self).__init__(index, pos, name, parent)
 
 
 class OutputPort(Port):
     """Class for output data."""
-    def __init__(self, pos, name="", parent=None):
+    def __init__(self, index, pos, name="", parent=None):
         """Initializes class.
         :param pos: Position of this action inside parent action.
         :param parent: This port will be part of parent action.
         """
-        super(OutputPort, self).__init__(pos, name, parent)
+        super(OutputPort, self).__init__(index, pos, name, parent)

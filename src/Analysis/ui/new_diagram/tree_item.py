@@ -11,6 +11,9 @@ class TreeItem:
     def child(self, number):
         return self._child_items[number]
 
+    def children(self):
+        return self._child_items
+
     def child_count(self):
         return len(self._child_items)
 

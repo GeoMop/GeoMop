@@ -19,14 +19,16 @@ class Connection(QtWidgets.QGraphicsPathItem):
         super(Connection, self).__init__(parent)
         self.connection_set = False if port2 is None else True
         self.port1 = port1  # either first port when creating connection or always OutputPort if connection is set
-        self.port2 = port2 if self.connection_set else Port(self.port1.get_connection_point())  # usually InputPort
+        self.port2 = port2 if self.connection_set else Port(-1, self.port1.get_connection_point())  # usually InputPort
         # drawing options
         self.full_pen = QtGui.QPen(QtCore.Qt.black, 2)
         self.dash_pen = QtGui.QPen(QtCore.Qt.black, 2, QtCore.Qt.DashLine)
         self.setPen(self.full_pen)
         self.setZValue(10.0)
         self.setCacheMode(self.DeviceCoordinateCache)
+        self.setFlag(self.ItemIsSelectable)
         self._shape = QtGui.QPainterPath()
+        self.update_gfx()
 
     def is_connected(self, port):
         """Returns True if this connection is attached to specified port."""
@@ -99,7 +101,6 @@ class Connection(QtWidgets.QGraphicsPathItem):
 
     def shape(self):
         return self._shape
-
 
     def set_port2_pos(self, pos):
         """Sets port2's position to allow tracking mouse movement before connection is set."""

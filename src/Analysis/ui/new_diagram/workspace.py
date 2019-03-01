@@ -35,7 +35,7 @@ class Workspace(QtWidgets.QGraphicsView):
         self.setSceneRect(QtCore.QRectF(QtCore.QPoint(-10000000, -10000000), QtCore.QPoint(10000000, 10000000)))
         self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
-        self.setViewportUpdateMode(self.BoundingRectViewportUpdate)
+        self.setViewportUpdateMode(self.NoViewportUpdate)
 
         # settings for zooming the workspace
         self.zoom = 1.0
@@ -44,8 +44,8 @@ class Workspace(QtWidgets.QGraphicsView):
         self.min_zoom = pow(1/self.zoom_factor, 20)
 
         timer = QtCore.QTimer(self)
-        #timer.timeout.connect(self.show_fps)
-        timer.start(1000)
+        timer.timeout.connect(self.scene.update_scene)
+        timer.start(16.6)
         self.fps_count = 0
         self.frame_time = 0
 
@@ -70,6 +70,8 @@ class Workspace(QtWidgets.QGraphicsView):
                                                 (move_event.y() - self.last_mouse_event_pos.y()))
 
         self.last_mouse_event_pos = move_event.pos()
+        self.scene.update()
+
 
     def mouseReleaseEvent(self, release_event):
         super(Workspace, self).mouseReleaseEvent(release_event)

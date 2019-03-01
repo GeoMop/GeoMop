@@ -2,9 +2,16 @@ from PyQt5 import QtWidgets, QtCore, QtGui
 from .root_action import RootAction
 from .action import Action
 from .connection import Connection
+from .port import OutputPort
 from .action_for_subactions import ActionForSubactions
-from .tree_model import TreeModel
+from .graphics_data_model import ActionDataModel, ConnectionDataModel
 import random
+
+
+class ActionTypes:
+    ACTION = 0
+    CONNECTION = 1
+
 
 class Scene(QtWidgets.QGraphicsScene):
     def __init__(self):
@@ -20,6 +27,12 @@ class Scene(QtWidgets.QGraphicsScene):
 
         self.new_action_pos = QtCore.QPoint()
 
+        self.action_model = ActionDataModel()
+        self.connection_model = ConnectionDataModel()
+        self.action_model.dataChanged.connect(self.data_changed)
+        self.connection_model.dataChanged.connect(self.data_changed)
+        self.update_model = True
+
     @staticmethod
     def is_action(obj):
         """Return True if given object obj is an action."""
@@ -27,6 +40,51 @@ class Scene(QtWidgets.QGraphicsScene):
             return True
         else:
             return False
+
+    def data_changed(self):
+        self.update_model = True
+
+    def update_scene(self):
+        if self.update_model:
+            self.update_model = False
+            self.clear()
+            self.connections.clear()
+            self.actions.clear()
+            if self.new_connection is not None:
+                self.addItem(self.new_connection)
+            for child in self.action_model.get_item().children():
+                self.draw_item(child)
+
+            for child in self.connection_model.get_item().children():
+                self.draw_connection(child)
+
+    def draw_item(self, item):
+        if item.data(1) == ActionTypes.ACTION:
+            self.actions.append(Action(item.data(0), item, None, QtCore.QPoint(item.data(2), item.data(3)), item.data(4), item.data(5)))
+            self.addItem(self.actions[-1])
+        elif item.data(1) == ActionTypes.CONNECTION:
+            pass
+            #self.connections.append(Connection(item, None, QtCore.QPoint(item.data(1), item.data(2)), item.data(3), item.data(4)))
+            #self.addItem(self.connections[-1])
+
+        for child in item.children():
+            self.draw_item(child)
+
+        self.update()
+
+    def draw_connection(self, conn_data):
+        port1 = self.get_action(conn_data.data(0)).get_port(False, conn_data.data(1))
+        port2 = self.get_action(conn_data.data(2)).get_port(True, conn_data.data(3))
+        self.connections.append(Connection(port1, port2))
+        port1.connections.append(self.connections[-1])
+        port2.connections.append(self.connections[-1])
+        self.addItem(self.connections[-1])
+        self.update()
+
+    def get_action(self, index):
+        for action in self.actions:
+            if action.index == index:
+                return action
 
     def find_top_afs(self, pos):
         for item in self.items(pos):
@@ -41,18 +99,33 @@ class Scene(QtWidgets.QGraphicsScene):
         for i in range(200):
             if i > 100:
                 action = self.actions[random.randint(0,len(self.actions) - 1)]
-                self.add_connection(action.ports()[random.randint(0, len(action.ports()) - 1)])
+                self.add_connection(action.in_ports[random.randint(0, len(action.in_ports) - 1)])
                 action = self.actions[random.randint(0, len(self.actions) - 1)]
-                self.add_connection(action.ports()[random.randint(0, len(action.ports()) - 1)])
+                self.add_connection(action.out_ports[random.randint(0, len(action.out_ports) - 1)])
             else:
-                action = self.actions[random.randint(0, len(self.actions) - 1)]
-                self.new_action_pos = action.pos() + QtCore.QPoint(random.randint(-800, 800), random.randint(-800, 800))
+                self.new_action_pos = QtCore.QPoint(random.randint(-800, 800), random.randint(-800, 800))
                 self.add_action()
+                self.update_scene()
+
+    def mouseReleaseEvent(self, release_event):
+        super(Scene, self).mouseReleaseEvent(release_event)
+        #self.update_model = True
+
+
+    # Modifying functions
+
+    def move(self, action, new_pos):
+        print(new_pos)
+        self.action_model.move(action, new_pos.x(), new_pos.y())
+        self.update_model = False
+        self.update()
 
     def add_action(self):
         """Create new action and add it to workspace."""
         [parent, pos] = self.find_top_afs(self.new_action_pos)
-        self.actions.append(Action(parent, pos))
+        self.action_model.add_item(ActionTypes.ACTION, pos.x(), pos.y(), 50, 50)
+        self.update_model = True
+        #self.actions.append(Action(parent, pos))
 
     def add_while_loop(self):
         [parent, pos] = self.find_top_afs(self.new_action_pos)
@@ -63,13 +136,16 @@ class Scene(QtWidgets.QGraphicsScene):
         if self.new_connection is None:
             self.new_connection = Connection(port)
             self.addItem(self.new_connection)
-            port.connections.append(self.new_connection)
+            self.new_connection.setFlag(QtWidgets.QGraphicsPathItem.ItemIsSelectable, False)
         else:
             self.new_connection.set_port2(port)
-            port.connections.append(self.new_connection)
-            self.new_connection.setFlag(QtWidgets.QGraphicsPathItem.ItemIsSelectable)
-            self.connections.append(self.new_connection)
+            port1 = self.new_connection.port1
+            port2 = self.new_connection.port2
+            self.connection_model.add_item(port1.parentItem().index, port1.index, port2.parentItem().index, port2.index)
+            self.new_connection.setFlag(QtWidgets.QGraphicsPathItem.ItemIsSelectable, True)
             self.new_connection = None
+            self.update_model = True
+
 
     def delete_items(self):
         """Delete all selected items from workspace."""

@@ -9,9 +9,9 @@ class TreeModel(QtCore.QAbstractItemModel):
         self.setup_model_data(data.split("\n"), self._root_item)
         self._columns = len(headers)
 
-    def get_item(self, index):
+    def get_item(self, index = QtCore.QModelIndex()):
         if index.isValid():
-            item = index.internal_pointer()
+            item = index.internalPointer()
             if item:
                 return item
 
@@ -20,7 +20,7 @@ class TreeModel(QtCore.QAbstractItemModel):
     def column_count(self):
         return self._root_item.column_count()
 
-    def data(self, index, role = QtCore.Qt.DisplayRole):
+    def data(self, index, role=QtCore.Qt.DisplayRole):
         if not index.isValid():
             return None
         if role != QtCore.Qt.DisplayRole and role != QtCore.Qt.EditRole:
@@ -36,9 +36,6 @@ class TreeModel(QtCore.QAbstractItemModel):
         return None
 
     def index(self, row, column, parent=QtCore.QModelIndex()):
-        if not parent.isValid() and parent.column() != 0:
-            return QtCore.QModelIndex()
-
         parent_item = self.get_item(parent)
         child_item = parent_item.child(row)
         if child_item:
@@ -65,7 +62,7 @@ class TreeModel(QtCore.QAbstractItemModel):
 
     def flags(self, index):
         if index.isValid():
-            return QtCore.Qt.ItemIsEditable | QtCore.QAbstractItemModel.flags(index)
+            return QtCore.Qt.ItemIsEditable | super(TreeModel, self).flags(index)
         else:
             return QtCore.Qt.NoItemFlags
 
@@ -126,8 +123,8 @@ class TreeModel(QtCore.QAbstractItemModel):
 
         return success
 
-    def setup_model_data(self, lines, parent):
-        parents = [parent]
+    def setup_model_data(self, lines, parent_item):
+        parents = [parent_item]
         indentation = [0]
 
         number = 0
@@ -175,8 +172,10 @@ if __name__ == "__main__":
         text = file.read()
     print(text)
     model = TreeModel(['c1','c2','c3'], text)
-    index = model.index(1, 1)
+    index = model.index(0, 1)
     model.insertRows(0, 2, index)
+    index = model.index(0,1,index)
+    model.setData(index,"hi")
 
     w = QtWidgets.QTreeView()
     w.setModel(model)
