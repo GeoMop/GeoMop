@@ -8,7 +8,7 @@ class EditableLabel(QtWidgets.QGraphicsTextItem):
         self.setPos(QtCore.QPoint(parent.resize_handle_width, Port.SIZE / 2))
         self.setDefaultTextColor(QtCore.Qt.black)
         self._editing = False
-        self.document().contentsChanged.connect(self.parentItem().position_ports)
+        self.document().contentsChanged.connect(self.parentItem().name_change)
         self.setAcceptHoverEvents(False)
 
     def editing(self, bool):
@@ -26,6 +26,7 @@ class EditableLabel(QtWidgets.QGraphicsTextItem):
             cursor.clearSelection()
             self.setTextCursor(cursor)
             self.setTextInteractionFlags(QtCore.Qt.NoTextInteraction)
+            self.parentItem().name_has_changed()
             if not len(self.toPlainText()):
                 self.setTextWidth(self.parentItem().inner_area().width())
 

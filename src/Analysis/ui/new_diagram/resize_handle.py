@@ -116,4 +116,8 @@ class ResizeHandle(QtWidgets.QGraphicsRectItem):
                 self.parentItem().width += move.x()
                 self.parentItem().height += move.y()
 
+    def mouseReleaseEvent(self, release_event):
+        super(ResizeHandle, self).mouseReleaseEvent(release_event)
+        self.parentItem().height_has_changed()
+        self.parentItem().width_has_changed()
 

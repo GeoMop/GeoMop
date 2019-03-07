@@ -1,9 +1,18 @@
 from .tree_model import TreeModel
 
 
+class ActionData:
+    NAME = 0
+    ACTION_TYPE = 1
+    X = 2
+    Y = 3
+    WIDTH = 4
+    HEIGTH = 5
+
+
 class ActionDataModel(TreeModel):
     def __init__(self, data="", parent=None):
-        super(ActionDataModel, self).__init__(['id', 'action_type', 'x', 'y', 'width_hint', 'height_hint'], data, parent)
+        super(ActionDataModel, self).__init__(['object_name', 'action_type', 'x', 'y', 'width', 'height'], data, parent)
         self._max_id = 0
 
     def add_item(self, action_type, x, y, width_hint, height_hint, id=None):
@@ -14,7 +23,7 @@ class ActionDataModel(TreeModel):
         else:
             raise ValueError
 
-        data = [self._max_id, action_type, x, y, width_hint, height_hint]
+        data = ["Action" + str(self._max_id), action_type, x, y, width_hint, height_hint]
         self.insertRows(self.rowCount(), 1)
         item = self.get_item().child(self.rowCount() - 1)
         for column in range(self.column_count()):
@@ -22,11 +31,23 @@ class ActionDataModel(TreeModel):
             self.setData(index, data[column])
 
     def move(self, item, x, y):
-        index_x = self.index(item.child_number(), 2)
-        index_y = index_x.siblingAtColumn(3)
+        index_x = self.index(item.child_number(), ActionData.X)
+        index_y = index_x.siblingAtColumn(ActionData.Y)
 
         self.setData(index_x, x)
         self.setData(index_y, y)
+
+    def name_changed(self, item, name):
+        index = self.index(item.child_number(), ActionData.NAME)
+        self.setData(index, name)
+
+    def width_changed(self, item, width):
+        index = self.index(item.child_number(), ActionData.WIDTH)
+        self.setData(index, width)
+
+    def height_changed(self, item, height):
+        index = self.index(item.child_number(), ActionData.HEIGTH)
+        self.setData(index, height)
 
 
 class ConnectionDataModel(TreeModel):

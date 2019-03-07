@@ -16,16 +16,17 @@ class MainWidget(QtWidgets.QMainWindow):
         self.edit_menu = ActionEditorMenu(self)
         self.menu.addMenu(self.edit_menu)
 
-        #self.dock = QtWidgets.QDockWidget("Diagram", self)
-        #self.dock.setAllowedAreas(QtCore.Qt.LeftDockWidgetArea | QtCore.Qt.RightDockWidgetArea)
-
-        #self.placeholder_view = QtWidgets.QGraphicsView(self.dock)
-        #self.placeholder_view.resize(40,-1)
-        #self.dock.setWidget(self.placeholder_view)
-        #self.addDockWidget(QtCore.Qt.LeftDockWidgetArea, self.dock)
-
+        self.dock = QtWidgets.QDockWidget("Diagram", self)
+        self.dock.setAllowedAreas(QtCore.Qt.LeftDockWidgetArea | QtCore.Qt.RightDockWidgetArea)
 
         self.w = Workspace(self)
+
+        self.view = QtWidgets.QTreeView()
+        self.view.setModel(self.w.scene.action_model)
+
+        self.dock.setWidget(self.view)
+        self.addDockWidget(QtCore.Qt.RightDockWidgetArea, self.dock)
+
         self.resize(500, 500)
         self.setCentralWidget(self.w)
 

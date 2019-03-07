@@ -53,19 +53,15 @@ class Scene(QtWidgets.QGraphicsScene):
             if self.new_connection is not None:
                 self.addItem(self.new_connection)
             for child in self.action_model.get_item().children():
-                self.draw_item(child)
+                self.draw_action(child)
 
             for child in self.connection_model.get_item().children():
                 self.draw_connection(child)
 
-    def draw_item(self, item):
+    def draw_action(self, item):
         if item.data(1) == ActionTypes.ACTION:
-            self.actions.append(Action(item.data(0), item, None, QtCore.QPoint(item.data(2), item.data(3)), item.data(4), item.data(5)))
+            self.actions.append(Action(item))
             self.addItem(self.actions[-1])
-        elif item.data(1) == ActionTypes.CONNECTION:
-            pass
-            #self.connections.append(Connection(item, None, QtCore.QPoint(item.data(1), item.data(2)), item.data(3), item.data(4)))
-            #self.addItem(self.connections[-1])
 
         for child in item.children():
             self.draw_item(child)
@@ -75,15 +71,15 @@ class Scene(QtWidgets.QGraphicsScene):
     def draw_connection(self, conn_data):
         port1 = self.get_action(conn_data.data(0)).get_port(False, conn_data.data(1))
         port2 = self.get_action(conn_data.data(2)).get_port(True, conn_data.data(3))
-        self.connections.append(Connection(port1, port2))
+        self.connections.append(Connection(conn_data, port1, port2))
         port1.connections.append(self.connections[-1])
         port2.connections.append(self.connections[-1])
         self.addItem(self.connections[-1])
         self.update()
 
-    def get_action(self, index):
+    def get_action(self, name):
         for action in self.actions:
-            if action.index == index:
+            if action.name == name:
                 return action
 
     def find_top_afs(self, pos):
@@ -109,13 +105,10 @@ class Scene(QtWidgets.QGraphicsScene):
 
     def mouseReleaseEvent(self, release_event):
         super(Scene, self).mouseReleaseEvent(release_event)
-        #self.update_model = True
-
 
     # Modifying functions
 
     def move(self, action, new_pos):
-        print(new_pos)
         self.action_model.move(action, new_pos.x(), new_pos.y())
         self.update_model = False
         self.update()
@@ -127,21 +120,25 @@ class Scene(QtWidgets.QGraphicsScene):
         self.update_model = True
         #self.actions.append(Action(parent, pos))
 
+    '''
     def add_while_loop(self):
         [parent, pos] = self.find_top_afs(self.new_action_pos)
         self.actions.append(ActionForSubactions(parent, pos))
+    '''
 
     def add_connection(self, port):
         """Create new connection from/to specified port and add it to workspace."""
         if self.new_connection is None:
-            self.new_connection = Connection(port)
+            self.views()[0].setDragMode(QtWidgets.QGraphicsView.NoDrag)
+            self.new_connection = Connection(None, port)
             self.addItem(self.new_connection)
             self.new_connection.setFlag(QtWidgets.QGraphicsPathItem.ItemIsSelectable, False)
         else:
+            self.views()[0].setDragMode(QtWidgets.QGraphicsView.RubberBandDrag)
             self.new_connection.set_port2(port)
             port1 = self.new_connection.port1
             port2 = self.new_connection.port2
-            self.connection_model.add_item(port1.parentItem().index, port1.index, port2.parentItem().index, port2.index)
+            self.connection_model.add_item(port1.parentItem().name, port1.index, port2.parentItem().name, port2.index)
             self.new_connection.setFlag(QtWidgets.QGraphicsPathItem.ItemIsSelectable, True)
             self.new_connection = None
             self.update_model = True
@@ -176,10 +173,12 @@ class Scene(QtWidgets.QGraphicsScene):
 
     def delete_action(self, action):
         """Delete specified action from workspace."""
+        self.action_model.removeRow(action.graphics_data_item.child_number())
         self.actions.remove(action)
         self.removeItem(action)
 
     def delete_connection(self, conn):
+        self.connection_model.removeRow(conn.graphics_data_item.child_number())
         conn.port1.connections.remove(conn)
         conn.port2.connections.remove(conn)
         self.connections.remove(conn)

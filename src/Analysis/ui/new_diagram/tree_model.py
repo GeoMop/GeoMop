@@ -163,23 +163,3 @@ class TreeModel(QtCore.QAbstractItemModel):
                     parent.child(parent.child_count() - 1).set_data(column, column_data[column])
 
             number += 1
-
-if __name__ == "__main__":
-    import sys
-    from PyQt5 import QtWidgets
-    app = QtWidgets.QApplication(sys.argv)
-    with open("test.txt",'r') as file:
-        text = file.read()
-    print(text)
-    model = TreeModel(['c1','c2','c3'], text)
-    index = model.index(0, 1)
-    model.insertRows(0, 2, index)
-    index = model.index(0,1,index)
-    model.setData(index,"hi")
-
-    w = QtWidgets.QTreeView()
-    w.setModel(model)
-    w.setWindowTitle('Simple')
-    w.show()
-
-    sys.exit(app.exec_())

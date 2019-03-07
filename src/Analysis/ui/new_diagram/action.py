@@ -9,24 +9,25 @@ from PyQt5.QtCore import Qt, QRectF
 from .port import Port, InputPort, OutputPort
 from .editable_text import EditableLabel
 from .rect_resize_handles import RectResizeHandles
+from .graphics_data_model import ActionData
 
 
 class Action(QtWidgets.QGraphicsPathItem):
     """Base class for all actions."""
-    def __init__(self, index, data_item, parent=None, position=QtCore.QPoint(0, 0), width=50, height=50):
+    def __init__(self, graphics_data_item, parent=None):
         """Initializes action.
         :param parent: Action which holds this subaction: this action is inside parent action.
         :param position: Position of this action inside parent.
         """
         super(Action, self).__init__(parent)
-        self._width = width
-        self._height = height
+        self._width = graphics_data_item.data(ActionData.WIDTH)
+        self._height = graphics_data_item.data(ActionData.HEIGTH)
         self.in_ports = []
         self.out_ports = []
 
         self.resize_handle_width = 8
 
-        self.setPos(position)
+        self.setPos(QtCore.QPoint(graphics_data_item.data(ActionData.X), graphics_data_item.data(ActionData.Y)))
         self.handles = []
 
         self.setPen(QtGui.QPen(QtCore.Qt.black))
@@ -36,7 +37,7 @@ class Action(QtWidgets.QGraphicsPathItem):
         self.setFlag(self.ItemIsSelectable)
         self.setFlag(self.ItemSendsGeometryChanges)
         self.setZValue(0.0)
-        self._name = EditableLabel("Testing", self)
+        self._name = EditableLabel(graphics_data_item.data(ActionData.NAME), self)
 
         self.resize_handles = RectResizeHandles(self, self.resize_handle_width,
                                                 self.resize_handle_width * 2)
@@ -45,8 +46,7 @@ class Action(QtWidgets.QGraphicsPathItem):
 
         self.setCacheMode(self.DeviceCoordinateCache)
 
-        self.index = index
-        self.data_item = data_item
+        self.graphics_data_item = graphics_data_item
 
     @property
     def name(self):
@@ -78,6 +78,19 @@ class Action(QtWidgets.QGraphicsPathItem):
         self.update_gfx()
         self.resize_handles.update_handles()
 
+    def name_change(self):
+        self.width = self.width
+
+    def name_has_changed(self):
+        self.scene().action_model.name_changed(self.graphics_data_item, self.name)
+        self.width = self.width
+
+    def width_has_changed(self):
+        self.scene().action_model.width_changed(self.graphics_data_item, self.width)
+
+    def height_has_changed(self):
+        self.scene().action_model.height_changed(self.graphics_data_item, self.height)
+
     def get_port(self, input, index):
         if input:
             return self.in_ports[index]
@@ -102,7 +115,7 @@ class Action(QtWidgets.QGraphicsPathItem):
         if release_event.buttonDownScenePos(Qt.LeftButton) != release_event.pos():
             for item in self.scene().selectedItems():
                 if self.scene().is_action(item):
-                    self.scene().move(item.data_item, item.pos())
+                    self.scene().move(item.graphics_data_item, item.pos())
 
     def mouseMoveEvent(self, move_event):
         super(Action, self).mouseMoveEvent(move_event)
