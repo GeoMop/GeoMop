@@ -6,6 +6,7 @@ from .port import OutputPort
 from .action_for_subactions import ActionForSubactions
 from .graphics_data_model import ActionDataModel, ConnectionDataModel
 import random
+import math
 
 
 class ActionTypes:
@@ -67,6 +68,60 @@ class Scene(QtWidgets.QGraphicsScene):
             self.draw_item(child)
 
         self.update()
+
+    def order_diagram(self):
+        #todo: optimize by assigning levels when scanning from bottom actions
+        queue = []
+        for action in self.actions:
+            if action.previous_actions():
+                action.level = self.get_distance(action)
+            else:
+                queue.append(action)
+
+        for action in queue:
+            action.level = math.inf
+            for next_action in action.next_actions():
+                action.level = min(next_action.level, action.level) - 1
+        self.reorganize_actions_by_levels()
+
+    def reorganize_actions_by_levels(self):
+        actions_by_levels = {}
+        for action in self.actions:
+            if action.level in actions_by_levels:
+                actions_by_levels[action.level].append(action)
+            else:
+                actions_by_levels[action.level] = [action]
+        levels = list(actions_by_levels.keys())
+        levels.sort()
+        base_item = actions_by_levels[levels[0]].pop()
+        prev_y = base_item.pos().y()
+        max_height = base_item.height
+        for level in levels:
+
+            for item in actions_by_levels[level]:
+                max_height = max(max_height, item.height)
+            for item in actions_by_levels[level]:
+                self.move(item.graphics_data_item, QtCore.QPoint(item.pos().x(), prev_y))
+            prev_y = prev_y + max_height + 50
+
+        self.update_model = True
+        self.update()
+
+    def get_distance(self, action):
+        prev_actions = set(action.previous_actions())
+        next_prev_actions = set()
+        dist = 0
+        while prev_actions:
+            temp = prev_actions.pop()
+            temp2 = temp.previous_actions()
+            temp3 = set(temp.previous_actions())
+            next_prev_actions = next_prev_actions.union(temp3)
+            if not prev_actions:
+                dist += 1
+                prev_actions = next_prev_actions
+                next_prev_actions = set()
+
+        return dist
 
     def draw_connection(self, conn_data):
         port1 = self.get_action(conn_data.data(0)).get_port(False, conn_data.data(1))
@@ -170,6 +225,9 @@ class Scene(QtWidgets.QGraphicsScene):
                 self.delete_action(item)
             else:
                 self.delete_connection(item)
+
+        self.update_model = True
+        self.update()
 
     def delete_action(self, action):
         """Delete specified action from workspace."""

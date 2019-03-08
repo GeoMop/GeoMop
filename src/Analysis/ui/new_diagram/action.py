@@ -48,6 +48,11 @@ class Action(QtWidgets.QGraphicsPathItem):
 
         self.graphics_data_item = graphics_data_item
 
+        self.level = 0
+
+    def __repr__(self):
+        return self.name + "\t" + str(self.level)
+
     @property
     def name(self):
         return self._name.toPlainText()
@@ -77,6 +82,25 @@ class Action(QtWidgets.QGraphicsPathItem):
         self.position_ports()
         self.update_gfx()
         self.resize_handles.update_handles()
+
+    def next_actions(self):
+        ret = []
+        for port in self.out_ports:
+            for conn in port.connections:
+                item = conn.port2.parentItem()
+                if item not in ret:
+                    ret.append(item)
+        return ret
+
+    def previous_actions(self):
+        ret = []
+        for port in self.in_ports:
+            for conn in port.connections:
+                item = conn.port1.parentItem()
+                if item not in ret:
+                    ret.append(item)
+        return ret
+
 
     def name_change(self):
         self.width = self.width
@@ -109,6 +133,10 @@ class Action(QtWidgets.QGraphicsPathItem):
         """Returns rectangle of the inner area of action."""
         return QRectF(self.resize_handle_width, Port.SIZE / 2,
                       self.width - 2 * self.resize_handle_width, self.height - Port.SIZE)
+
+    def moveBy(self, dx, dy):
+        super(Action, self).moveBy(dx, dy)
+        self.scene().move(self.graphics_data_item, self.pos() + QtCore.QPoint(dx,dy))
 
     def mouseReleaseEvent(self, release_event):
         super(Action, self).mouseReleaseEvent(release_event)

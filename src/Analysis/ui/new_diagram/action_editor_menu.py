@@ -23,3 +23,6 @@ class ActionEditorMenu(QtWidgets.QMenu):
 
         self.add_while = QtWidgets.QAction("Add while loop")
         self.addAction(self.add_while)
+
+        self.order = QtWidgets.QAction("Beautify diagram in orderly fashion")
+        self.addAction(self.order)
