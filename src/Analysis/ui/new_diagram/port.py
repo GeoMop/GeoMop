@@ -45,6 +45,11 @@ class Port(QtWidgets.QGraphicsPathItem):
                 conn.update_gfx()
         return super(Port, self).itemChange(change_type, value)
 
+    def setEnabled(self, bool):
+        super(Port, self).setEnabled(bool)
+        self.setPen(QtCore.Qt.black if bool else QtCore.Qt.gray)
+        self.setBrush(QtCore.Qt.white if bool else QtCore.Qt.gray)
+
     def mousePressEvent(self, event):
         """If the port is pressed create a connection."""
         self.scene().add_connection(self)

@@ -7,6 +7,7 @@ from .action_for_subactions import ActionForSubactions
 from .graphics_data_model import ActionDataModel, ConnectionDataModel
 import random
 import math
+import copy
 
 
 class ActionTypes:
@@ -187,23 +188,80 @@ class Scene(QtWidgets.QGraphicsScene):
         self.actions.append(ActionForSubactions(parent, pos))
     '''
 
+    def is_graph_acyclic(self):
+        leaf_nodes = []
+        processed_nodes = []
+        acyclic_nodes = []
+        for node in self.actions:
+            if node.next_actions():
+                pass
+            else:
+                leaf_nodes.append(node)
+
+        for node in leaf_nodes:
+            processed_nodes.append(node)
+            acyclic_nodes.append(node)
+
+            prev_actions = set(node.previous_actions())
+            while prev_actions:
+                curr = prev_actions.pop()
+                if curr in acyclic_nodes:
+                    continue
+                else:
+                    acyclic_nodes.append(curr)
+                    if curr in processed_nodes:
+                        return False
+                    else:
+                        processed_nodes.append(curr)
+                        prev_actions = prev_actions.union(set(curr.previous_actions()))
+        if len(acyclic_nodes) == len(self.actions):
+            return True
+        else:
+            return False
+
     def add_connection(self, port):
         """Create new connection from/to specified port and add it to workspace."""
         if self.new_connection is None:
+            isinstance(port, OutputPort)
+            if isinstance(port, OutputPort):
+                self.set_enable_ports(False, False)
+            else:
+                self.set_enable_ports(True, False)
             self.views()[0].setDragMode(QtWidgets.QGraphicsView.NoDrag)
             self.new_connection = Connection(None, port)
             self.addItem(self.new_connection)
             self.new_connection.setFlag(QtWidgets.QGraphicsPathItem.ItemIsSelectable, False)
         else:
+            if isinstance(port, OutputPort):
+                self.set_enable_ports(True, True)
+            else:
+                self.set_enable_ports(False, True)
             self.views()[0].setDragMode(QtWidgets.QGraphicsView.RubberBandDrag)
             self.new_connection.set_port2(port)
-            port1 = self.new_connection.port1
-            port2 = self.new_connection.port2
-            self.connection_model.add_item(port1.parentItem().name, port1.index, port2.parentItem().name, port2.index)
-            self.new_connection.setFlag(QtWidgets.QGraphicsPathItem.ItemIsSelectable, True)
-            self.new_connection = None
-            self.update_model = True
+            self.new_connection.port1.connections.append(self.new_connection)
+            self.new_connection.port2.connections.append(self.new_connection)
+            if self.is_graph_acyclic():
+                port1 = self.new_connection.port1
+                port2 = self.new_connection.port2
+                self.connection_model.add_item(port1.parentItem().name, port1.index, port2.parentItem().name, port2.index)
+                self.new_connection.setFlag(QtWidgets.QGraphicsPathItem.ItemIsSelectable, True)
+                self.new_connection = None
+                self.update_model = True
+            else:
+                msg = "Pipeline cannot be cyclic!"
+                msg = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Warning,
+                                            "Cyclic diagram", msg,
+                                            QtWidgets.QMessageBox.Ok)
+                msg.exec_()
+                self.removeItem(self.new_connection)
+                del self.new_connection.port1.connections[-1]
+                del self.new_connection.port2.connections[-1]
+                self.new_connection = None
 
+    def set_enable_ports(self, in_ports, enable):
+        for action in self.actions:
+            for port in action.in_ports if in_ports else action.out_ports:
+                port.setEnabled(enable)
 
     def delete_items(self):
         """Delete all selected items from workspace."""
