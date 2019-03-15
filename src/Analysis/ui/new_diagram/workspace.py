@@ -30,13 +30,13 @@ class Workspace(QtWidgets.QGraphicsView):
         self.edit_menu.order.triggered.connect(self.scene.order_diagram)
         #self.edit_menu.add_while.triggered.connect(self.scene.add_while_loop)
 
-        self.setMouseTracking(True)
+        #self.setMouseTracking(True)
 
         self.setDragMode(self.RubberBandDrag)
         self.setSceneRect(QtCore.QRectF(QtCore.QPoint(-10000000, -10000000), QtCore.QPoint(10000000, 10000000)))
         self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
-        self.setViewportUpdateMode(self.NoViewportUpdate)
+        self.setViewportUpdateMode(self.MinimalViewportUpdate)
 
         # settings for zooming the workspace
         self.zoom = 1.0
@@ -62,6 +62,7 @@ class Workspace(QtWidgets.QGraphicsView):
         super(Workspace, self).mouseMoveEvent(move_event)
         if self.scene.new_connection is not None:
             self.scene.new_connection.set_port2_pos(self.mapToScene(move_event.pos()))
+            self.scene.update()
         if move_event.buttons() & QtCore.Qt.RightButton:
             self.setCursor(QtCore.Qt.ClosedHandCursor)
             self.viewport_moved = True
@@ -69,9 +70,9 @@ class Workspace(QtWidgets.QGraphicsView):
                                                 (move_event.x() - self.last_mouse_event_pos.x()))
             self.verticalScrollBar().setValue(self.verticalScrollBar().value() -
                                                 (move_event.y() - self.last_mouse_event_pos.y()))
-
+            self.scene.update()
         self.last_mouse_event_pos = move_event.pos()
-        self.scene.update()
+
 
 
     def mouseReleaseEvent(self, release_event):

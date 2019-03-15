@@ -21,7 +21,7 @@ class Action(QtWidgets.QGraphicsPathItem):
         """
         super(Action, self).__init__(parent)
         self._width = graphics_data_item.data(ActionData.WIDTH)
-        self._height = graphics_data_item.data(ActionData.HEIGTH)
+        self._height = graphics_data_item.data(ActionData.HEIGHT)
         self.in_ports = []
         self.out_ports = []
 
@@ -101,13 +101,16 @@ class Action(QtWidgets.QGraphicsPathItem):
                     ret.append(item)
         return ret
 
-
     def name_change(self):
+        self.scene().update()
         self.width = self.width
 
     def name_has_changed(self):
-        self.scene().action_model.name_changed(self.graphics_data_item, self.name)
+        if not self.scene().action_name_changed(self.graphics_data_item, self.name) or self.name == "":
+            return False
         self.width = self.width
+        self.scene().update()
+        return True
 
     def width_has_changed(self):
         self.scene().action_model.width_changed(self.graphics_data_item, self.width)

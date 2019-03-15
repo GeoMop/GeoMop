@@ -60,9 +60,8 @@ class Scene(QtWidgets.QGraphicsScene):
                 self.draw_connection(child)
 
     def draw_action(self, item):
-        if item.data(1) == ActionTypes.ACTION:
-            self.actions.append(Action(item))
-            self.addItem(self.actions[-1])
+        self.actions.append(Action(item))
+        self.addItem(self.actions[-1])
 
         for child in item.children():
             self.draw_item(child)
@@ -161,6 +160,13 @@ class Scene(QtWidgets.QGraphicsScene):
     def mouseReleaseEvent(self, release_event):
         super(Scene, self).mouseReleaseEvent(release_event)
 
+    def action_name_changed(self, action_data, new_name):
+        if self.action_model.exists(new_name):
+            return False
+        self.connection_model.action_name_changed(action_data, new_name)
+        self.action_model.name_changed(action_data,new_name)
+        return True
+
     # Modifying functions
 
     def move(self, action, new_pos):
@@ -171,7 +177,7 @@ class Scene(QtWidgets.QGraphicsScene):
     def add_action(self):
         """Create new action and add it to workspace."""
         [parent, pos] = self.find_top_afs(self.new_action_pos)
-        self.action_model.add_item(ActionTypes.ACTION, pos.x(), pos.y(), 50, 50)
+        self.action_model.add_item(pos.x(), pos.y(), 50, 50)
         self.update_model = True
         #self.actions.append(Action(parent, pos))
 
