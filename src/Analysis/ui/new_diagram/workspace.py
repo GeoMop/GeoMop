@@ -88,6 +88,7 @@ class Workspace(QtWidgets.QGraphicsView):
 
     def contextMenuEvent(self, event):
         """Open context menu on right mouse button click."""
+        super(Workspace, self).contextMenuEvent(event)
         if not self.viewport_moved:
             self.scene.new_action_pos = self.mapToScene(event.pos())
             self.edit_menu.exec_(event.globalPos())

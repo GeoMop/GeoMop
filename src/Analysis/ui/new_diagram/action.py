@@ -139,14 +139,19 @@ class Action(QtWidgets.QGraphicsPathItem):
 
     def moveBy(self, dx, dy):
         super(Action, self).moveBy(dx, dy)
-        self.scene().move(self.graphics_data_item, self.pos() + QtCore.QPoint(dx,dy))
+        self.scene().move(self.graphics_data_item, self.x() + dx, self.y() + dy)
+
+    def mousePressEvent(self, press_event):
+        super(Action, self).mousePressEvent(press_event)
+        if press_event.button() == Qt.RightButton:
+            self.setSelected(True)
 
     def mouseReleaseEvent(self, release_event):
         super(Action, self).mouseReleaseEvent(release_event)
         if release_event.buttonDownScenePos(Qt.LeftButton) != release_event.pos():
             for item in self.scene().selectedItems():
                 if self.scene().is_action(item):
-                    self.scene().move(item.graphics_data_item, item.pos())
+                    self.scene().move(item.graphics_data_item, item.x(), item.y())
 
     def mouseMoveEvent(self, move_event):
         super(Action, self).mouseMoveEvent(move_event)

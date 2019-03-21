@@ -52,6 +52,8 @@ class Scene(QtWidgets.QGraphicsScene):
             self.clear()
             self.connections.clear()
             self.actions.clear()
+            self.root_item = RootAction()
+            self.addItem(self.root_item)
             if self.new_connection is not None:
                 self.addItem(self.new_connection)
             for child in self.action_model.get_item().children():
@@ -61,12 +63,21 @@ class Scene(QtWidgets.QGraphicsScene):
                 self.draw_connection(child)
 
     def draw_action(self, item):
-        self.actions.append(Action(item))
-        self.addItem(self.actions[-1])
+        self.actions.append(Action(item, self.root_item))
+        #self.addItem(self.actions[-1])
 
         for child in item.children():
-            self.draw_item(child)
+            self.draw_action(child)
 
+        self.update()
+
+    def draw_connection(self, conn_data):
+        port1 = self.get_action(conn_data.data(0)).get_port(False, conn_data.data(1))
+        port2 = self.get_action(conn_data.data(2)).get_port(True, conn_data.data(3))
+        self.connections.append(Connection(conn_data, port1, port2))
+        port1.connections.append(self.connections[-1])
+        port2.connections.append(self.connections[-1])
+        self.addItem(self.connections[-1])
         self.update()
 
     def order_diagram(self):
@@ -81,7 +92,7 @@ class Scene(QtWidgets.QGraphicsScene):
         for action in queue:
             action.level = math.inf
             for next_action in action.next_actions():
-                action.level = min(next_action.level, action.level) - 1
+                action.level = min(next_action.level - 1, action.level)
         self.reorganize_actions_by_levels()
 
     def reorganize_actions_by_levels(self):
@@ -93,15 +104,27 @@ class Scene(QtWidgets.QGraphicsScene):
                 actions_by_levels[action.level] = [action]
         levels = list(actions_by_levels.keys())
         levels.sort()
-        base_item = actions_by_levels[levels[0]].pop()
-        prev_y = base_item.pos().y()
+        base_item = actions_by_levels[levels[0]][-1]
+        prev_y = base_item.y()
         max_height = base_item.height
         for level in levels:
-
             for item in actions_by_levels[level]:
                 max_height = max(max_height, item.height)
             for item in actions_by_levels[level]:
-                self.move(item.graphics_data_item, QtCore.QPoint(item.pos().x(), prev_y))
+                self.move(item.graphics_data_item, None, prev_y)
+            items = sorted(actions_by_levels[level], key=lambda item:item.x())
+            middle = math.floor(len(items)/2)
+            prev_item = items[middle]
+            for i in range(middle + 1, len(items)):
+                if items[i].pos().x() < prev_item.pos().x() + prev_item.width:
+                    self.move(items[i].graphics_data_item, prev_item.pos().x() + prev_item.width + 10, None)
+                prev_item = items[i]
+
+            for i in range(middle - 1, -1, -1):
+                if items[i].pos().x() + items[i].width > prev_item.pos().x():
+                    self.move(items[i].graphics_data_item, prev_item.pos().x() - items[i].width - 10, None)
+                prev_item = items[i]
+
             prev_y = prev_y + max_height + 50
 
         self.update_model = True
@@ -122,15 +145,6 @@ class Scene(QtWidgets.QGraphicsScene):
                 next_prev_actions = set()
 
         return dist
-
-    def draw_connection(self, conn_data):
-        port1 = self.get_action(conn_data.data(0)).get_port(False, conn_data.data(1))
-        port2 = self.get_action(conn_data.data(2)).get_port(True, conn_data.data(3))
-        self.connections.append(Connection(conn_data, port1, port2))
-        port1.connections.append(self.connections[-1])
-        port2.connections.append(self.connections[-1])
-        self.addItem(self.connections[-1])
-        self.update()
 
     def get_action(self, name):
         for action in self.actions:
@@ -170,8 +184,8 @@ class Scene(QtWidgets.QGraphicsScene):
 
     # Modifying functions
 
-    def move(self, action, new_pos):
-        self.action_model.move(action, new_pos.x(), new_pos.y())
+    def move(self, action, new_x, new_y):
+        self.action_model.move(action, new_x, new_y)
         self.update_model = False
         self.update()
 
@@ -180,7 +194,6 @@ class Scene(QtWidgets.QGraphicsScene):
         [parent, pos] = self.find_top_afs(self.new_action_pos)
         self.action_model.add_item(pos.x(), pos.y(), 50, 50)
         self.update_model = True
-        #self.actions.append(Action(parent, pos))
 
     '''
     def add_while_loop(self):

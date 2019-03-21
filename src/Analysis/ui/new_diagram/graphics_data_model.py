@@ -40,11 +40,12 @@ class ActionDataModel(TreeModel):
         return False
 
     def move(self, item, x, y):
-        index_x = self.index(item.child_number(), ActionData.X)
-        index_y = index_x.siblingAtColumn(ActionData.Y)
-
-        self.setData(index_x, x)
-        self.setData(index_y, y)
+        if x is not None:
+            index_x = self.index(item.child_number(), ActionData.X)
+            self.setData(index_x, x)
+        if y is not None:
+            index_y = self.index(item.child_number(), ActionData.Y)
+            self.setData(index_y, y)
 
     def name_changed(self, item, name):
         index = self.index(item.child_number(), ActionData.NAME)
