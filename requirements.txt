@@ -8,6 +8,7 @@ psutil
 pyDes
 ruamel.yaml
 PyQt5
+PyQtWebEngine
 qscintilla
 
 # pip3

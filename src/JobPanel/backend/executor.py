@@ -526,13 +526,15 @@ class ProcessDocker(ProcessBase):
             output = subprocess.check_output(base_args + args, universal_newlines=True)
             self.process_id = output.strip()
         else:
-            home = os.environ["HOME"]
+            #home = os.environ["HOME"]
             uid = os.getuid()
             gid = os.getgid()
             base_args = ["docker", "run", "-d"]
             if arg_p != "":
                 base_args.extend(["-p", arg_p])
-            base_args.extend(["-v", home + ":" + home, "-w", cwd,
+            base_args.extend(["-v", geomop_root + ":" + geomop_root,
+                              "-v", workspace + ":" + workspace,
+                              "-w", cwd,
                               "-e", "uid={}".format(uid), "-e", "gui={}".format(gid),
                               "flow123d/3.0.1"])
             # When we want to use ssh keys, it is possible to add following arguments,
