@@ -6,6 +6,8 @@ Workspace where all user input is processed.
 import cProfile
 import time
 from PyQt5 import QtWidgets, QtCore, QtGui, QtOpenGL
+from PyQt5.QtGui import QDrag
+
 from .action import Action
 from .connection import Connection
 from .action_for_subactions import ActionForSubactions
@@ -31,6 +33,7 @@ class Workspace(QtWidgets.QGraphicsView):
         #self.edit_menu.add_while.triggered.connect(self.scene.add_while_loop)
 
         #self.setMouseTracking(True)
+        self.setAcceptDrops(True)
 
         self.setDragMode(self.RubberBandDrag)
         self.setSceneRect(QtCore.QRectF(QtCore.QPoint(-10000000, -10000000), QtCore.QPoint(10000000, 10000000)))
@@ -53,9 +56,25 @@ class Workspace(QtWidgets.QGraphicsView):
         self.prof = cProfile.Profile()
         self.prof.enable()
 
+
+
     def mousePressEvent(self, press_event):
         super(Workspace, self).mousePressEvent(press_event)
         self.last_mouse_event_pos = press_event.pos()
+
+    def dragEnterEvent(self, drag_enter):
+        if drag_enter.mimeData().hasText():
+            if drag_enter.mimeData().text() == "action":
+                drag_enter.acceptProposedAction()
+
+
+    def dropEvent(self, drop_event):
+        self.scene.new_action_pos = self.mapToScene(drop_event.pos()) - drop_event.source().get_pos_correction()
+        self.scene.add_action()
+        drop_event.acceptProposedAction()
+
+    def dragMoveEvent(self, move_event):
+        move_event.acceptProposedAction()
 
     def mouseMoveEvent(self, move_event):
         """If new connection is being crated, move the loose end to mouse position."""

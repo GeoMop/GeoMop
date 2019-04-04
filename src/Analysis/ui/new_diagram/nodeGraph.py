@@ -14,7 +14,7 @@ from new_diagram.main_widget import MainWidget
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     w = MainWidget()
-    w.resize(500, 720)
+    w.resize(1000, 720)
     w.move(300, 50)
     w.setWindowTitle('Simple')
     w.show()
