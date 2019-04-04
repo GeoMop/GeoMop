@@ -39,7 +39,6 @@ class ToolboxView(QLabel):
         for item in parent.items:
             item.deselect()
         self.selected = True
-        #self.setCursor(Qt.ClosedHandCursor)
         drag = QDrag(self)
         mime = QMimeData()
         mime.setText("action")

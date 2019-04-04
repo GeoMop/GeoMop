@@ -42,7 +42,7 @@ class Action(QtWidgets.QGraphicsPathItem):
         self.resize_handles = RectResizeHandles(self, self.resize_handle_width,
                                                 self.resize_handle_width * 2)
 
-        self.add_ports()
+        #self.add_ports()
 
         self.setCacheMode(self.DeviceCoordinateCache)
 
@@ -130,7 +130,7 @@ class Action(QtWidgets.QGraphicsPathItem):
         for i in range(3):
             self._add_port(False, "Output Port" + str(i))
 
-        self.width = self.width
+
 
     def inner_area(self):
         """Returns rectangle of the inner area of action."""
@@ -194,6 +194,8 @@ class Action(QtWidgets.QGraphicsPathItem):
             self.in_ports.append(InputPort(len(self.in_ports), QtCore.QPoint(0, 0), name, self))
         else:
             self.out_ports.append(OutputPort(len(self.out_ports), QtCore.QPoint(0, 0), name, self))
+
+        self.width = self.width
 
     def position_ports(self):
         if len(self.in_ports):
