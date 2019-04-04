@@ -464,17 +464,17 @@ class UiSshDialog():
 
         self.testedLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
         self.testedLabel.setWordWrap(True)
-        self.formLayout.setWidget(10, QtWidgets.QFormLayout.LabelRole, self.testedLabel)
+        self.formLayout.setWidget(10, QtWidgets.QFormLayout.SpanningRole, self.testedLabel)
 
         self.geomopVersionLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
-        self.formLayout.setWidget(11, QtWidgets.QFormLayout.LabelRole, self.geomopVersionLabel)
+        self.formLayout.setWidget(11, QtWidgets.QFormLayout.SpanningRole, self.geomopVersionLabel)
 
         self.geomopRevisionLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
-        self.formLayout.setWidget(12, QtWidgets.QFormLayout.LabelRole, self.geomopRevisionLabel)
+        self.formLayout.setWidget(12, QtWidgets.QFormLayout.SpanningRole, self.geomopRevisionLabel)
 
         self.availableExecutablesLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
         self.availableExecutablesLabel.setWordWrap(True)
-        self.formLayout.setWidget(13, QtWidgets.QFormLayout.LabelRole, self.availableExecutablesLabel)
+        self.formLayout.setWidget(13, QtWidgets.QFormLayout.SpanningRole, self.availableExecutablesLabel)
 
         return self.formLayout
 
