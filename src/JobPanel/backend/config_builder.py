@@ -80,7 +80,7 @@ def build(data_app, mj_id):
     if mj_ssh_preset is not None:
         workspace = mj_ssh_preset.workspace
         if not os.path.isabs(workspace):
-            workspace = os.path.join(mj_ssh_preset.home_dir, workspace)
+            workspace = mj_ssh_preset.home_dir + "/" + workspace
         env_mj = {"__class__": "Environment",
                   "geomop_root": mj_ssh_preset.geomop_root,
                   "geomop_analysis_workspace": workspace,
@@ -97,7 +97,7 @@ def build(data_app, mj_id):
     if j_ssh_preset is not None:
         workspace = j_ssh_preset.workspace
         if not os.path.isabs(workspace):
-            workspace = os.path.join(j_ssh_preset.home_dir, workspace)
+            workspace = mj_ssh_preset.home_dir + "/" + workspace
         env_j = {"__class__": "Environment",
                  "geomop_root": j_ssh_preset.geomop_root,
                  "geomop_analysis_workspace": workspace,
