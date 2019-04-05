@@ -1,20 +1,27 @@
+language: generic
+cache: pip
+sudo: required
+dist: xenial
+
 notifications:
   email: false
 
 git:
   submodules: false
 
-language: generic
-cache: pip
-sudo: required
-dist: xenial
+addons:
+  ssh_known_hosts: github.com
 
+env:
+  - PYTHONPATH=$PYTHONPATH:$TRAVIS_BUILD_DIR/submodules/yaml_converter:$TRAVIS_BUILD_DIR/submodules/intersections/src
 
 install:
+ - env
  - tools/initialize_submodules.sh    
  - sudo apt-get update
  - sudo apt-get install -y python3-pip python3-dev python3-setuptools libffi-dev libssl-dev libxml2-dev libxslt1-dev libjpeg8-dev zlib1g-dev
  - sudo pip3 install -r requirements.txt
+ - sudo pip3 install .
  - sudo pip3 install pytest
 
 script:
