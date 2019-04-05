@@ -121,6 +121,8 @@ class Scene(QtWidgets.QGraphicsScene):
                     self.move(items[i].graphics_data_item, prev_item.pos().x() + prev_item.width + 10, None)
                 prev_item = items[i]
 
+            prev_item = items[middle]
+
             for i in range(middle - 1, -1, -1):
                 if items[i].pos().x() + items[i].width > prev_item.pos().x():
                     self.move(items[i].graphics_data_item, prev_item.pos().x() - items[i].width - 10, None)
