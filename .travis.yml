@@ -11,7 +11,7 @@ dist: xenial
 
 python:
   - "3.5"
-  - "3.6"
+  # - "3.6"
 
 virtualenv:
   system_site_packages: true
@@ -19,11 +19,9 @@ virtualenv:
 install:
  # - sudo apt-get update
  # - sudo apt-get install -y python3-pip python3-dev
- - sudo pip3 install PyQtWebEngine
+ - sudo pip install PyQtWebEngine
 
 script:
  - python --version
- - python3 --version
  - pip --version
- - pip3 --version
- - pip3 freeze
+ - pip freeze
