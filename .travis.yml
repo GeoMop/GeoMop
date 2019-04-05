@@ -4,7 +4,8 @@ notifications:
 git:
   submodules: false
 
-# language: python
+language: python
+cache: pip
 sudo: required
 dist: xenial
 
@@ -16,12 +17,12 @@ virtualenv:
   system_site_packages: true
 
 install:
- - sudo apt update
- - sudo apt install -y python3-pip python3-dev
+ - sudo apt-get update
+ - sudo apt-get install -y python3-pip python3-dev
  - sudo pip3 install PyQtWebEngine
 
 script:
-  python --version
-  python3 --version
-  pip --version
-  pip3 --version
+ - python --version
+ - python3 --version
+ - pip --version
+ - pip3 --version
