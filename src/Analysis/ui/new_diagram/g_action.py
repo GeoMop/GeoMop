@@ -12,14 +12,14 @@ from .rect_resize_handles import RectResizeHandles
 from .graphics_data_model import ActionData
 
 
-class Action(QtWidgets.QGraphicsPathItem):
+class GAction(QtWidgets.QGraphicsPathItem):
     """Base class for all actions."""
     def __init__(self, graphics_data_item, parent=None):
         """Initializes action.
         :param parent: Action which holds this subaction: this action is inside parent action.
         :param position: Position of this action inside parent.
         """
-        super(Action, self).__init__(parent)
+        super(GAction, self).__init__(parent)
         self._width = graphics_data_item.data(ActionData.WIDTH)
         self._height = graphics_data_item.data(ActionData.HEIGHT)
         self.in_ports = []
@@ -150,23 +150,23 @@ class Action(QtWidgets.QGraphicsPathItem):
                       self.height - Port.SIZE - self.type_name.boundingRect().height()-4)
 
     def moveBy(self, dx, dy):
-        super(Action, self).moveBy(dx, dy)
+        super(GAction, self).moveBy(dx, dy)
         self.scene().move(self.graphics_data_item, self.x() + dx, self.y() + dy)
 
     def mousePressEvent(self, press_event):
-        super(Action, self).mousePressEvent(press_event)
+        super(GAction, self).mousePressEvent(press_event)
         if press_event.button() == Qt.RightButton:
             self.setSelected(True)
 
     def mouseReleaseEvent(self, release_event):
-        super(Action, self).mouseReleaseEvent(release_event)
+        super(GAction, self).mouseReleaseEvent(release_event)
         if release_event.buttonDownScenePos(Qt.LeftButton) != release_event.pos():
             for item in self.scene().selectedItems():
                 if self.scene().is_action(item):
                     self.scene().move(item.graphics_data_item, item.x(), item.y())
 
     def mouseMoveEvent(self, move_event):
-        super(Action, self).mouseMoveEvent(move_event)
+        super(GAction, self).mouseMoveEvent(move_event)
 
     def mouseDoubleClickEvent(self, event):
         if self._name.contains(self.mapToItem(self._name, event.pos())):
@@ -183,11 +183,11 @@ class Action(QtWidgets.QGraphicsPathItem):
         elif change_type == self.ItemParentChange:
             self.setPos(self.mapToItem(value, self.mapToScene(self.pos())))
         '''
-        return super(Action, self).itemChange(change_type, value)
+        return super(GAction, self).itemChange(change_type, value)
 
     def paint(self, paint, item, widget=None):
         """Update model of this action if necessary."""
-        super(Action, self).paint(paint, item, widget)
+        super(GAction, self).paint(paint, item, widget)
 
     def update_gfx(self):
         """Updates model of the action."""

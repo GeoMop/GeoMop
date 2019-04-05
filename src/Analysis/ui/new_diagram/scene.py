@@ -1,9 +1,9 @@
 from PyQt5 import QtWidgets, QtCore, QtGui
 from .root_action import RootAction
-from .action import Action
-from .connection import Connection
+from .g_action import GAction
+from .g_connection import GConnection
 from .port import OutputPort
-from .action_for_subactions import ActionForSubactions
+from .action_for_subactions import GActionForSubactions
 from .graphics_data_model import ActionDataModel, ConnectionDataModel
 import random
 import math
@@ -38,7 +38,7 @@ class Scene(QtWidgets.QGraphicsScene):
     @staticmethod
     def is_action(obj):
         """Return True if given object obj is an action."""
-        if issubclass(type(obj), Action):
+        if issubclass(type(obj), GAction):
             return True
         else:
             return False
@@ -64,7 +64,7 @@ class Scene(QtWidgets.QGraphicsScene):
                 self.draw_connection(child)
 
     def draw_action(self, item):
-        self.actions.append(Action(item, self.root_item))
+        self.actions.append(GAction(item, self.root_item))
         #self.addItem(self.actions[-1])
 
         for child in item.children():
@@ -75,7 +75,7 @@ class Scene(QtWidgets.QGraphicsScene):
     def draw_connection(self, conn_data):
         port1 = self.get_action(conn_data.data(0)).get_port(False, conn_data.data(1))
         port2 = self.get_action(conn_data.data(2)).get_port(True, conn_data.data(3))
-        self.connections.append(Connection(conn_data, port1, port2))
+        self.connections.append(GConnection(conn_data, port1, port2))
         port1.connections.append(self.connections[-1])
         port2.connections.append(self.connections[-1])
         self.addItem(self.connections[-1])
@@ -156,7 +156,7 @@ class Scene(QtWidgets.QGraphicsScene):
 
     def find_top_afs(self, pos):
         for item in self.items(pos):
-            if issubclass(type(item), ActionForSubactions):
+            if issubclass(type(item), GActionForSubactions):
                 return [item, item.mapFromScene(pos)]
         return [self.root_item, pos]
 
@@ -244,7 +244,7 @@ class Scene(QtWidgets.QGraphicsScene):
             else:
                 self.set_enable_ports(True, False)
             self.views()[0].setDragMode(QtWidgets.QGraphicsView.NoDrag)
-            self.new_connection = Connection(None, port)
+            self.new_connection = GConnection(None, port)
             self.addItem(self.new_connection)
             self.new_connection.setFlag(QtWidgets.QGraphicsPathItem.ItemIsSelectable, False)
         else:

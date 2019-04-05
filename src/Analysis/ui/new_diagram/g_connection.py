@@ -8,7 +8,7 @@ from PyQt5 import QtWidgets, QtCore, QtGui
 from .port import Port, OutputPort
 
 
-class Connection(QtWidgets.QGraphicsPathItem):
+class GConnection(QtWidgets.QGraphicsPathItem):
     """Representation of connection between two ports."""
     def __init__(self, graphics_data_item, port1, port2=None, parent=None):
         """Initializes connection.
@@ -16,7 +16,7 @@ class Connection(QtWidgets.QGraphicsPathItem):
         :param port2: InputPort.
         :param parent: Action which holds this connection: this connection is inside parent action.
         """
-        super(Connection, self).__init__(parent)
+        super(GConnection, self).__init__(parent)
         self.connection_set = False if port2 is None else True
         self.port1 = port1  # either first port when creating connection or always OutputPort if connection is set
         self.port2 = port2 if self.connection_set else Port(-1, self.port1.get_connection_point())  # usually InputPort
@@ -46,7 +46,7 @@ class Connection(QtWidgets.QGraphicsPathItem):
 
     def mousePressEvent(self, event):
         """Mouse press is ignored by this connection if it is inside port."""
-        super(Connection, self).mousePressEvent(event)
+        super(GConnection, self).mousePressEvent(event)
         if self.port1.contains(self.mapToItem(self.port1, event.pos())) or \
                 self.port2.contains(self.mapToItem(self.port2, event.pos())):
             event.ignore()
@@ -58,12 +58,12 @@ class Connection(QtWidgets.QGraphicsPathItem):
                 self.setPen(self.dash_pen)
             else:
                 self.setPen(self.full_pen)
-        return super(Connection, self).itemChange(change_type, value)
+        return super(GConnection, self).itemChange(change_type, value)
 
     def paint(self, painter, style, widget=None):
         """If connection is selected, draw it as dash line."""
         style.state &= ~QtWidgets.QStyle.State_Selected     # remove selection box
-        super(Connection, self).paint(painter, style, widget)
+        super(GConnection, self).paint(painter, style, widget)
 
     def update_gfx(self):
         """Updates model of the connection."""

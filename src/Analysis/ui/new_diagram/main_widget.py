@@ -13,11 +13,11 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 from PyQt5 import QtWidgets, QtCore, QtGui
 from .workspace import Workspace
 from .action_editor_menu import ActionEditorMenu
-from .action import Action
+from .g_action import GAction
 from .tree_item import TreeItem
 from .action_category import ActionCategory
-from .input_action import InputAction
-from .output_action import OutputAction
+from .input_action import InputGAction
+from .output_action import OutputGAction
 
 
 class MainWidget(QtWidgets.QMainWindow):
@@ -36,18 +36,18 @@ class MainWidget(QtWidgets.QMainWindow):
 
         self.toolbox_layout = ActionCategory()
         self.toolbox_layout2 = ActionCategory()
-        self.item1 = ToolboxView(InputAction(TreeItem(["Input", 0,0,50,50])), self.toolbox_layout)
-        self.item2 = ToolboxView(OutputAction(TreeItem(["Output", 0, 0, 50, 50])), self.toolbox_layout)
-        self.item3 = ToolboxView(Action(TreeItem(["calibration", 0, 0, 50, 50])), self.toolbox_layout)
-        self.item4 = ToolboxView(Action(TreeItem(["action", 0, 0, 50, 50])), self.toolbox_layout)
-        self.item5 = ToolboxView(Action(TreeItem(["for loop", 0, 0, 50, 50])), self.toolbox_layout)
-        self.item6 = ToolboxView(Action(TreeItem(["calibration", 0, 0, 50, 50])), self.toolbox_layout)
-        self.item11 = ToolboxView(Action(TreeItem(["action", 0, 0, 50, 50])), self.toolbox_layout2)
-        self.item21 = ToolboxView(Action(TreeItem(["for loop", 0, 0, 50, 50])), self.toolbox_layout2)
-        self.item31 = ToolboxView(Action(TreeItem(["calibration", 0, 0, 50, 50])), self.toolbox_layout2)
-        self.item41 = ToolboxView(Action(TreeItem(["action", 0, 0, 50, 50])), self.toolbox_layout2)
-        self.item51 = ToolboxView(Action(TreeItem(["for loop", 0, 0, 50, 50])), self.toolbox_layout2)
-        self.item61 = ToolboxView(Action(TreeItem(["calibration", 0, 0, 50, 50])), self.toolbox_layout2)
+        self.item1 = ToolboxView(InputGAction(TreeItem(["Input", 0, 0, 50, 50])), self.toolbox_layout)
+        self.item2 = ToolboxView(OutputGAction(TreeItem(["Output", 0, 0, 50, 50])), self.toolbox_layout)
+        self.item3 = ToolboxView(GAction(TreeItem(["calibration", 0, 0, 50, 50])), self.toolbox_layout)
+        self.item4 = ToolboxView(GAction(TreeItem(["action", 0, 0, 50, 50])), self.toolbox_layout)
+        self.item5 = ToolboxView(GAction(TreeItem(["for loop", 0, 0, 50, 50])), self.toolbox_layout)
+        self.item6 = ToolboxView(GAction(TreeItem(["calibration", 0, 0, 50, 50])), self.toolbox_layout)
+        self.item11 = ToolboxView(GAction(TreeItem(["action", 0, 0, 50, 50])), self.toolbox_layout2)
+        self.item21 = ToolboxView(GAction(TreeItem(["for loop", 0, 0, 50, 50])), self.toolbox_layout2)
+        self.item31 = ToolboxView(GAction(TreeItem(["calibration", 0, 0, 50, 50])), self.toolbox_layout2)
+        self.item41 = ToolboxView(GAction(TreeItem(["action", 0, 0, 50, 50])), self.toolbox_layout2)
+        self.item51 = ToolboxView(GAction(TreeItem(["for loop", 0, 0, 50, 50])), self.toolbox_layout2)
+        self.item61 = ToolboxView(GAction(TreeItem(["calibration", 0, 0, 50, 50])), self.toolbox_layout2)
 
         self.toolBox = QToolBox()
 

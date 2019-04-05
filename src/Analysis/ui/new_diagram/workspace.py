@@ -10,9 +10,9 @@ from PyQt5.QtCore import QDir
 from PyQt5.QtGui import QDrag
 from PyQt5.QtWidgets import QFileDialog
 
-from .action import Action
-from .connection import Connection
-from .action_for_subactions import ActionForSubactions
+from .g_action import GAction
+from .g_connection import GConnection
+from .action_for_subactions import GActionForSubactions
 from .scene import Scene
 
 
