@@ -261,6 +261,13 @@ class Scene(QtWidgets.QGraphicsScene):
                 self.new_connection.setFlag(QtWidgets.QGraphicsPathItem.ItemIsSelectable, True)
                 self.new_connection = None
                 self.update_model = True
+                if port1.appending_port:
+
+                    port1.appending_port = False
+                    #port1.parentItem().
+
+                if port2.appending_port:
+                    port2.appending_port = False
             else:
                 msg = "Pipeline cannot be cyclic!"
                 msg = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Warning,

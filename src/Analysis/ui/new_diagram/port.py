@@ -23,10 +23,9 @@ class Port(QtWidgets.QGraphicsPathItem):
         self.name = name
         if pos is not None:
             self.setPos(pos)
-        p = QtGui.QPainterPath()
-        p.addEllipse(QtCore.QRectF(0, 0, self.RADIUS * 2, self.RADIUS * 2))
-        p.moveTo(self.RADIUS, self.RADIUS)
-        self.setPath(p)
+
+        self._appending_port = False
+        self.setPath(self.draw_port_path())
         self.setPen(QtCore.Qt.black)
         self.setBrush(QtCore.Qt.white)
         self.connections = []
@@ -35,6 +34,31 @@ class Port(QtWidgets.QGraphicsPathItem):
         self.setFlag(self.ItemSendsGeometryChanges)
 
         self.index = index
+
+    @property
+    def appending_port(self):
+        return self._appending_port
+
+    @appending_port.setter
+    def appending_port(self, value):
+        if value != self._appending_port:
+            self._appending_port = value
+            self.setPath(self.draw_port_path())
+
+    def draw_port_path(self):
+        if self.appending_port:
+            print("true")
+            p = QtGui.QPainterPath()
+            p.addEllipse(QtCore.QRectF(0, 0, self.RADIUS * 2, self.RADIUS * 2))
+            p.moveTo(self.RADIUS - 3, self.RADIUS)
+            p.lineTo(self.RADIUS + 3, self.RADIUS)
+            p.moveTo(self.RADIUS, self.RADIUS - 3)
+            p.lineTo(self.RADIUS, self.RADIUS + 3)
+        else:
+            print("false")
+            p = QtGui.QPainterPath()
+            p.addEllipse(QtCore.QRectF(0, 0, self.RADIUS * 2, self.RADIUS * 2))
+        return p
 
     def __repr__(self):
         return "Action: '" + self.parentItem().name + "' Port: '" + self.name + "'"

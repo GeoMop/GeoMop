@@ -42,7 +42,10 @@ class Action(QtWidgets.QGraphicsPathItem):
         self.resize_handles = RectResizeHandles(self, self.resize_handle_width,
                                                 self.resize_handle_width * 2)
 
-        self.add_ports()
+        self._add_ports()
+        print(self.in_ports)
+        self.in_ports[-1].appending_port = True
+
 
         self.setCacheMode(self.DeviceCoordinateCache)
 
@@ -124,11 +127,11 @@ class Action(QtWidgets.QGraphicsPathItem):
         else:
             return self.out_ports[index]
 
-    def add_ports(self):
+    def _add_ports(self):
         for i in range(2):
-            self._add_port(True, "Input Port" + str(i))
+            self.add_port(True, "Input Port" + str(i))
         for i in range(3):
-            self._add_port(False, "Output Port" + str(i))
+            self.add_port(False, "Output Port" + str(i))
 
 
 
@@ -186,7 +189,7 @@ class Action(QtWidgets.QGraphicsPathItem):
         self.setPath(p)
         self.update()
 
-    def _add_port(self, is_input, name=""):
+    def add_port(self, is_input, name=""):
         """Adds a port to this action.
         :param is_input: Decides if the new port will be input or output.
         """
