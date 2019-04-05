@@ -10,15 +10,12 @@ sudo: required
 dist: xenial
 
 
-virtualenv:
-  system_site_packages: true
-
 install:
  - sudo apt-get update
  - sudo apt-get install -y python3-pip python3-dev
- - sudo pip install PyQtWebEngine
+ - sudo pip3 install PyQtWebEngine
 
 script:
- - python --version
- - pip --version
- - pip freeze
+ - python3 --version
+ - pip3 --version
+ - pip3 freeze
