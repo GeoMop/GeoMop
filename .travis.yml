@@ -1,6 +1,9 @@
 notifications:
   email: false
-  
+
+git:
+  submodules: false
+
 language: python
 sudo: required
 dist: xenial
