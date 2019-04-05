@@ -1,7 +1,7 @@
 [submodule "submodules/intersections"]
 	path = submodules/intersections
-	url = git@github.com:GeoMop/Intersections.git
+	url = https://github.com/GeoMop/Intersections.git
 	branch = master
 [submodule "submodules/yaml_converter"]
 	path = submodules/yaml_converter
-	url = git@github.com:flow123d/yaml_converter.git
+	url = https://github.com/flow123d/yaml_converter.git
