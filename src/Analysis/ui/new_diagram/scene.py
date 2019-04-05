@@ -54,10 +54,11 @@ class Scene(QtWidgets.QGraphicsScene):
             self.actions.clear()
             self.root_item = RootAction()
             self.addItem(self.root_item)
-            if self.new_connection is not None:
-                self.addItem(self.new_connection)
             for child in self.action_model.get_item().children():
                 self.draw_action(child)
+
+            if self.new_connection is not None:
+                self.addItem(self.new_connection)
 
             for child in self.connection_model.get_item().children():
                 self.draw_connection(child)
@@ -318,3 +319,18 @@ class Scene(QtWidgets.QGraphicsScene):
         conn.port2.connections.remove(conn)
         self.connections.remove(conn)
         self.removeItem(conn)
+
+    def save_item(self, save_file, item, level=0):
+        for child in item.children():
+            save_file.write("\t"*level)
+            for col in range(child.column_count()):
+                save_file.write(str(child.data(col)) + ",")
+            save_file.write("\n")
+            self.save_item(save_file, child, level+1)
+
+    def save_connection(self, index=QtCore.QModelIndex()):
+        for child in self.connection_model.get_item().children():
+            self.draw_connection(child)
+
+    def load_item(self):
+        pass

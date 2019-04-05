@@ -6,7 +6,9 @@ Workspace where all user input is processed.
 import cProfile
 import time
 from PyQt5 import QtWidgets, QtCore, QtGui, QtOpenGL
+from PyQt5.QtCore import QDir
 from PyQt5.QtGui import QDrag
+from PyQt5.QtWidgets import QFileDialog
 
 from .action import Action
 from .connection import Connection
@@ -149,3 +151,11 @@ class Workspace(QtWidgets.QGraphicsView):
         self.frame_time += time.time() - start
         self.fps_count += 1
 
+    def save(self):
+        save_location = QFileDialog.getSaveFileName(self.parent(), "Select Save Location")
+        print(save_location)
+        with open(save_location[0],'w') as save_file:
+            self.scene.save_item(save_file, self.scene.action_model.get_item())
+
+    def load(self):
+        pass

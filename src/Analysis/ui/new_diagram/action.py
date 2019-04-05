@@ -42,7 +42,7 @@ class Action(QtWidgets.QGraphicsPathItem):
         self.resize_handles = RectResizeHandles(self, self.resize_handle_width,
                                                 self.resize_handle_width * 2)
 
-        #self.add_ports()
+        self.add_ports()
 
         self.setCacheMode(self.DeviceCoordinateCache)
 

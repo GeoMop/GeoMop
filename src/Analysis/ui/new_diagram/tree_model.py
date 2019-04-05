@@ -9,7 +9,7 @@ class TreeModel(QtCore.QAbstractItemModel):
         self.setup_model_data(data.split("\n"), self._root_item)
         self._columns = len(headers)
 
-    def get_item(self, index = QtCore.QModelIndex()):
+    def get_item(self, index=QtCore.QModelIndex()):
         if index.isValid():
             item = index.internalPointer()
             if item:
