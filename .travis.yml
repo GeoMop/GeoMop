@@ -17,12 +17,13 @@ install:
  - sudo pip3 install -r requirements.txt
  - sudo pip3 install pytest
 
-
-jobs:
-  include:
-    - stage: test
-      script:   pytest testing/Analysis/
-    - script:   pytest testing/Geometry/
-    - script:   pytest testing/gm_base/
-    - script:   pytest testing/JobPanel/
-    - script:   pytest testing/ModelEditor/
+script:
+ - pytest testing/
+# jobs:
+#   include:
+#     - stage:    test
+#       script:   pytest testing/Analysis/
+#     - script:   pytest testing/Geometry/
+#     - script:   pytest testing/gm_base/
+#     - script:   pytest testing/JobPanel/
+#     - script:   pytest testing/ModelEditor/
