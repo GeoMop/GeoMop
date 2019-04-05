@@ -11,7 +11,7 @@ from PyQt5 import QtWidgets, QtCore, QtGui
 class Port(QtWidgets.QGraphicsPathItem):
     """Base class for ports."""
     RADIUS = 6
-    BORDER = 3
+    BORDER = 2
     SIZE = RADIUS * 2 + BORDER * 2
 
     def __init__(self, index, pos, name="", parent=None):
@@ -47,7 +47,6 @@ class Port(QtWidgets.QGraphicsPathItem):
 
     def draw_port_path(self):
         if self.appending_port:
-            print("true")
             p = QtGui.QPainterPath()
             p.addEllipse(QtCore.QRectF(0, 0, self.RADIUS * 2, self.RADIUS * 2))
             p.moveTo(self.RADIUS - 3, self.RADIUS)
@@ -55,7 +54,6 @@ class Port(QtWidgets.QGraphicsPathItem):
             p.moveTo(self.RADIUS, self.RADIUS - 3)
             p.lineTo(self.RADIUS, self.RADIUS + 3)
         else:
-            print("false")
             p = QtGui.QPainterPath()
             p.addEllipse(QtCore.QRectF(0, 0, self.RADIUS * 2, self.RADIUS * 2))
         return p

@@ -25,7 +25,7 @@ class Action(QtWidgets.QGraphicsPathItem):
         self.in_ports = []
         self.out_ports = []
 
-        self.resize_handle_width = 8
+        self.resize_handle_width = 6
 
         self.setPos(QtCore.QPoint(graphics_data_item.data(ActionData.X), graphics_data_item.data(ActionData.Y)))
         self.handles = []
@@ -37,7 +37,11 @@ class Action(QtWidgets.QGraphicsPathItem):
         self.setFlag(self.ItemIsSelectable)
         self.setFlag(self.ItemSendsGeometryChanges)
         self.setZValue(0.0)
+        self.type_name = QtWidgets.QGraphicsSimpleTextItem("Action Type", self)
+        self.type_name.setPos(QtCore.QPoint(self.resize_handle_width, Port.SIZE / 2))
+        self.type_name.setBrush(QtCore.Qt.white)
         self._name = EditableLabel(graphics_data_item.data(ActionData.NAME), self)
+
 
         self.resize_handles = RectResizeHandles(self, self.resize_handle_width,
                                                 self.resize_handle_width * 2)
@@ -52,6 +56,7 @@ class Action(QtWidgets.QGraphicsPathItem):
         self.graphics_data_item = graphics_data_item
 
         self.level = 0
+        self.height = self.height
 
     def __repr__(self):
         return self.name + "\t" + str(self.level)
@@ -70,7 +75,9 @@ class Action(QtWidgets.QGraphicsPathItem):
 
     @width.setter
     def width(self, value):
-        self._width = max(value, self.width_of_ports(), self._name.boundingRect().width() + 2 * self.resize_handle_width)
+        self._width = max(value, self.width_of_ports(),
+                          self._name.boundingRect().width() + 2 * self.resize_handle_width,
+                          self.type_name.boundingRect().width() + 2 * self.resize_handle_width)
         self.position_ports()
         self.update_gfx()
         self.resize_handles.update_handles()
@@ -81,7 +88,8 @@ class Action(QtWidgets.QGraphicsPathItem):
 
     @height.setter
     def height(self, value):
-        self._height = max(value, self._name.boundingRect().height() + Port.SIZE)
+        self._height = max(value, self._name.boundingRect().height() + Port.SIZE +
+                           self.type_name.boundingRect().height() + Port.SIZE)
         self.position_ports()
         self.update_gfx()
         self.resize_handles.update_handles()
@@ -137,8 +145,9 @@ class Action(QtWidgets.QGraphicsPathItem):
 
     def inner_area(self):
         """Returns rectangle of the inner area of action."""
-        return QRectF(self.resize_handle_width, Port.SIZE / 2,
-                      self.width - 2 * self.resize_handle_width, self.height - Port.SIZE)
+        return QRectF(self.resize_handle_width, Port.SIZE / 2 + self.type_name.boundingRect().height() + 4,
+                      self.width - 2 * self.resize_handle_width,
+                      self.height - Port.SIZE - self.type_name.boundingRect().height()-4)
 
     def moveBy(self, dx, dy):
         super(Action, self).moveBy(dx, dy)

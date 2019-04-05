@@ -5,7 +5,7 @@ from .port import Port
 class EditableLabel(QtWidgets.QGraphicsTextItem):
     def __init__(self, text, parent):
         super(EditableLabel, self).__init__(text, parent)
-        self.setPos(QtCore.QPoint(parent.resize_handle_width, Port.SIZE / 2))
+        self.setPos(QtCore.QPoint(parent.resize_handle_width, Port.SIZE / 2 + parent.type_name.boundingRect().height()))
         self.setDefaultTextColor(QtCore.Qt.black)
         self._editing = False
         self.start_text = ""
