@@ -9,9 +9,9 @@ cache: pip
 sudo: required
 dist: xenial
 
-# python:
-#   - "3.5"
-#   - "3.6"
+python:
+  - "3.5"
+  - "3.6"
 
 virtualenv:
   system_site_packages: true
@@ -26,3 +26,4 @@ script:
  - python3 --version
  - pip --version
  - pip3 --version
+ - pip3 freeze
