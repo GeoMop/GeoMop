@@ -36,7 +36,7 @@ install:
 
 # for now test everything in testing/ dir
 script:
- - pytest --cov testing/
+ - pytest --cov=src testing/
  
 # if (and when) we succeed coveralls will be published
 after_success:
