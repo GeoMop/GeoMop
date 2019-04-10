@@ -41,6 +41,9 @@ script:
 # if (and when) we succeed coveralls will be published
 after_success:
   - coveralls
+
+after_failure:
+  - coveralls
   
 # jobs:
 #   include:
