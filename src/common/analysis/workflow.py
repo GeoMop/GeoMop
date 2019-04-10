@@ -1,4 +1,5 @@
 import inspect
+import importlib
 
 """
 Minimalistic implementation of the analysis data layer for the GUI.
@@ -70,7 +71,7 @@ class _ActionBase:
         self._inputs = inputs
 
 
-    def code(self, inputs, config=None):
+    def _code(self, inputs, config=None):
         """
         Return a representation of the action instance.
         This is generic representation code that calls the constructor.
@@ -143,6 +144,30 @@ class _WorkflowBase(_ActionBase):
     """ Dict:  unique action instance name -> action instance """
 
     @classmethod
+    def _dfs(cls, root_action, previsit=None, postvisit=None, edge_visit=None):
+        """
+        Generic DFS for the action DAG.
+        :param root_action:
+        :return:
+        """
+        action_ids = set()
+        action_stack = [root_action]
+        while action_stack:
+            action = action_stack.pop(-1)
+            if previsit:
+                previsit(action)
+            for input_action in action._inputs:
+                assert isinstance(input_action, _ActionBase)
+                if edge_visit:
+                    edge_visit(input_action, action)
+                action_id = id(input_action)
+                if action_id not in action_ids:
+                    action_stack.append(input_action)
+            if postvisit:
+                postvisit(action)
+
+
+    @classmethod
     def _construct(cls, result, slots):
         """
         DFS through the workflow DAG given be the result action:
@@ -153,51 +178,40 @@ class _WorkflowBase(_ActionBase):
         :param slots: List of the input slots of the workflow.
         :return: input slots
         """
+        assert isinstance(result, _ActionBase)
         cls._result = result
         cls._slots = { slot.rank: slot for slot in slots }
         cls._actions = {}
-
-        action_ids = set()
         instance_names = {}
-        assert isinstance(result, _ActionBase)
-        action_stack = [result]
-        while action_stack:
-            action = action_stack.pop(-1)
-            for input_action in action._inputs:
-                assert isinstance(input_action, _ActionBase)
-                input_action.output_actions.append(action)
-                action_id = id(input_action)
-                if action_id not in action_ids:
-                    cls._construct_previsit(input_action, instance_names)
-                    action_stack.append(input_action)
+
+        def construct_previsit(action):
+            # get instance name proposal
+            if action.instance_name is None:
+                name_base = action.action_name
+                instance_names.setdefault(name_base, 1)
+            else:
+                name_base = action.instance_name
+
+            # set unique instance name
+            if name_base in instance_names:
+                action.instance_name = "{}_{}".format(name_base, instance_names[name_base])
+                instance_names[name_base] += 1
+            else:
+                action.instance_name = name_base
+                instance_names[name_base] = 0
+
+            # handle slots
+            if isinstance(action, _Slot):
+                assert action is cls._slots[action.rank]
+            else:
+                cls._actions[action.instance_name] = action
+
+        cls._dfs(result,
+                 previsit=construct_previsit,
+                 edge_visit=lambda previous, action: previous.output_actions.append(action)
+                 )
 
 
-    @classmethod
-    def _construct_previsit(cls, action, name_counts):
-        """
-        Previsit action processing in the DFS performed in _construct.
-        :param action: Action to visit.
-        """
-        # get name proposal
-        if action.instance_name is None:
-            name_base = action.action_name
-            name_counts.setdefault(name_base, 1)
-        else:
-            name_base = action.instance_name
-
-        # set unique
-        if name_base in name_counts:
-            action.instance_name = "{}_{}".format(name_base, name_counts[name_base])
-            name_counts[name_base] += 1
-        else:
-            action.instance_name = name_base
-            name_counts[name_base] = 0
-
-        # get slots
-        if isinstance(action, _Slot):
-            assert action is cls._slots[action.rank]
-        else:
-            cls._actions[action.instance_name] = action
 
 
     def __init__(self, inputs=[], config=None, name=None):
@@ -207,9 +221,37 @@ class _WorkflowBase(_ActionBase):
     def evaluate(self, input):
         pass
 
+    def _code(self, inputs, config=None):
+        """ Representation of the workflow class instance within an outer workflow."""
 
-def make_workflow(func):
+        pass
+
+    @classmethod
+    def dependencies(cls):
+        """
+        :return: List of used actions (including workflows) and converters.
+        """
+        return [v.action_name for v in cls._actions.values()]
+
+    @classmethod
+    def code(cls):
+        """
+        Represent workflow by its source.
+        :return: list of lines containing representation of the workflow as a decorated function.
+        """
+
+
+
+class Analysis:
+    def __init__(self, workflow):
+        self.workflow = workflow
+
+
+
+
+def workflow(func):
     """
+    Decorator to create a workflow class from the function.
     Create a derived Workflow class from a function that accepts the inputs returns an output action.
     :param func:
     :return:
@@ -225,7 +267,33 @@ def make_workflow(func):
     return new_workflow
 
 
+def analysis(func):
+    w = workflow(func)
+    assert len(w._slots) == 0
+    return Analysis(w)
 
+class _Module:
+    """
+    Object representing a module (whole file) that can contain
+    several worflow and converter definitions and possibly also a script itself.
+
+    We  inspect __dict__ of the loaded module to find all definitions.
+    The script must be a workflow function decorated with @analysis decorator.
+
+    Only functions under the @converter, @workflow, and @action decorators are
+    captured, remaining code is ignored.
+    """
+    def __init__(self, module_name):
+        self.module = importlib.import_module(module_name)
+        self.workflows = { k:v for k, v in self.module.__dict__.items() if isinstance(v, _WorkflowBase) }
+        self.converters = { k:v for k, v in self.module.__dict__.items() if isinstance(v, _ConverterBase) }
+        actions = {k: v for k, v in self.module.__dict__.items() if isinstance(v, _WorkflowBase)}
+        assert len(actions) <= 1
+        if actions:
+            self.action = actions.values()[0]
+
+    def code(self):
+        pass
 
 # class _FunctionAction
 #     def __init__(self, ):
