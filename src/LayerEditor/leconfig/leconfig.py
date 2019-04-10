@@ -195,6 +195,18 @@ class LEConfig:
     """Current geometry data file path"""
     geomop_root = ""
     """Path to the root directory of the GeoMop installation."""
+    
+    @classmethod
+    def reload_surfaces(cls, id):
+        """Reload surface panel"""
+        if cls.main_window is not None:
+            cls.main_window.surfaces.reload_surfaces(id)
+        
+    @classmethod
+    def get_curr_surfaces(cls):
+        """Get current surface id from surface panel"""
+        return  cls.main_window.surfaces.get_surface_id()
+        
 
     @classmethod
     def changed(cls):

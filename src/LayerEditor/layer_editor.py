@@ -72,6 +72,7 @@ class LayerEditor:
         if ret!=QtWidgets.QDialog.Accepted:
             if not self.open_file():
                 self.new_file()
+                self.mainwindow.show_status_message("New file is opened")
         else:
             self.mainwindow.refresh_all()
             self.mainwindow.display_all()
@@ -87,6 +88,7 @@ class LayerEditor:
         if file[0]:
             cfg.open_file(file[0])
             self._update_document_name()
+            self.mainwindow.show_status_message("File '" + file[0] + "' is opened")
             return True
         return False
             
@@ -98,6 +100,7 @@ class LayerEditor:
         if shp_file[0]:
             if cfg.open_shape_file( shp_file[0]):
                 self.mainwindow.refresh_diagram_shp()
+                self.mainwindow.show_status_message("Shape file '" + shp_file[0] + "' is opened")
 
     def make_mesh(self):
         """open Make mesh dialog"""
@@ -116,7 +119,7 @@ class LayerEditor:
         cfg.open_recent_file(action.data())
         self.mainwindow.update_recent_files()
         self._update_document_name()
-#        self.mainwindow.show_status_message("File '" + action.data() + "' is opened")
+        self.mainwindow.show_status_message("File '" + action.data() + "' is opened")
 
     def save_file(self):
         """save file menu action"""
@@ -125,7 +128,7 @@ class LayerEditor:
         if cfg.confront_file_timestamp():
             return
         cfg.save_file()
-        # self.mainwindow.show_status_message("File is saved")
+        self.mainwindow.show_status_message("File is saved")
 
     def save_as(self):
         """save file menu action"""
@@ -147,7 +150,7 @@ class LayerEditor:
             cfg.save_file(file_name)
             self.mainwindow.update_recent_files()
             self._update_document_name()
-#            self.mainwindow.show_status_message("File is saved")
+            self.mainwindow.show_status_message("File is saved")
             return True
         return False
 
