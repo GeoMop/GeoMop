@@ -1,30 +1,44 @@
-language: generic
-cache: pip
-sudo: required
-dist: xenial
+language: generic   # no language spec so we dont't use virtualenv which causes
+                    # PyQt5 and PyQtWebEngine installation issues
+cache:    pip       # caching pip folder in user's $HOME to make build faster
+sudo:     required  # we need sudo to install packages
+dist:     xenial    # ubuntu 16.04
 
+
+# do not bother anyone 
 notifications:
   email: false
 
+# for now we do not sync submodules since they are configures to use ssh
+# instead of https
 git:
   submodules: false
 
+# when initializing submodules manually we need to add github to known_hosts
 addons:
   ssh_known_hosts: github.com
 
+# extend PYTHONPATH to also include submodules
 env:
   - PYTHONPATH=$PYTHONPATH:$TRAVIS_BUILD_DIR/src:$TRAVIS_BUILD_DIR/submodules/yaml_converter:$TRAVIS_BUILD_DIR/submodules/intersections/src
 
+# installation pipeline
 install:
+ # we call the script twice (I actually don't know why this even works)
  - tools/initialize_submodules.sh
  - tools/initialize_submodules.sh
+ # update and isntall some system libs and packages
  - sudo apt-get update
  - sudo apt-get install -y python3-pip python3-dev python3-setuptools libffi-dev libssl-dev libxml2-dev libxslt1-dev libjpeg8-dev zlib1g-dev
+ # install requirements and pytest tools
  - sudo pip3 install -r requirements.txt
  - sudo pip3 install pytest pytest-pep8 pytest-cov
 
+# for now test everything in testing/ dir
 script:
  - pytest --cov testing/
+ 
+# if (and when) we succeed coveralls will be published
 after_success:
   - coveralls
   
