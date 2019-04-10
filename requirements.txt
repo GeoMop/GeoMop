@@ -11,6 +11,7 @@ PyQt5
 PyQtWebEngine
 qscintilla
 plotly
+matplotlib
 
 # pip3
 # setuptools
