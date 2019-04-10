@@ -32,7 +32,7 @@ install:
  - sudo apt-get install -y python3-pip python3-dev python3-setuptools libffi-dev libssl-dev libxml2-dev libxslt1-dev libjpeg8-dev zlib1g-dev
  # install requirements and pytest tools
  - sudo pip3 install -r requirements.txt
- - sudo pip3 install pytest pytest-pep8 pytest-cov
+ - sudo pip3 install pytest pytest-pep8 pytest-cov coveralls
 
 # for now test everything in testing/ dir
 script:
