@@ -1,5 +1,4 @@
-# GeoMop &middot; ![Travis (.org)](https://img.shields.io/travis/GeoMop/GeoMop.svg?style=flat-square) ![Coveralls github](https://img.shields.io/coveralls/github/GeoMop/GeoMop.svg?style=flat-square)
-
+# GeoMop &middot; [![Travis (.org)](https://img.shields.io/travis/GeoMop/GeoMop.svg?style=flat-square)](https://travis-ci.org/GeoMop/GeoMop) [![Coveralls github](https://img.shields.io/coveralls/github/GeoMop/GeoMop.svg?style=flat-square)](https://coveralls.io/github/GeoMop/GeoMop)
 Toolbox for preparation and running complex hydrogeological simulations in particular using [Flow123d](https://flow123d.github.io) simulator of transport processes in the fractured porous media.
 Components:
     
