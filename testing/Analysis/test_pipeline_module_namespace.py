@@ -1,4 +1,4 @@
-from pipeline import *
+from Analysis.pipeline import *
 
 def test_data_classes():
     try:

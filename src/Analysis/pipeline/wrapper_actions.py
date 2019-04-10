@@ -15,6 +15,7 @@ from math import *
 
 import numpy as np
 from scipy.optimize import minimize
+from scipy.optimize import differential_evolution
 
 
 class ForEach(WrapperActionType):
@@ -131,7 +132,7 @@ class ForEach(WrapperActionType):
                     inputs.append(gen) 
                 name = self._variables['WrappedAction']._get_instance_name()
                 script = self._variables['WrappedAction']._get_settings_script()
-                script.insert(0, "from pipeline import *")
+                script.insert(0, "from Analysis.pipeline import *")
                 script = '\n'.join(script)
                 script = script.replace(name, "new_dupl_workflow")
                 exec (script, globals())
@@ -145,6 +146,7 @@ class ForEach(WrapperActionType):
                 if not instance._is_state(ActionStateType.finished):
                     return ActionRunningState.wait, None
             self._set_state(ActionStateType.processed)
+            self.__make_output()
             return ActionRunningState.repeat, self
         next_wa = self._procesed_instances
         while next_wa < len(self._wa_instances):    
@@ -152,7 +154,8 @@ class ForEach(WrapperActionType):
             if state is ActionRunningState.finished:
                 if next_wa == self._procesed_instances:
                     self._procesed_instances += 1
-                return ActionRunningState.wait, action
+                    # Next line indented to fix bug with repeatedly running underlying workflow.
+                    return ActionRunningState.wait, action
             if state is ActionRunningState.repeat:
                 return state, action
             if state is ActionRunningState.error:
@@ -163,15 +166,7 @@ class ForEach(WrapperActionType):
             next_wa += 1            
         return  ActionRunningState.wait, None
 
-    def _after_update(self, store_dir):    
-        """
-        Set real output variable and set finished state.
-        """
-        self.__make_output()
-        self._store_results(store_dir)
-        self._set_state(ActionStateType.finished)
-
-    def _check_params(self):    
+    def _check_params(self):
         """check if all require params is set"""
         err = super(ForEach, self)._check_params()
         if len(self._inputs) == 0:
@@ -233,14 +228,10 @@ class Calibration(WrapperActionType):
         :param Action Input: action that return input to calibration
         """
 
-        self._wa_instances = []
-        """
-        Set wrapper class serve only as template, for run is make
-        copy of this class. The variable is for the copies.
-        """
-        self._procesed_instances = 0
-        """How many instances is procesed"""
+        self._scipy_started = False
+        """true if scipy thread was started"""
         self._tmp_action = None
+        self._tmp_action_index = 0
 
         self._scipy_thread = None
         """thread for running scipy optimize"""
@@ -275,6 +266,10 @@ class Calibration(WrapperActionType):
     def _inicialize(self):
         """inicialize action run variables"""
         super()._inicialize()
+
+        # update hash
+        # todo:
+
         self.__make_output()
 
     def _get_output_to_wrapper(self):
@@ -299,7 +294,7 @@ class Calibration(WrapperActionType):
 
     def __make_output(self):
         """return output relevant for set action"""
-        if self._is_state(ActionStateType.finished):
+        if self._is_state(ActionStateType.processed) or self._is_state(ActionStateType.finished):
             opt = Sequence(SingleIterationInfo.create_type(
                 self._variables['Parameters'], self._variables['Observations']))
 
@@ -327,15 +322,17 @@ class Calibration(WrapperActionType):
                     rel_sen = np.nan
                     if p.fixed:
                         pt = "Fixed"
+                    elif p.tied_expression is not None:
+                        pt = "Tied"
                     else:
                         pt = "Free"
-                        if p.tied_expression is None and jac_matrix is not None:
+                        if jac_matrix is not None:
                             sen = np.linalg.norm(jac_matrix[:, sen_ind] * weights) / obs_num
                             if p.log_transform:
                                 rel_sen = sen * math.fabs(math.log10(value))
                             else:
                                 rel_sen = sen * math.fabs(value)
-                            sen_ind += 1
+                        sen_ind += 1
                     spo = Struct(parameter_type=Enum(["Free", "Tied", "Fixed", "Frozen"], pt),
                                  value=Float(value),
                                  interval_estimate=Tuple(Float(0.0), Float(0.0)),
@@ -446,8 +443,7 @@ class Calibration(WrapperActionType):
             return ActionRunningState.wait,  None
         if self._is_state(ActionStateType.finished):
             return ActionRunningState.finished,  self
-        if len(self._wa_instances) == 0:
-            # ToDo: promyslet
+        if not self._scipy_started:
             if self._restore_id is not None:
                 # restoring - set processed state as in classic action
                 if self._is_state(ActionStateType.processed):
@@ -461,12 +457,7 @@ class Calibration(WrapperActionType):
             self._scipy_thread = threading.Thread(target=self._scipy_run)
             self._scipy_thread.daemon = True
             self._scipy_thread.start()
-            self._wa_instances.append(1)
-        if self._procesed_instances == len(self._wa_instances):
-            if len(self._wa_instances) > 0:
-                return ActionRunningState.wait, None
-            self._set_state(ActionStateType.processed)
-            return ActionRunningState.repeat, self
+            self._scipy_started = True
         while True:
             if self._get_scipy_state() == self.ScipyState.running:
                 if self._scipy_event.is_set():
@@ -488,13 +479,15 @@ class Calibration(WrapperActionType):
                     if state is ActionRunningState.wait and action is not None:
                         return ActionRunningState.repeat, action
             if self._get_scipy_state() == self.ScipyState.finished:
-                self._set_state(ActionStateType.finished)
+                self._set_state(ActionStateType.processed)
                 self.__make_output()
-                return ActionRunningState.wait, None
+                return ActionRunningState.repeat, self
             return ActionRunningState.wait, None
         return ActionRunningState.wait, None
 
     def _create_tmp_action(self, input):
+        self._tmp_action_index += 1
+
         gen = VariableGenerator(Variable=input)
         gen._inicialize()
         gen._update()
@@ -505,23 +498,15 @@ class Calibration(WrapperActionType):
         inputs = [gen]
         name = self._variables['WrappedAction']._get_instance_name()
         script = self._variables['WrappedAction']._get_settings_script()
-        script.insert(0, "from pipeline import *")
+        script.insert(0, "from Analysis.pipeline import *")
         script = '\n'.join(script)
         script = script.replace(name, "new_dupl_workflow")
         exec(script, globals())
         new_dupl_workflow.set_inputs(inputs)
         new_dupl_workflow._inicialize()
-        #new_dupl_workflow._reset_storing(
-            #self._variables['WrappedAction'], self._index_iden + "_" + str(i))
+        new_dupl_workflow._reset_storing(
+            self._variables['WrappedAction'], self._index_iden + "_" + str(self._tmp_action_index))
         return new_dupl_workflow
-
-    def _after_update(self, store_dir):
-        """
-        Set real output variable and set finished state.
-        """
-        self.__make_output()
-        self._store_results(store_dir)
-        self._set_state(ActionStateType.finished)
 
     def _check_params(self):
         """check if all require params is set"""
@@ -545,6 +530,8 @@ class Calibration(WrapperActionType):
                                 self._add_error(err, "Parameter 'Parameters[{0}]': Lower bound must be positive, if log transform is chosen".format(str(i)))
                             if self._variables['Parameters'][i].bounds[1] <= 0:
                                 self._add_error(err, "Parameter 'Parameters[{0}]': Upper bound must be positive, if log transform is chosen".format(str(i)))
+                        if self._variables['Parameters'][i].fixed and self._variables['Parameters'][i].tied_expression is not None:
+                            self._add_error(err, "Parameter 'Parameters[{0}]': Fixed can't be tied".format(str(i)))
                     else:
                         self._add_error(err, "Type of parameter 'Parameters[{0}]' must be CalibrationParameter".format(str(i)))
                 self._extend_error(err, self.__check_tied_parameters(self._variables['Parameters']))
@@ -587,7 +574,7 @@ class Calibration(WrapperActionType):
         # MinimizationMethod
         if 'MinimizationMethod' in self._variables:
             if isinstance(self._variables['MinimizationMethod'], str):
-                if not self._variables['MinimizationMethod'] in ["L-BFGS-B", "SLSQP"]:
+                if not self._variables['MinimizationMethod'] in ["L-BFGS-B", "SLSQP", "DIFF"]:
                     self._add_error(err, "Method '{0}' is not supported.".format(self._variables['MinimizationMethod']))
             else:
                 self._add_error(err, "Parameter 'MinimizationMethod' must be string")
@@ -717,8 +704,13 @@ class Calibration(WrapperActionType):
         alg_par = {}
         for par in self._variables['AlgorithmParameters']:
             alg_par[par.group] = par
+        self._scipy_log_transform = []
+        self._scipy_lb = []
+        self._scipy_ub = []
+        self._scipy_diff_inc_rel = []
+        self._scipy_diff_inc_abs = []
         for par in self._variables['Parameters']:
-            if not par.fixed:
+            if not par.fixed and par.tied_expression is None:
                 self._scipy_log_transform.append(par.log_transform)
                 if par.log_transform:
                     init_values.append(math.log10(par.init_value))
@@ -745,7 +737,12 @@ class Calibration(WrapperActionType):
         #                            options={'maxiter': self._variables['TerminationCriteria'].n_max_steps,
         #                                     'ftol': 1e-6, 'disp': True}, **args)
 
-        if self._variables['MinimizationMethod'] == "L-BFGS-B":
+        if self._variables['MinimizationMethod'] == "DIFF":
+            self._scipy_res = differential_evolution(self._scipy_fun, strategy= "best1bin",
+                                                     maxiter=self._variables['TerminationCriteria'].n_max_steps,
+                                                     popsize=5, tol=1e-4, callback=self._scipy_callback,
+                                                     disp=True, polish=False, **args)
+        elif self._variables['MinimizationMethod'] == "L-BFGS-B":
             self._scipy_res = min_lbfgsb(self._scipy_fun, x0, jac=self._scipy_jac, callback=self._scipy_callback,
                                          disp=True, ter_crit=self._variables['TerminationCriteria'], **args)
         else:
@@ -766,7 +763,7 @@ class Calibration(WrapperActionType):
         #print("_scipy_fun enter")
         #print(x)
         y = self._scipy_model_eval(x)
-        #print(y)
+        #print("y: {}".format(y))
 
         return y
 
@@ -810,9 +807,11 @@ class Calibration(WrapperActionType):
         self._scipy_xj_log.append((x.copy(), jac_matrix))
         return jac
 
-    def _scipy_callback(self, xk):
+    def _scipy_callback(self, xk, convergence=None):
         """called by scipy after each iteration"""
         self._scipy_iterations.append((xk.copy(), self._scipy_model_eval(xk), self._scipy_model_eval_num))
+        #print(self._scipy_iterations[-1])
+        #print("conv: {}".format(convergence))
 
     def _scipy_model_eval(self, x):
         """model evaluation used in _scipy_fun and _scipy_jac"""

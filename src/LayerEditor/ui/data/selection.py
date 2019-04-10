@@ -1,4 +1,4 @@
-from leconfig import cfg
+from LayerEditor.leconfig import cfg
 
 
 class Selection():
@@ -100,24 +100,39 @@ class Selection():
         self.selected_polygons = []
         
     def get_selected_regions(self, diagram):
-        """ For all layers of set diagram return: 
-            - selected region, if selected shapes have same regions
-            - or None region if regions is different
+        """ For all layers of set diagram return:
+            - selected region, if selected shapes have same regions and dimensions
+            - previous point return applies to the highest dimension shape in case of mismatch
+            - or None region if regions of the highest dimension are different
         """
-        ret = None
-        default = diagram.get_default_regions()
+        # ret = None
+        # default = diagram.get_default_regions()
+        # for selected in [self.selected_points, self.selected_lines, self.selected_polygons]:
+        #     if selected:
+        #         ret = None
+        #         #
+        #         for shape in selected:
+        #             shape_regions = shape.get_regions()
+        #             # regions in all layers of the same topology
+        #             if ret is None:
+        #                 ret = shape_regions
+        #             else:
+        #                 for i in range (0, len(default)):
+        #                     if ret[i] != shape_regions[i]:
+        #                         ret[i] = default[i]
+        # if ret is None:
+        #     return default
+
+        """
+        If exactly one shape is selected return all regions in block layers.
+        """
         for selected in [self.selected_points, self.selected_lines, self.selected_polygons]:
-            for shape in selected:
-                next =  shape.get_regions()
-                if ret is None:
-                    ret = next
-                else:
-                    for i in range (0, len(default)):
-                        if ret[i]!=next[i]:
-                            ret[i]=default[i]
-        if ret is None:
-            return default
-        return ret
+            shape_regions = None
+            if  len(selected) == 1:
+                shape = selected[0]
+                shape_regions = shape.get_regions()
+            #
+        return shape_regions
 
     def delete_selected(self):
         """

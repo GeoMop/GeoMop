@@ -4,9 +4,9 @@
 """
 from copy import copy
 from PyQt5.Qsci import QsciScintilla
+from PyQt5 import QtWidgets
 
-from model_data.format import is_scalar
-from geomop_analysis import Analysis
+from gm_base.model_data.format import is_scalar
 
 
 class AutocompleteHelper:
@@ -79,11 +79,11 @@ class AutocompleteHelper:
         self._options.clear()
 
         # parameter options
-        if Analysis.current is not None and is_scalar(input_type):
-            self._options.update({
-                '<' + param.name + '>': 'param'
-                for param in Analysis.current.params
-            })
+        # if Analysis.current is not None and is_scalar(input_type):
+        #     self._options.update({
+        #         '<' + param.name + '>': 'param'
+        #         for param in Analysis.current.params
+        #     })
 
         if input_type['base_type'] == 'Record':  # input type Record
             self._options.update({key: 'key' for key in input_type['keys'] if key != 'TYPE'})
@@ -111,10 +111,23 @@ class AutocompleteHelper:
     def show_autocompletion(self, context=None):
         """Get autocomplete options for the context.
 
+        If the cursor is at the end of key, then add space and reload autocomplete.
         If there are some options to be displayed, :py:attr:`visible` is set to True.
 
         :param AutocompleteContext context: current word and position
         """
+        if self._editor is not None:
+            position = self._editor.getCursorPosition()
+            line = self._editor.text(position[0])
+            if len(line) > 0:
+                if line[position[1] - 1] == ':' or line[position[1] - 1] == '-':
+                    if len(line) > position[1] + 1:
+                        indent = len(line[position[1]:]) - len(line[position[1]:].lstrip(' '))
+                        self._editor.setCursorPosition(position[0], position[1] + indent)
+                    else:
+                        self._editor.insert_at_cursor(' ')
+                    QtWidgets.QApplication.processEvents()
+
         self.refresh_autocompletion(context, create_options=True)
         if len(self.scintilla_options) > 0:
             self.visible = True
@@ -181,11 +194,29 @@ class AutocompleteHelper:
     def _prepare_options(self, filter_=None):
         """Sort filtered options and prepare QScintilla string representation.
 
+        If there is whole key on current line before cursor position,
+        don't show key options in autocomplete. Otherwise don't show types.
+
         :param str filter_: only allow options that starts with this string
         """
+        show_keys = True
+        if self._editor is not None:
+            position = self._editor.getCursorPosition()
+            if self._editor.text(position[0])[:position[1]].find(":") > -1:
+                show_keys = False
+
+        show_types = False
+        if self._editor is not None:
+            if self._editor.text(position[0])[:position[1]].find(":") > -1 or \
+                    self._editor.text(position[0])[:position[1]].find("-") > -1:
+                show_types = True
+
         if filter_ is None:
             filter_ = ''
-        options = [option for option in self._options.keys() if option.startswith(filter_)]
+        options = [option for option in self._options.keys() if
+                   option.startswith(filter_) and
+                   ((self._options[option] == 'key' and show_keys) or
+                   (self._options[option] == 'type' and show_types))]
         self.possible_options = sorted(options, key=self._sorting_key)
 
         # if there is only one option and it matches the word exactly, do not show options

@@ -7,6 +7,7 @@ from .executor import ProcessExec, ProcessPBS, ProcessDocker
 
 # import in code
 #from .service_proxy import ServiceProxy
+#import fcntl
 
 import logging
 import concurrent.futures
@@ -18,8 +19,8 @@ import threading
 import sys
 import traceback
 import socket
-import fcntl
 import struct
+import hashlib
 
 
 """
@@ -71,8 +72,6 @@ class ServiceStatus(enum.IntEnum):
     """
 
 
-
-
 def LongRequest(func):
     """
     Auxiliary decorator to mark requests that takes long time or
@@ -80,19 +79,6 @@ def LongRequest(func):
     """
     func.run_in_thread = True
     return func
-
-
-# class ServiceStarter:
-#     """
-#     Start a child service and return ChildServiceProxy object.
-#
-#
-#     """
-#     def __init__(self):
-#         pass
-#
-#     def start_pbs(self):
-#         pass
 
 
 def call_action(obj, action, data, result=None):
@@ -130,7 +116,8 @@ def call_action(obj, action, data, result=None):
         # logging.info("res: {})".format(res))
         save_result(res)
 
-    if hasattr(action_method, "run_in_thread") and action_method.run_in_thread:
+    if hasattr(action_method, "run_in_thread") and action_method.run_in_thread and \
+            (not isinstance(obj, ServiceBase) or obj._service_thread_ident == threading.get_ident()):
         # future = self._thread_pool.submit(action_method, data)
         t = threading.Thread(target=wrapper)
         t.daemon = True
@@ -185,7 +172,7 @@ class ServiceBase(JsonData):
     """
     # answer_ok = { 'data' : 'ok' }
 
-    def __init__(self, config):
+    def __init__(self, config, repeater_max_client_id=0):
         """
         Create the service and its repeater.
         """
@@ -215,6 +202,10 @@ class ServiceBase(JsonData):
 
         self.listen_address = ("", 0)
         """Socket address where service listening."""
+        self.requested_listen_port = 0
+        """Requested listen port."""
+        self.listen_address_substitute = ("", 0)
+        """Listen address will be substitute with this address. (Only if self.listen_address_substitute[0] != "".)"""
         self.status = ServiceStatus.queued
         """Service status"""
         self.wait_before_run = 0.0
@@ -222,7 +213,21 @@ class ServiceBase(JsonData):
         self.config_file_name = ""
         """Name of service config file."""
 
+        self.start_time = 0.0
+        """Time when service start."""
+        self.done_time = 0.0
+        """Time when service done."""
+
+        #self.repeater_max_client_id = 0
+        """repeater max client id"""
+
+        self.log_all = False
+        """True mean log level INFO, False mean log level WARNING"""
+
         super().__init__(config)
+
+        self._service_thread_ident = threading.get_ident()
+        """service main thread identifier"""
 
         self._thread_pool = concurrent.futures.ThreadPoolExecutor(max_workers=10)
 
@@ -231,11 +236,18 @@ class ServiceBase(JsonData):
         # obtained from the global geomop setting not retrieved form the service configuration.
 
         self._child_services = {}
+        """Dict of child service proxies."""
+        self._child_services_lock = threading.Lock()
+        """Lock for _child_services"""
 
-        #self._delegator_services = {}
-
-        self._repeater = ar.AsyncRepeater(self.repeater_address, self.parent_address)
-        self.listen_address = (self.get_ip_address(), self._repeater.listen_port)
+        self._repeater = ar.AsyncRepeater(self.repeater_address, self.parent_address,
+                                          repeater_max_client_id, self.requested_listen_port)
+        listen_port = self._repeater.listen_port
+        if listen_port is not None:
+            if self.listen_address_substitute[0] != "":
+                self.listen_address = self.listen_address_substitute
+            else:
+                self.listen_address = (self.get_ip_address(), listen_port)
 
         self._closing = False
 
@@ -262,33 +274,36 @@ class ServiceBase(JsonData):
         file = os.path.join(self.get_analysis_workspace(),
                             self.workspace,
                             self.config_file_name)
+        os.makedirs(os.path.dirname(file), exist_ok=True)
         with open(file, 'w') as fd:
             json.dump(self.serialize(), fd, indent=4, sort_keys=True)
 
+    def _set_status_done(self):
+        """
+        Sets status to done, sets done_time, saves config and sets closing flag.
+        :return:
+        """
+        self.status = ServiceStatus.done
+        self.done_time = time.time()
+        self.save_config()
+        self._closing = True
+
     def run(self):
         """
+        Runs service loop.
+        Loop running until self._closing is not set.
         :return:
         """
         time.sleep(self.wait_before_run)
 
-        # Start the repeater loop.
-        self._repeater.run()
-        logging.info("After run")
-
-        self.status = ServiceStatus.running
-        self.save_config()
+        self.run_before()
 
         last_time = time.time()
 
         # Service processing loop.
         while not self._closing:
             #logging.info("Loop")
-            self._process_answers()
-            self._process_requests()
-            self._send_answers()
-            self._do_work()
-            self._check_connections()
-            self._check_child_services()
+            self.run_body()
 
             # sleep, not too much
             remaining_time = 0.1 - (time.time() - last_time)
@@ -296,15 +311,50 @@ class ServiceBase(JsonData):
                 time.sleep(remaining_time)
             last_time = time.time()
 
+        self.run_after()
+
+    def run_before(self):
+        """
+        Perform pre-run actions.
+        :return:
+        """
+        # Start the repeater loop.
+        self._repeater.run()
+        logging.info("After run")
+
+        self.status = ServiceStatus.running
+        self.start_time = time.time()
+        self.save_config()
+
+    def run_body(self):
+        """
+        Perform one pass of service processing loop.
+        Must be called about after 0.1 s.
+        :return:
+        """
+        self._service_thread_ident = threading.get_ident()
+
+        self._process_answers()
+        self._process_requests()
+        self._send_answers()
+        self._do_work()
+        self._check_connections()
+        self._check_child_services()
+        self._repeater.discard_closed_childs()
+
+    def run_after(self):
+        """
+        Perform post-run actions.
+        :return:
+        """
         self._repeater.close()
         self.close_connections()
 
-
-
     def _process_answers(self):
         #logging.info("Process answers ...")
-        for ch_service in self._child_services.values():
-            ch_service._process_answers()
+        with self._child_services_lock:
+            for ch_service in self._child_services.values():
+                ch_service._process_answers()
         # for d_service in self._delegator_services.values():
         #     d_service._process_answers()
         for con in self._connections.values():
@@ -333,18 +383,19 @@ class ServiceBase(JsonData):
 
     def _send_answers(self):
         """
-        Send filled answers form self._answers_to_send.
+        Send filled answers from self._answers_to_send.
         Method is thread safe.
         :return:
         """
         done = False
         while not done:
+            done = True
             for i in range(len(self._answers_to_send)):
                 if len(self._answers_to_send[i][1]) > 0:
                     item = self._answers_to_send.pop(i)
                     self._repeater.send_answer(item[0], item[1][0])
+                    done = False
                     break
-            done = True
 
     def _do_work(self):
         """
@@ -358,8 +409,9 @@ class ServiceBase(JsonData):
             con.get_status()
 
     def _check_child_services(self):
-        for child in self._child_services.values():
-            child.get_status()
+        with self._child_services_lock:
+            for child in self._child_services.values():
+                child.get_status()
 
     def get_connection(self, connection_data):
         """
@@ -367,15 +419,16 @@ class ServiceBase(JsonData):
         :param connection_data:
         :return:
         """
-        addr = connection_data["address"]
+        text = json.dumps(connection_data, separators=(',', ':'), sort_keys=True)
+        hash = hashlib.sha512(bytes(text, "utf-8")).hexdigest()
         with self._connections_lock:
-            if addr in self._connections:
-                return self._connections[addr]
+            if hash in self._connections:
+                return self._connections[hash]
             else:
                 con = ClassFactory([ConnectionSSH, ConnectionLocal]).make_instance(connection_data)
                 con.set_local_service(self)
                 con.connect()
-                self._connections[addr] = con
+                self._connections[hash] = con
                 return con
 
     def close_connections(self):
@@ -391,12 +444,17 @@ class ServiceBase(JsonData):
     def get_analysis_workspace(self):
         return self.service_host_connection.environment.geomop_analysis_workspace
 
+    def get_geomop_root(self):
+        return self.service_host_connection.environment.geomop_root
+
     def get_ip_address(self):
         """
         Return IP address of eth0.
         If fails return 127.0.0.1.
         :return:
         """
+        import fcntl
+
         ifname = 'eth0'
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         try:
@@ -460,23 +518,19 @@ class ServiceBase(JsonData):
         """
         connection = self.get_connection(service_data["service_host_connection"])
 
-
         from .service_proxy import ServiceProxy
-        proxy = ServiceProxy(service_data, self._repeater, connection)
-        child_id = proxy.start_service()
-        self._child_services[child_id] = proxy
+        proxy = ServiceProxy({})
+        proxy.set_rep_con(self._repeater, connection)
+        child_id = proxy.start_service(service_data)
+        with self._child_services_lock:
+            self._child_services[child_id] = proxy
 
-        return proxy.get_status()
+        return child_id
 
-
-    # def request_stop_child(self, request_data):
-    #     id = request_data['child_id']
-    #     self._repeater.send_request([id], {'action' :' stop'}, { 'action' : 'on_answer_stop_child', 'data' : id})
-
-    #def on_answer_stop_child(self, ):
-    #    self._repeater.close_child_repeater(id)
-    #    return self.answer_ok
-
+    def request_stop_child(self, child_id):
+        with self._child_services_lock:
+            if child_id in self._child_services:
+                self._child_services[child_id].stop()
 
     def request_get_status(self, data):
         """
@@ -484,26 +538,42 @@ class ServiceBase(JsonData):
         :param data: None
         :return:
         """
-        return ServiceStatus.running
+        return ServiceStatus.running.name
 
     def request_stop(self, data):
         self._closing = True
         return {'data' : 'closing'}
 
+    @LongRequest
     def request_process_start(self, process_config):
         logging.info("request_process_start(process_config: {})".format(process_config))
         executor = self._process_class_factory.make_instance(process_config)
         return executor.start()
 
+    @LongRequest
     def request_process_status(self, process_config):
         executor = self._process_class_factory.make_instance(process_config)
         return executor.get_status()
 
-
+    @LongRequest
     def request_process_kill(self, process_config):
         executor = self._process_class_factory.make_instance(process_config)
         return executor.kill()
 
-
-
-
+    @LongRequest
+    def request_get_installation_info(self, geomop_root=None):
+        """
+        Return installation info from environment where service running.
+        Parameter geomop_root is used because Delegator does not have set service_host_connection.
+        :return:
+        """
+        if geomop_root is None:
+            geomop_root = self.get_geomop_root()
+        file = os.path.join(geomop_root, "installation.json")
+        try:
+            with open(file, 'r') as fd:
+                installation = json.load(fd)
+        except Exception as e:
+            logging.error("Loading installation info error: {0}".format(e))
+            return None
+        return installation

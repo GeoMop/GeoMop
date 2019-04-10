@@ -6,6 +6,10 @@ Unified data structure for presets.
 """
 import uuid
 import re
+import os
+
+from gm_base import config
+from JobPanel.data.secret import Secret
 
 
 class Id:
@@ -67,6 +71,20 @@ class APreset:
         """
         return "%s(%r)" % (self.__class__.__name__, self.__dict__)
 
+    def mangle_secret(self):
+        """
+        Mangles secret data.
+        :return:
+        """
+        pass
+
+    def demangle_secret(self):
+        """
+        Demangles secret data.
+        :return:
+        """
+        pass
+
 
 class PbsPreset(APreset):
     """
@@ -114,9 +132,9 @@ class PbsPreset(APreset):
         :param permited: Is dictionary of lists permited values for set key.
         """
         ret = super().validate(excluded, permited)       
-        if not re.match("^$|(\d+[wdhms])(\d+[dhms])?(\d+[hms])?(\d+[ms])?(\d+[s])?", self.walltime):
+        if not re.match("^(|\d+)$", self.walltime):
             ret["walltime"]="Bad format of walltime"
-        if not re.match("^$|\d+(mb|gb)", self.memory):
+        if not re.match("^(|\d+(mb|gb))$", self.memory):
             ret["memory"]="Bad format of memory"
         return ret
 
@@ -141,8 +159,10 @@ class SshPreset(APreset):
         """Host to connect"""
         self.port = kw_or_def('port', '22')
         """Port for connection"""
-        self.remote_dir = kw_or_def('remote_dir', 'js_services')
-        """Remote directory name"""
+        self.geomop_root = kw_or_def('geomop_root', '')
+        """Remote GeoMop root"""
+        self.workspace = kw_or_def('workspace', '')
+        """Remote analysis workspace"""
         self.uid = kw_or_def('uid', '')
         """User ID"""
         self.pwd = kw_or_def('pwd', '')
@@ -159,6 +179,16 @@ class SshPreset(APreset):
         """Defines PBS system dialect"""
         self.env = kw_or_def('env')
         """Settings for remote environment"""
+        self.tested = kw_or_def('tested', False)
+        """True if SSH preset is tested"""
+        self.home_dir = kw_or_def('home_dir', '')
+        """User's home directory"""
+        self.geomop_version = kw_or_def('geomop_version', '')
+        """Remote GeoMop version"""
+        self.geomop_revision = kw_or_def('geomop_revision', '')
+        """Remote GeoMop revision"""
+        self.executables = kw_or_def('executables', [])
+        """Available executables"""
 
     def get_description(self):
         """
@@ -185,13 +215,29 @@ class SshPreset(APreset):
         elif len(self.host)>63:
             ret["host"]="Invalid dns name (too long)" 
         if not isinstance(self.port, int) or self.port<1 or self.port>65535:
-            ret["port"]="Invalid ssh port"     
-        if not self.re_name.match(self.remote_dir):
-            ret["remote_dir"]="Bad format of remote directory"
+            ret["host"]="Invalid ssh port"
+        # todo: spravit, taky pridat validaci pro workspace
+        # if not self.re_name.match(self.geomop_root):
+        #     ret["geomop_root"]="Bad format of remote directory"
         if self.uid is None and len(self.uid)==0:
             ret["uid"]="Bad format of ssh user name"            
         return ret
         
+    def mangle_secret(self):
+        """
+        Mangles secret data.
+        :return:
+        """
+        s = Secret()
+        self.pwd = s.mangle(self.pwd)
+
+    def demangle_secret(self):
+        """
+        Demangles secret data.
+        :return:
+        """
+        s = Secret()
+        self.pwd = s.demangle(self.pwd)
 
 
 class ResPreset(APreset):

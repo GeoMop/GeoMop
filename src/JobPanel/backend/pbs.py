@@ -1,4 +1,5 @@
 from .json_data import JsonData, ClassFactory
+from gm_base.global_const import GEOMOP_INTERNAL_DIR_NAME
 
 import os
 
@@ -43,9 +44,8 @@ class Pbs():
 
     def prepare_file(self, command, interpreter=None, load_commands=[], args=[], limit_args=[]):
         """Open and construct shell file for pbs starting"""
-        if not os.path.isdir(self.mj_path):
-            os.makedirs(self.mj_path)
-        f = open(os.path.join(self.mj_path, "com.qsub"), 'w')
+        os.makedirs(os.path.join(self.mj_path, GEOMOP_INTERNAL_DIR_NAME), exist_ok=True)
+        f = open(os.path.join(self.mj_path, GEOMOP_INTERNAL_DIR_NAME, "com.qsub"), 'w')
 
         f.write('#!/bin/bash\n')
         f.write('#\n')
@@ -53,15 +53,21 @@ class Pbs():
         dirs = self.config.dialect.get_pbs_directives(self.mj_path, self.config)
         for dl in dirs:
             f.write(dl + '\n')
-
         f.write('#\n')
         f.write('\n')
+
         for line in self.config.pbs_params:
             f.write(line + '\n')
+        if len(self.config.pbs_params) > 0:
+            f.write('\n')
         for com in load_commands:
             f.write(com + '\n')
         if len(load_commands) > 0:
             f.write('\n')
+
+        # work dir
+        f.write('cd "{}"\n\n'.format(self.mj_path))
+
         line = ""
         for arg in limit_args:
             line += arg + " "
@@ -79,7 +85,7 @@ class Pbs():
         """Get arguments for qsub function"""
         args = self.config.dialect.get_qsub_args()
         args.insert(0, "qsub")
-        args.append(os.path.join(self.mj_path, "com.qsub"))
+        args.append(os.path.join(self.mj_path, GEOMOP_INTERNAL_DIR_NAME, "com.qsub"))
         return args
 
     # def get_outpup(self):
@@ -134,8 +140,8 @@ class PbsDialectMetacentrum(PbsDialect):
         # There seems to be no option for that
         # http://docs.adaptivecomputing.com/torque/4-0-2/Content/topics/commands/qsub.htm#-t
         # directives.append("#PBS -terse")
-        directives.append("#PBS -o " + os.path.join(work_dir, "pbs_output"))
-        directives.append("#PBS -e " + os.path.join(work_dir, "pbs_error"))
+        directives.append("#PBS -o " + os.path.join(work_dir, GEOMOP_INTERNAL_DIR_NAME, "pbs_output"))
+        directives.append("#PBS -e " + os.path.join(work_dir, GEOMOP_INTERNAL_DIR_NAME, "pbs_error"))
         directives.append("#PBS -d " + work_dir)
 
         # PBS -N name
@@ -176,17 +182,14 @@ class PbsDialectPBSPro(PbsDialect):
         :param pbs_config: PbsConf object with data.
         :return: List of PBS directives.
         """
-        directives = list()
-        # ToDo fix cwd work around
-        # http://www.uibk.ac.at/zid/systeme/hpc-systeme/common/tutorials/pbs-howto.html
-        # directives.append("#PBS -cwd")
+        directives = []
         directives.append("#PBS -S /bin/bash")
         # ToDo fix terse
         # There seems to be no option for that
         # http://docs.adaptivecomputing.com/torque/4-0-2/Content/topics/commands/qsub.htm#-t
         # directives.append("#PBS -terse")
-        directives.append("#PBS -o " + os.path.join(work_dir, "pbs_output"))
-        directives.append("#PBS -e " + os.path.join(work_dir, "pbs_error"))
+        directives.append('#PBS -o "{}"'.format(os.path.join(work_dir, GEOMOP_INTERNAL_DIR_NAME, "pbs_output")))
+        directives.append('#PBS -e "{}"'.format(os.path.join(work_dir, GEOMOP_INTERNAL_DIR_NAME, "pbs_error")))
         #directives.append("#PBS -d " + work_dir)
 
         # PBS -N name
@@ -217,7 +220,7 @@ class PbsDialectPBSPro(PbsDialect):
         # PBS -l walltime=1:00:00
         walltime = "1:00:00"
         if pbs_config.walltime != "":
-            walltime = pbs_config.walltime
+            walltime = "{}:00:00".format(pbs_config.walltime)
         directives.append("#PBS -l walltime=%s" % walltime)
 
         # PBS -q queue

@@ -4,8 +4,8 @@
 """
 from PyQt5.QtWidgets import QMenu, QAction, QActionGroup, qApp
 
-from meconfig import cfg
-from geomop_dialogs import GMAboutDialog
+from ModelEditor.meconfig import MEConfig as cfg
+from gm_base.geomop_dialogs import GMAboutDialog
 
 
 class MainFileMenu(QMenu):

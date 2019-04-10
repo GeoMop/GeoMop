@@ -1,0 +1,53 @@
+##################################################################
+###                                              Flow_Richards_LMH 
+##################################################################
+  flow_equation: !Flow_Richards_LMH
+    input_fields:
+      - region: BULK
+        time: 0.0
+        conductivity:
+        sigma:
+        cross_section:
+        water_source_density:
+        storativity:
+        init_pressure:
+        water_content_saturated:
+        water_content_residual:
+        genuchten_p_head_scale:
+        genuchten_n_exponent:
+      - region: .BOUNDARY
+        time: 0.0
+        bc_type: dirichlet
+        bc_pressure:
+    soil_model:
+      model_type:
+    nonlinear_solver:
+      tolerance:
+      linear_solver: !Petsc
+        a_tol:
+        r_tol:
+    output:
+      times:
+        - begin:
+          step:
+          end:
+      fields:
+        - piezo_head_p0
+        - velocity_p0
+      observe_fields:
+        - piezo_head_p0
+    balance:
+      times:
+      cumulative:
+    time:
+      start_time:
+      end_time:
+      min_dt:
+      max_dt:
+    output_stream:
+      format: !vtk
+        variant: ascii
+      precision:
+      observe_points:
+        - name:
+          point:

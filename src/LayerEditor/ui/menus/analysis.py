@@ -5,8 +5,8 @@
 from PyQt5 import QtWidgets
 from PyQt5.QtWidgets import QMenu, QAction
 
-from geomop_dialogs import AnalysisDialog
-from geomop_analysis import Analysis
+from gm_base.geomop_dialogs import AnalysisDialog
+from gm_base.geomop_analysis import Analysis
 
 
 class AnalysisMenu(QMenu):
@@ -20,13 +20,13 @@ class AnalysisMenu(QMenu):
         self._group = QtWidgets.QActionGroup(self, exclusive=True)
         self._group.triggered.connect(self._analysis_selected)
         self._actions = []
-        self._create_analysis_action = QAction('&Create', self)
-        self._create_analysis_action.triggered.connect(self._create_analysis)
-        self._analysis_settings_action = QAction('&Edit', self)
-        self._analysis_settings_action.triggered.connect(self._show_analysis_settings)
-        self.addAction(self._create_analysis_action)
-        self.addAction(self._analysis_settings_action)
-        self.addSeparator()
+        # self._create_analysis_action = QAction('&Create', self)
+        # self._create_analysis_action.triggered.connect(self._create_analysis)
+        # self._analysis_settings_action = QAction('&Edit', self)
+        # self._analysis_settings_action.triggered.connect(self._show_analysis_settings)
+        # self.addAction(self._create_analysis_action)
+        # self.addAction(self._analysis_settings_action)
+        # self.addSeparator()
         self.aboutToShow.connect(self.reload_analysis)
         self.setTitle(title)
 

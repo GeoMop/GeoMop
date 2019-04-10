@@ -1,13 +1,16 @@
-from pipeline.parametrized_actions import *
-from pipeline.generator_actions import *
-from pipeline.wrapper_actions import *
-from pipeline.data_types_tree import *
-from pipeline.workflow_actions import *
-from pipeline.pipeline import *
-from pipeline.pipeline_processor import *
-import pipeline.action_types as action
+from Analysis.pipeline.parametrized_actions import *
+from Analysis.pipeline.generator_actions import *
+from Analysis.pipeline.wrapper_actions import *
+from Analysis.pipeline.data_types_tree import *
+from Analysis.pipeline.workflow_actions import *
+from Analysis.pipeline.pipeline import *
+from Analysis.pipeline.pipeline_processor import *
+import Analysis.pipeline.action_types as action
 from .pomfce import *
 import shutil
+
+
+this_source_dir = os.path.dirname(os.path.realpath(__file__))
 
 
 def test_calibration_termination_criteria():
@@ -87,10 +90,12 @@ def test_calibration_termination_criteria():
     assert tt(t, m) == 3
 
 
-def test_calibration(request):
+def test_calibration(request, change_dir_back):
     def clear_backup():
         shutil.rmtree("backup", ignore_errors=True)
     request.addfinalizer(clear_backup)
+
+    os.chdir(this_source_dir)
 
     action.__action_counter__ = 0
     gen = VariableGenerator(
@@ -169,7 +174,7 @@ def test_calibration(request):
 
     # _get_settings_script
     test = cal._get_settings_script()
-    compare_with_file(os.path.join("pipeline", "results", "cal1.py"), test)
+    compare_with_file(os.path.join("results", "cal1.py"), test)
 
     # run pipeline
     pp.run()

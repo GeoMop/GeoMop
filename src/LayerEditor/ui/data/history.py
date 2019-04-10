@@ -6,6 +6,7 @@ class EventLocation(IntEnum):
     diagram = 0
     layer = 1
     region = 2
+    surfaces = 3
 
 class LocalLabel():
     """
@@ -68,9 +69,7 @@ class GlobalHistory():
     def remove_all(self):
         """Releas all histories"""
         for history in self.histories:
-            history.global_history = None
             history.release()
-        self.histories = []
         self.labels = []
         self.undo_labels = []
         
@@ -225,7 +224,9 @@ class History():
         
     def release(self):
         """Set or lins to none"""
-        pass
+        self.steps = []
+        self.undo_steps = []
+        self.multi = {}
 
     
 class DiagramHistory(History):
@@ -450,29 +451,29 @@ class LayersHistory(History):
         self._check_viewed = True
         return revert
         
-    def change_layer(self, layer, id, label=None):
-        """
-        Add change layer to history operation. 
- 
-        Calling function must ensure that interface sequence related
-        to rest layers
-        """
-        self.global_history.add_label(self.id, label)
-        self.steps.append(HistoryStep(self._change_layer, [layer, id],label))
-        
-    def _change_layer(self, layer, id):
-        """
-        Switch layer id to set layer in layers
-        
-        Return invert operation
-        """
-        layers = self.global_history.cfg.layers
-        old_layer = layers.change_layer(layer, id)
-        
-        revert =  HistoryStep(self._change_layer, [id, old_layer])
-        self._refresh_panel = True
-        self._check_viewed = True
-        return revert
+#    def change_layer(self, layer, id, label=None):
+#        """
+#        Add change layer to history operation. 
+# 
+#        Calling function must ensure that interface sequence related
+#        to rest layers
+#        """
+#        self.global_history.add_label(self.id, label)
+#        self.steps.append(HistoryStep(self._change_layer, [layer, id],label))
+#        
+#    def _change_layer(self, layer, id):
+#        """
+#        Switch layer id to set layer in layers
+#        
+#        Return invert operation
+#        """
+#        layers = self.global_history.cfg.layers
+#        old_layer = layers.change_layer(layer, id)
+#        
+#        revert =  HistoryStep(self._change_layer, [id, old_layer])
+#        self._refresh_panel = True
+#        self._check_viewed = True
+#        return revert
 
     def change_layer_name(self, name, id, label=None):
         """
@@ -516,28 +517,32 @@ class LayersHistory(History):
         self._refresh_panel = True
         return revert
 
-    def change_interface_surface(self, surface, id, label=None):
+    def change_interface_surface(self, surface_id, elevation, transform_z, id, label=None):
         """
         Add change interface surface to history operation. 
  
         """
         self.global_history.add_label(self.id, label)
-        self.steps.append(HistoryStep(self._change_interface_surface, [surface, id],label))
+        self.steps.append(HistoryStep(self._change_interface_surface, [surface_id, elevation, transform_z, id],label))
         
-    def _change_interface_surface(self, surface, id):
+    def _change_interface_surface(self, surface_id, elevation, transform_z, id):
         """
         Switch fracture name
         
         Return invert operation
         """
-        old_surface = self.global_history.cfg.interfaces[id].surface
-        self.global_history.cfg.layers.interfaces[id].surface = surface
+        old_surface_id = self.global_history.cfg.interfaces[id].surface_id
+        old_depth = self.global_history.cfg.interfaces[id].elevation
+        old_transform_z = self.global_history.cfg.interfaces[id].transform_z
+        self.global_history.cfg.layers.interfaces[id].surface_id = surface_id
+        self.global_history.cfg.layers.interfaces[id].elevation = elevation
+        self.global_history.cfg.layers.interfaces[id].transform_z = transform_z
         
-        revert =  HistoryStep(self._change_interface_surface, [old_surface, id])
+        revert =  HistoryStep(self._change_interface_surface, [old_surface_id, old_depth, old_transform_z, id])
         self._refresh_panel = True
         return revert
         
-    def insert_interface(self, interface, label=None):
+    def insert_interface(self, interface, id, label=None):
         """
         Add insert layer to history operation. 
  
@@ -1143,3 +1148,97 @@ class RegionHistory(History):
         self._refresh_panel = False
         self.updated_shapes={}
         return ret
+        
+class SurfacesHistory(History):
+    """
+    Region history
+    
+    Basic region operation for history purpose
+    """
+
+    __location__ = EventLocation.surfaces
+            
+    def __init__(self, global_history): 
+        super(SurfacesHistory, self).__init__(global_history) 
+        self._refresh_panel = False
+        """Refresh region panel"""  
+    
+    def insert_surface(self, surface, id, label=None):
+        """
+        Add insert layer to history operation. 
+ 
+        Calling function must ensure that diagram sequence related
+        to new surface
+        """
+        self.global_history.add_label(self.id, label)
+        self.steps.append(HistoryStep(self._insert_surface, [surface, id],label))
+        
+    def _insert_surface(self, surface, id):
+        """
+        Insert surface to layers
+        
+        Return invert operation
+        """
+        surfaces = self.global_history.cfg.layers.surfaces
+        surfaces.insert(id, surface)
+        
+        revert =  HistoryStep(self._delete_surface, [id])
+        self._refresh_panel = True        
+        return revert
+
+    def delete_surface(self, id, label=None):
+        """
+        Add delete layer to history operation. 
+ 
+        Calling function must ensure that diagram sequence related
+        to rest surfaces
+        """
+        self.global_history.add_label(self.id, label)
+        self.steps.append(HistoryStep(self._delete_surface, [id],label))
+        
+    def _delete_surface(self, id):
+        """
+        Delete layer from layers
+        
+        Return invert operation
+        """
+        surfaces = self.global_history.cfg.layers.surfaces
+        del_surface = surfaces[id]
+        surfaces.pop(id)
+        
+        revert =  HistoryStep(self._insert_surface, [del_surface, id])
+        self._refresh_panel = True
+        
+        return revert
+
+    def change_surface(self, surface, id, label=None):
+        """
+        Add change layer to history operation. 
+ 
+        Calling function must ensure that diagram sequence related
+        to new surfaces
+        """
+        self.global_history.add_label(self.id, label)
+        self.steps.append(HistoryStep(self._change_surface, [surface, id],label))
+        
+    def _change_surface(self, surface, id):
+        """
+        Switch id layer to set layers
+        
+        Return invert operation
+        """
+        surfaces = self.global_history.cfg.layers.surfaces
+        old_surface = surfaces[id]
+        surfaces[id] = surface
+        
+        revert =  HistoryStep(self._change_surface, [old_surface, id])
+        self._refresh_panel = True
+
+        return revert
+        
+    def return_op(self):
+        """return nedded check """
+        ret = {"type":"Surfaces", "refresh_panel":self._refresh_panel}
+        self._refresh_panel = False
+        return ret
+

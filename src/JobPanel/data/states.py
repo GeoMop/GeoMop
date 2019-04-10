@@ -1,3 +1,5 @@
+from gm_base.global_const import GEOMOP_INTERNAL_DIR_NAME
+
 import json
 import os
 import logging
@@ -118,6 +120,14 @@ class TaskStatus(IntEnum):
     
     This state is only for gui
     """
+    downloading = 14
+    """
+    MultiJob download attempt is processed
+    :permited actions: no
+    :start app action: no (rename to error or OK)
+
+    This state is only for gui
+    """
 
     def __str__(self):
         """Return string representation."""
@@ -138,7 +148,8 @@ _TASK_STATUS_DISPLAY_NAMES = {
     TaskStatus.running: 'Running',
     TaskStatus.stopped: 'Stopped',
     TaskStatus.stopping: 'Stopping', 
-    TaskStatus.deleting: 'Deleting'
+    TaskStatus.deleting: 'Deleting',
+    TaskStatus.downloading: 'Downloading'
 }
 
 
@@ -150,22 +161,42 @@ class MultijobActions(IntEnum):
     stop = 3
     terminate = 4
     resume = 6
+    send_report = 7
+    download_whole = 8
 
 
 TASK_STATUS_PERMITTED_ACTIONS = set([
+    (TaskStatus.error, MultijobActions.reuse),
     (TaskStatus.error, MultijobActions.delete_remote),
     (TaskStatus.error, MultijobActions.delete),
+    (TaskStatus.error, MultijobActions.send_report),
+    (TaskStatus.error, MultijobActions.download_whole),
+
+    (TaskStatus.finished, MultijobActions.reuse),
     (TaskStatus.finished, MultijobActions.delete_remote),
     (TaskStatus.finished, MultijobActions.delete),
+    (TaskStatus.finished, MultijobActions.send_report),
+    (TaskStatus.finished, MultijobActions.download_whole),
+
     (TaskStatus.installation, MultijobActions.resume),
     (TaskStatus.installation, MultijobActions.stop),
-    (TaskStatus.none, MultijobActions.delete), 
+
+    (TaskStatus.none, MultijobActions.delete),
+    (TaskStatus.none, MultijobActions.send_report),
+
     (TaskStatus.queued, MultijobActions.resume),
     (TaskStatus.queued, MultijobActions.stop),
+    (TaskStatus.queued, MultijobActions.send_report),
+
     (TaskStatus.running, MultijobActions.resume),
     (TaskStatus.running, MultijobActions.stop),
-    (TaskStatus.stopped, MultijobActions.delete), 
-    (TaskStatus.stopped, MultijobActions.delete_remote)
+    (TaskStatus.running, MultijobActions.send_report),
+
+    (TaskStatus.stopped, MultijobActions.reuse),
+    (TaskStatus.stopped, MultijobActions.delete),
+    (TaskStatus.stopped, MultijobActions.delete_remote),
+    (TaskStatus.stopped, MultijobActions.send_report),
+    (TaskStatus.stopped, MultijobActions.download_whole)
 ])
 
 
@@ -183,7 +214,8 @@ TASK_STATUS_STARTUP_ACTIONS = {
     TaskStatus.running: MultijobActions.resume,
     TaskStatus.stopped: None,
     TaskStatus.stopping: MultijobActions.terminate, 
-    TaskStatus.deleting: None
+    TaskStatus.deleting: None,
+    TaskStatus.downloading: None
 }
 
 
@@ -236,25 +268,25 @@ class JobsState:
         self.jobs = []
         """array of jobs states"""
 
-    def save_file(self, res_dir):
-        """Job data serialization"""
-        data = []
-        for job in self.jobs:
-            job.status=job.status.value
-            data.append(job.__dict__)
-        path = os.path.join(res_dir,"state")
-        if not os.path.isdir(path):
-            os.makedirs(path)
-        file = os.path.join(path,"jobs_states.json")
-        try:
-            with open(file, "w") as json_file:
-                json.dump(data, json_file, indent=4, sort_keys=True)
-        except Exception as error:
-            logger.error("Save state error:" + str(error))
+    # def save_file(self, res_dir):
+    #     """Job data serialization"""
+    #     data = []
+    #     for job in self.jobs:
+    #         job.status=job.status.value
+    #         data.append(job.__dict__)
+    #     path = os.path.join(res_dir,"state")
+    #     if not os.path.isdir(path):
+    #         os.makedirs(path)
+    #     file = os.path.join(path,"jobs_states.json")
+    #     try:
+    #         with open(file, "w") as json_file:
+    #             json.dump(data, json_file, indent=4, sort_keys=True)
+    #     except Exception as error:
+    #         logger.error("Save state error:" + str(error))
 
-    def load_file(self, res_dir):
+    def load_file(self, conf_dir):
         """Job data serialization"""       
-        file = os.path.join(res_dir,"state","jobs_states.json")                   
+        file = os.path.join(conf_dir, GEOMOP_INTERNAL_DIR_NAME, "jobs_states.json")
         try:
             with open(file, "r") as json_file:
                 data = json.load(json_file)

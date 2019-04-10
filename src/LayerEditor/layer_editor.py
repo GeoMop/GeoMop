@@ -4,18 +4,37 @@ Start script that inicialize main window
 import sys
 import os
 import signal
-__lib_dir__ = os.path.join(os.path.split(
-    os.path.dirname(os.path.realpath(__file__)))[0], "common")
-sys.path.insert(1, __lib_dir__)
-
 import argparse
-from ui import MainWindow
-from leconfig import cfg
+import json
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
+
+from LayerEditor.ui import MainWindow
+from LayerEditor.leconfig import cfg
 import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtCore as QtCore
-import icon
-from ui.dialogs.set_diagram import SetDiagramDlg
-from ui.dialogs.make_mesh import MakeMeshDlg
+import gm_base.icon as icon
+from gm_base.geomop_util_qt import Autosave
+from LayerEditor.ui.dialogs.set_diagram import SetDiagramDlg
+from LayerEditor.ui.dialogs.make_mesh import MakeMeshDlg
+
+
+style_sheet =\
+"""
+QLineEdit[status="modified"] {
+    /* light orange */
+    background-color: #FFCCAA                    
+}
+QLineEdit[status="error"] {
+    /* light red */
+    background-color: #FFAAAA                   
+}
+QLabel[status="error"] {
+    /* light red */
+    background-color: #FFAAAA                   
+}
+"""
+
 
 class LayerEditor:
     """Analyzis editor main class"""
@@ -23,43 +42,75 @@ class LayerEditor:
     def __init__(self, init_dialog=True):
         # main window
         self._app = QtWidgets.QApplication(sys.argv)
+        self._app.setStyleSheet(style_sheet)
+        #print("Layer app: ", str(self._app))
         self._app.setWindowIcon(icon.get_app_icon("le-geomap"))
         
         # load config        
         cfg.init()
 
         # set default font to layers
-        cfg.layers.font = self._app.font()
+        #cfg.layers.font = self._app.font()
 
         # set geomop root dir
         cfg.geomop_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-        
-        self.exit = False
-        if init_dialog:
-            init_dlg = SetDiagramDlg()
-            ret = init_dlg.exec_()
-            if init_dlg.closed:
-                self.exit = True
-                return
-        else:
-            ret = QtWidgets.QDialog.Accepted
-            cfg.diagram.area.set_area([0, 0, 100, 100],[0, 100, 100, 0])
-            
         self.mainwindow = MainWindow(self)
         cfg.set_main(self.mainwindow)
-        
+
+        self.exit = False
+
+
+        # save_fn = lambda: json.dumps(cfg.le_serializer.cfg_to_geometry(
+        #                              cfg, self.autosave.backup_filename()).serialize(),
+        #                                             indent=4, sort_keys=True)
+        save_fn = lambda c=cfg: cfg.le_serializer.save(c)
+        self.autosave = Autosave(cfg.config.CONFIG_DIR, lambda: cfg.curr_file, save_fn)
+
+        # Try to restore Untitled.yaml.
+        if self._restore_backup():
+            init_dlg_result = QtWidgets.QDialog.Accepted
+        else:
+            if init_dialog:
+                init_dlg = SetDiagramDlg()
+                init_dlg_result = init_dlg.exec_()
+                if init_dlg.closed:
+                    self.exit = True
+                    return
+            else:
+                init_dlg_result = QtWidgets.QDialog.Accepted
+                cfg.diagram.area.set_area([0, 0, 100, 100],[0, 100, 100, 0])
+
+
         # show
         self.mainwindow.show()
-        self.mainwindow.paint_new_data()
-        
-        if ret!=QtWidgets.QDialog.Accepted:
+
+        if init_dlg_result != QtWidgets.QDialog.Accepted:
             if not self.open_file():
                 self.mainwindow.close()
+                self.mainwindow._layer_editor = None
+                del self.mainwindow
                 self.exit = True
-        
+                return
+
         # set default values
-        self._update_document_name()        
-        
+        self.mainwindow.paint_new_data()
+        self._update_document_name()
+        self.autosave.start_autosave()
+        #self.mainwindow.diagramScene.regionsUpdateRequired.connect(self.autosave.on_content_change)
+
+
+    def _restore_backup(self):
+        """recover file from backup file if it exists and if user wishes so"""
+        restored = self.autosave.restore_backup()
+        if restored:
+            cfg.main_window.release_data(cfg.diagram_id())
+            cfg.history.remove_all()
+            cfg.le_serializer.load(cfg, self.autosave.backup_filename())
+            cfg.main_window.refresh_all()
+            cfg.history.last_save_labels = -1
+        self.autosave.autosave_timer.stop()
+        return restored
+
     def new_file(self):
         """new file menu action"""
         if not self.save_old_file():
@@ -75,7 +126,7 @@ class LayerEditor:
                 self.mainwindow.show_status_message("New file is opened")
         else:
             self.mainwindow.refresh_all()
-            self.mainwindow.display_all()
+            self.mainwindow.paint_new_data()
         self._update_document_name()
  
     def open_file(self):
@@ -88,6 +139,7 @@ class LayerEditor:
         if file[0]:
             cfg.open_file(file[0])
             self._update_document_name()
+            self._restore_backup()
             self.mainwindow.show_status_message("File '" + file[0] + "' is opened")
             return True
         return False
@@ -119,6 +171,7 @@ class LayerEditor:
         cfg.open_recent_file(action.data())
         self.mainwindow.update_recent_files()
         self._update_document_name()
+        self._restore_backup()
         self.mainwindow.show_status_message("File '" + action.data() + "' is opened")
 
     def save_file(self):
@@ -128,6 +181,7 @@ class LayerEditor:
         if cfg.confront_file_timestamp():
             return
         cfg.save_file()
+        self.autosave.delete_backup()
         self.mainwindow.show_status_message("File is saved")
 
     def save_as(self):
@@ -146,6 +200,7 @@ class LayerEditor:
         dialog.setOption(QtWidgets.QFileDialog.DontConfirmOverwrite, False)
         dialog.setViewMode(QtWidgets.QFileDialog.Detail)
         if dialog.exec_():
+            self.autosave.delete_backup()
             file_name = dialog.selectedFiles()[0]
             cfg.save_file(file_name)
             self.mainwindow.update_recent_files()
@@ -176,11 +231,13 @@ class LayerEditor:
                     return self.save_as()
                 else:
                     self.save_file()
+            if reply == QtWidgets.QMessageBox.No:
+                self.autosave.delete_backup()
         return True
 
     def main(self):
         """go"""
-        self._app.exec_()
+        self._app.exec()
         
     def _update_document_name(self):
         """Update document title (add file name)"""
@@ -205,12 +262,19 @@ def main():
     QtCore.QLocale.setDefault(QtCore.QLocale(QtCore.QLocale.English, QtCore.QLocale.UnitedStates))
 
     # logging
-#    if not args.debug:
-#        from geomop_util.logging import log_unhandled_exceptions
-#
-#        def on_unhandled_exception(type_, exception, tback):
-#            """Unhandled exception callback."""
-#            # pylint: disable=unused-argument
+    if not args.debug:
+        from gm_base.geomop_util.logging import log_unhandled_exceptions
+
+        def on_unhandled_exception(type_, exception, tback):
+            """Unhandled exception callback."""
+            # pylint: disable=unused-argument
+            from gm_base.geomop_dialogs import GMErrorDialog
+            err_dialog = GMErrorDialog(layer_editor.mainwindow)
+            err_dialog.open_error_dialog("Unhandled Exception!", error=exception)
+            sys.exit(1)
+            
+            
+            
 #            from geomop_dialogs import GMErrorDialog
 #            if layer_editor is not None:
 #                err_dialog = None
@@ -231,7 +295,7 @@ def main():
 #                if err_dialog is not None:
 #                    err_dialog.open_error_dialog("Unhandled Exception!", error=exception)
 #
-#        log_unhandled_exceptions(cfg.config.__class__.CONTEXT_NAME, on_unhandled_exception)
+        log_unhandled_exceptions(cfg.config.__class__.CONTEXT_NAME, on_unhandled_exception)
 
     # enable Ctrl+C from console to kill the application
     signal.signal(signal.SIGINT, signal.SIG_DFL)
@@ -240,6 +304,10 @@ def main():
     layer_editor = LayerEditor()
     if not layer_editor.exit:
         layer_editor.main()
+
+    layer_editor._app.quit()
+    del layer_editor._app
+    del layer_editor
     sys.exit(0)
 
 

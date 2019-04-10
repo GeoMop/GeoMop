@@ -12,8 +12,8 @@ source /usr/local/bin/virtualenvwrapper.sh
 mkvirtualenv --python=/usr/bin/python3 geomop --system-site-packages
 workon geomop
 
-ln -s /usr/lib/python3/dist-packages/PyQt5 /usr/share/geomop/env/geomop/lib/python3.4/PyQt5
-ln -s /usr/lib/python3/dist-packages/sip.cpython-34m-x86_64-linux-gnu.so /usr/share/geomop/env/geomop/lib/python3.4/sip.so
+#ln -s /usr/lib/python3/dist-packages/PyQt5 /usr/share/geomop/env/geomop/lib/python3.4/PyQt5
+#ln -s /usr/lib/python3/dist-packages/sip.cpython-34m-x86_64-linux-gnu.so /usr/share/geomop/env/geomop/lib/python3.4/sip.so
 
 pip3 install -r requirements.txt
 

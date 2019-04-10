@@ -10,8 +10,8 @@ import PyQt5.QtWidgets as QtWidgets
 from PyQt5.QtCore import QUrl
 from PyQt5.QtGui import QDesktopServices
 
-from data.states import TaskStatus
-from .overview import ERROR_BRUSH
+from JobPanel.data.states import TaskStatus
+from .overview import WHITE_BRUSH, TASK_STATUS_BRUSHES
 
 
 class Tabs(QtWidgets.QTabWidget):
@@ -22,10 +22,16 @@ class Tabs(QtWidgets.QTabWidget):
         self.show()
 
     def reload_view(self, mj):
-        self.ui.jobsTab.reload_view(mj.get_jobs())
-        self.ui.resultsTab.reload_view(mj.get_results())
-        self.ui.logsTab.reload_view(mj.get_logs())
-        self.ui.confTab.reload_view(mj.get_configs())
+        if mj is not None:
+            self.ui.jobsTab.reload_view(mj.get_jobs())
+            #self.ui.resultsTab.reload_view(mj.get_results())
+            self.ui.logsTab.reload_view(mj.get_logs())
+            self.ui.confTab.reload_view(mj.get_configs())
+        else:
+            self.ui.jobsTab.reload_view([])
+            #self.ui.resultsTab.reload_view([])
+            self.ui.logsTab.reload_view([])
+            self.ui.confTab.reload_view([])
 
 
 class UiTabs(object):
@@ -34,27 +40,27 @@ class UiTabs(object):
         tab_widget.setObjectName("tabs")
         # self.overviewTab = OverviewTab(tab_widget)
         self.jobsTab = JobsTab(tab_widget)
-        self.resultsTab = ResultsTab(tab_widget)
+        #self.resultsTab = ResultsTab(tab_widget)
         self.logsTab = LogsTab(tab_widget)
         self.confTab = ConfigTab(tab_widget)
 
         # tab_widget.addTab(self.overviewTab, "Overview")
         tab_widget.addTab(self.jobsTab, "Jobs")
-        tab_widget.addTab(self.resultsTab, "Results")
+        #tab_widget.addTab(self.resultsTab, "Results")
         tab_widget.addTab(self.logsTab, "Logs")
         tab_widget.addTab(self.confTab, "Config")
 
         # config tab hidden if not in --debug mode
         if True:  # cfg.config.DEBUG_MODE:
             # ToDo Implement as config
-            tab_widget.removeTab(3)
+            tab_widget.removeTab(2)
 
 
 class AbstractTab(QtWidgets.QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setObjectName("abstractTab")
-        self.time_format = "%X %x"
+        self.time_format = "%X %d %b"
         self.ui = QtWidgets.QWidget(self)
         self.ui.horizontalLayout = QtWidgets.QHBoxLayout(self.ui)
         self.ui.horizontalLayout.setObjectName("horizontalLayout")
@@ -85,40 +91,43 @@ class JobsTab(AbstractTab):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setObjectName("jobsTab")
-        self.ui.headers = ["Name", "Insert Time", "Queued Time", "Start Time",
-                           "Run Interval", "Status"]
+        self.ui.headers = ["Name", "Queued", "Start",
+                           "Wall", "Status"]
         self.ui.treeWidget.setHeaderLabels(self.ui.headers)
-        self.ui.treeWidget.header().resizeSection(1, 120)
-        self.ui.treeWidget.header().resizeSection(2, 120)
+        self.ui.treeWidget.header().resizeSection(1, 160)
+        self.ui.treeWidget.header().resizeSection(2, 160)
         self.ui.treeWidget.header().resizeSection(3, 120)
+        self.ui.treeWidget.header().resizeSection(4, 120)
 
     @staticmethod
     def _update_item(item, job, time_format):
         item.setText(0, job.name)
-        item.setText(1, datetime.datetime.fromtimestamp(
-                job.insert_time).strftime(time_format))
+        # item.setText(1, datetime.datetime.fromtimestamp(
+        #         job.insert_time).strftime(time_format))
         if job.queued_time:
-            item.setText(2, datetime.datetime.fromtimestamp(
+            item.setText(1, datetime.datetime.fromtimestamp(
                 job.queued_time).strftime(time_format))
         else:
-            item.setText(2, "Not Queued Yet")
+            item.setText(1, "Not Queued Yet")
         if job.start_time:
-            item.setText(3, datetime.datetime.fromtimestamp(
+            item.setText(2, datetime.datetime.fromtimestamp(
                 job.start_time).strftime(time_format))
         else:
-            item.setText(3, "Not Started Yet")
-        item.setText(4, str(datetime.timedelta(seconds=job.run_interval)))
-        item.setText(5, str(TaskStatus(job.status)))
+            item.setText(2, "Not Started Yet")
+        item.setText(3, str(datetime.timedelta(seconds=int(job.run_interval))))
+        item.setText(4, str(TaskStatus(job.status)))
 
         item.setTextAlignment(1, QtCore.Qt.AlignRight)
         item.setTextAlignment(2, QtCore.Qt.AlignRight)
         item.setTextAlignment(3, QtCore.Qt.AlignRight)
-        item.setTextAlignment(4, QtCore.Qt.AlignRight)
 
         # background color
-        if job.status == TaskStatus.error:
-            for i in range(item.columnCount()):
-                item.setBackground(i, ERROR_BRUSH)
+        if job.status in TASK_STATUS_BRUSHES:
+            brush = TASK_STATUS_BRUSHES[job.status]
+        else:
+            brush = WHITE_BRUSH
+        for i in range(item.columnCount()):
+            item.setBackground(i, brush)
 
         return item
 
@@ -138,7 +147,7 @@ class FilesTab(AbstractTab):
         self.headers = ["Name", "Size", "Last Modification", "Path"]
         self.files = []
         self.ui.treeWidget.setHeaderLabels(self.headers)
-        self.ui.treeWidget.header().resizeSection(2, 150)
+        self.ui.treeWidget.header().resizeSection(2, 160)
         self.ui.treeWidget.itemDoubleClicked.connect(
             lambda clicked_item, clicked_col: QDesktopServices.openUrl(
                 QUrl.fromLocalFile(clicked_item.text(3))))

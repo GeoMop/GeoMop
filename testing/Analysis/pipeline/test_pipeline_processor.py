@@ -1,30 +1,37 @@
-from pipeline.connector_actions import *
-from pipeline.generator_actions import *
-from pipeline.data_types_tree import *
-from pipeline.generic_tree import *
-from pipeline.convertors import *
-from pipeline.pipeline_processor import *
-from pipeline.pipeline import *
-from pipeline.workflow_actions import *
-from pipeline.wrapper_actions import *
-from pipeline.parametrized_actions import *
-import pipeline.action_types as action
-from client_pipeline.identical_list_creator import *
+from Analysis.pipeline.connector_actions import *
+from Analysis.pipeline.generator_actions import *
+from Analysis.pipeline.data_types_tree import *
+from Analysis.pipeline.generic_tree import *
+from Analysis.pipeline.convertors import *
+from Analysis.pipeline.pipeline_processor import *
+from Analysis.pipeline.pipeline import *
+from Analysis.pipeline.workflow_actions import *
+from Analysis.pipeline.wrapper_actions import *
+from Analysis.pipeline.parametrized_actions import *
+import Analysis.pipeline.action_types as action
+from Analysis.client_pipeline.identical_list_creator import *
 from .pomfce import *
 import time
 import shutil
+import pytest
 
 
-def test_run_pipeline(request):
+this_source_dir = os.path.dirname(os.path.realpath(__file__))
+
+
+@pytest.mark.slow
+def test_run_pipeline(request, change_dir_back):
     def clear_backup():
         shutil.rmtree("backup", ignore_errors=True)
-        remove_if_exist("pipeline/resources/test1_3_0.yaml")
-        remove_if_exist("pipeline/resources/test1_3_1.yaml")
-        remove_if_exist("pipeline/resources/test1_3_2.yaml")
-        remove_if_exist("pipeline/resources/test1_3_3.yaml")
-        remove_if_exist("pipeline/resources/test1_3_4.yaml")
+        shutil.rmtree("action_3_0", ignore_errors=True)
+        shutil.rmtree("action_3_1", ignore_errors=True)
+        shutil.rmtree("action_3_2", ignore_errors=True)
+        shutil.rmtree("action_3_3", ignore_errors=True)
+        shutil.rmtree("action_3_4", ignore_errors=True)
     request.addfinalizer(clear_backup)
-    
+
+    os.chdir(this_source_dir)
+
     action.__action_counter__ = 0
     items = [
         {'name':'a', 'value':1, 'step':0.1, 'n_plus':1, 'n_minus':1,'exponential':False},
@@ -32,7 +39,7 @@ def test_run_pipeline(request):
     ]
     gen = RangeGenerator(Items=items)    
     workflow=Workflow()
-    flow=Flow123dAction(Inputs=[workflow.input()], YAMLFile="pipeline/resources/test1.yaml")
+    flow=Flow123dAction(Inputs=[workflow.input()], YAMLFile="resources/test1.yaml")
     workflow.set_config(OutputAction=flow, InputAction=flow)
     foreach = ForEach(Inputs=[gen], WrappedAction=workflow)
     pipeline=Pipeline(ResultActions=[foreach])
@@ -64,29 +71,29 @@ def test_run_pipeline(request):
     assert names[4][:8] == 'Flow123d'
     
     # test store file names
-    assert os.path.isdir("backup/store")
-    assert os.path.isdir("backup/restore")
-    assert len(os.listdir("backup/store"))==11
-    assert len(os.listdir("backup/restore"))==0
-    assert os.path.isfile("backup/store/ForEach_4")
-    assert os.path.isfile("backup/store/Workflow_2_0")
-    assert os.path.isfile("backup/store/Workflow_2_1")
-    assert os.path.isfile("backup/store/Workflow_2_2")
-    assert os.path.isfile("backup/store/Workflow_2_3")
-    assert os.path.isfile("backup/store/Workflow_2_4")
-    assert os.path.isfile("backup/store/Flow123d_3_0")
-    assert os.path.isfile("backup/store/Flow123d_3_1")
-    assert os.path.isfile("backup/store/Flow123d_3_2")
-    assert os.path.isfile("backup/store/Flow123d_3_3")
-    assert os.path.isfile("backup/store/Flow123d_3_4")
+    assert os.path.isdir(os.path.join("backup", "store"))
+    assert os.path.isdir(os.path.join("backup", "restore"))
+    assert len(os.listdir(os.path.join("backup", "store")))==11
+    assert len(os.listdir(os.path.join("backup", "restore")))==0
+    assert os.path.isfile(os.path.join("backup", "store", "ForEach_4"))
+    assert os.path.isfile(os.path.join("backup", "store", "Workflow_2_0"))
+    assert os.path.isfile(os.path.join("backup", "store", "Workflow_2_1"))
+    assert os.path.isfile(os.path.join("backup", "store", "Workflow_2_2"))
+    assert os.path.isfile(os.path.join("backup", "store", "Workflow_2_3"))
+    assert os.path.isfile(os.path.join("backup", "store", "Workflow_2_4"))
+    assert os.path.isfile(os.path.join("backup", "store", "Flow123d_3_0"))
+    assert os.path.isfile(os.path.join("backup", "store", "Flow123d_3_1"))
+    assert os.path.isfile(os.path.join("backup", "store", "Flow123d_3_2"))
+    assert os.path.isfile(os.path.join("backup", "store", "Flow123d_3_3"))
+    assert os.path.isfile(os.path.join("backup", "store", "Flow123d_3_4"))
     
     pp. _establish_processing(None)
     
-    assert os.path.isdir("backup/store")
-    assert os.path.isdir("backup/restore")
-    assert len(os.listdir("backup/store"))==0
-    assert len(os.listdir("backup/restore"))==11
-    assert os.path.isfile("backup/restore/ForEach_4")
+    assert os.path.isdir(os.path.join("backup", "store"))
+    assert os.path.isdir(os.path.join("backup", "restore"))
+    assert len(os.listdir(os.path.join("backup", "store")))==0
+    assert len(os.listdir(os.path.join("backup", "restore")))==11
+    assert os.path.isfile(os.path.join("backup", "restore", "ForEach_4"))
     
     # ToDo add more asserts after Flow123dAction finishing
     
@@ -94,22 +101,24 @@ def test_run_pipeline(request):
 # ToDo: Test pipeline with all types of convertors
 
 
-def test_set_restore_id(request):
+def test_set_restore_id(request, change_dir_back):
     def clear_backup():
         shutil.rmtree("backup", ignore_errors=True)
     request.addfinalizer(clear_backup)
+
+    os.chdir(this_source_dir)
 
     action.__action_counter__ = 0
     vg = VariableGenerator(Variable=Struct(a=String("test"), b=Int(3)))
     vg2 = VariableGenerator(Variable=Struct(a=String("test2"), b=Int(5)))
     workflow = Workflow(Inputs=[vg2])
-    flow = Flow123dAction(Inputs=[workflow.input()], YAMLFile="pipeline/resources/test1.yaml")
-    side = Flow123dAction(Inputs=[vg], YAMLFile="pipeline/resources/test2.yaml")
+    flow = Flow123dAction(Inputs=[workflow.input()], YAMLFile="resources/test1.yaml")
+    side = Flow123dAction(Inputs=[vg], YAMLFile="resources/test2.yaml")
     workflow.set_config(OutputAction=flow, InputAction=flow, ResultActions=[side])
     pipeline = Pipeline(ResultActions=[workflow])
 
     pp = Pipelineprocessor(pipeline, identical_list=os.path.join(
-        "pipeline", "resources", "identical_list.json"))
+        "resources", "identical_list.json"))
 
     assert vg._restore_id == "11"
     assert vg2._restore_id == "12"
@@ -119,21 +128,23 @@ def test_set_restore_id(request):
     assert pipeline._restore_id is None
 
 
-def test_hashes_and_store_restore(request):
+def test_hashes_and_store_restore(request, change_dir_back):
     def clear_backup():
         shutil.rmtree("backup", ignore_errors=True)
         remove_if_exist("identical_list.json")
-        remove_if_exist("pipeline/resources/test1_4.yaml")
-        remove_if_exist("pipeline/resources/test2_5.yaml")
+        shutil.rmtree("action_4", ignore_errors=True)
+        shutil.rmtree("action_5", ignore_errors=True)
     request.addfinalizer(clear_backup)
+
+    os.chdir(this_source_dir)
 
     # create pipeline first time
     action.__action_counter__ = 0
     vg = VariableGenerator(Variable=Struct(a=String("test"), b=Int(3)))
     vg2 = VariableGenerator(Variable=Struct(a=String("test2"), b=Int(5)))
     workflow = Workflow(Inputs=[vg2])
-    flow = Flow123dAction(Inputs=[workflow.input()], YAMLFile="pipeline/resources/test1.yaml")
-    side = Flow123dAction(Inputs=[vg], YAMLFile="pipeline/resources/test2.yaml")
+    flow = Flow123dAction(Inputs=[workflow.input()], YAMLFile="resources/test1.yaml")
+    side = Flow123dAction(Inputs=[vg], YAMLFile="resources/test2.yaml")
     workflow.set_config(OutputAction=flow, InputAction=flow, ResultActions=[side])
     pipeline = Pipeline(ResultActions=[workflow])
 
@@ -154,17 +165,17 @@ def test_hashes_and_store_restore(request):
         i += 1
         assert i < 1000, "Timeout"
 
-    assert os.path.isdir("backup/store")
-    assert os.path.isdir("backup/restore")
-    assert len(os.listdir("backup/store")) == 2
-    assert len(os.listdir("backup/restore")) == 0
+    assert os.path.isdir(os.path.join("backup", "store"))
+    assert os.path.isdir(os.path.join("backup", "restore"))
+    assert len(os.listdir(os.path.join("backup", "store"))) == 2
+    assert len(os.listdir(os.path.join("backup", "restore"))) == 0
 
     # create pipeline second time
     vg = VariableGenerator(Variable=Struct(a=String("test"), b=Int(3)))
     vg2 = VariableGenerator(Variable=Struct(a=String("test2"), b=Int(5)))
     workflow = Workflow(Inputs=[vg2])
-    flow = Flow123dAction(Inputs=[workflow.input()], YAMLFile="pipeline/resources/test1.yaml")
-    side = Flow123dAction(Inputs=[vg], YAMLFile="pipeline/resources/test2.yaml")
+    flow = Flow123dAction(Inputs=[workflow.input()], YAMLFile="resources/test1.yaml")
+    side = Flow123dAction(Inputs=[vg], YAMLFile="resources/test2.yaml")
     workflow.set_config(OutputAction=flow, InputAction=flow, ResultActions=[side])
     pipeline = Pipeline(ResultActions=[workflow])
     pipeline._inicialize()

@@ -4,9 +4,9 @@
 """
 from PyQt5.QtWidgets import QMenu, QAction, QActionGroup
 
-from meconfig import cfg
-from ui.dialogs import SettingsDialog, ChangeISTDialog
-from ui.template import EditorAppearance
+from ModelEditor.meconfig import MEConfig as cfg
+from ..dialogs import SettingsDialog, ChangeISTDialog, TranformationDlg
+from ..template import EditorAppearance
 
 
 class MainSettingsMenu(QMenu):
@@ -24,13 +24,10 @@ class MainSettingsMenu(QMenu):
         self.format_action.triggered.connect(self.on_change_file_format)
         self.addAction(self.format_action)
 
-        self._transformation = self.addMenu('&Transformation')
-        pom_lamda = lambda name: lambda: self._model_editor.transform(name)
-        for frm in cfg.transformation_files:
-            faction = QAction(frm + " ...", self)
-            faction.setStatusTip('Transform format of current document')
-            self._transformation.addAction(faction)
-            faction.triggered.connect(pom_lamda(frm))
+        self.transformation_action = QAction('&Transformation ...', self)
+        self.transformation_action.setStatusTip('Transform format of current document')
+        self.transformation_action.triggered.connect(self.on_transformation_action)
+        self.addAction(self.transformation_action)
 
         self.options_action = QAction('&Options ...', self)
         self.options_action.setStatusTip('Configure editor options')
@@ -58,3 +55,10 @@ class MainSettingsMenu(QMenu):
         if dialog.exec_():
             cfg.update_format()
             cfg.main_window.reload()
+
+    def on_transformation_action(self):
+        """Handle transformation action - display dialog."""
+        versions = self._model_editor.transform_get_version_list()
+        dialog = TranformationDlg(versions, self.parent)
+        if dialog.exec():
+            self._model_editor.transform(dialog.get_to_version())

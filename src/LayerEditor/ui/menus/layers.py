@@ -1,8 +1,8 @@
 """Layers panel contex menus"""
 
 from PyQt5.QtWidgets import QMenu, QAction
-from leconfig import cfg
-from ui.data import FractureInterface, ChangeInterfaceActions
+from LayerEditor.leconfig import cfg
+from ..data import FractureInterface, ChangeInterfaceActions
 
 __COPY_BLOCK__ = True
 

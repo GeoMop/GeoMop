@@ -1,3 +1,7 @@
+# various temporaries
+tools/conda/Miniconda3-latest-Linux-x86_64.sh
+
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -112,8 +116,20 @@ _out_*
 #temporary installed files
 src/JobsScheduler/ins-lib
 
+#kate swap files
+*.kate-swp
+
+# merge orginals
+*.orig
+
 # Docker build dependencies and libraries.
 docker/geomop_build/build
-
-
 docker/geomop_build/lib
+
+# Geometry test result files
+testing/Geometry/test_data/*.msh
+testing/Geometry/test_data/*.brep
+testing/Geometry/test_data/*.geo
+
+# Temporary rule, remove whole conda experiments as we are sure that we use just docker.
+tools/conda

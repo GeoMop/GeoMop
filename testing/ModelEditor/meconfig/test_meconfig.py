@@ -2,8 +2,8 @@
 Tests for the meconfig module.
 """
 
-from meconfig import cfg
-from meconfig.meconfig import _Config as Config
+from ModelEditor.meconfig import MEConfig as cfg
+from ModelEditor.meconfig import _Config as Config
 
 def test_config(request):
     Config.SERIAL_FILE = "ModelEditorData_test"
@@ -13,17 +13,17 @@ def test_config(request):
     assert cfg.config.__class__ == Config
 
     def fin_test_config():
-        import config
-        config.delete_config_file("ModelEditorData_test")
+        import gm_base.config
+        gm_base.config.delete_config_file("ModelEditorData_test")
     request.addfinalizer(fin_test_config)
 
-    from os.path import expanduser
-    home = expanduser("~")
-    # last_data_dir for first opened config is home
-    assert home == cfg.config.last_data_dir
+    import os
+    cwd = os.getcwd()
+    # current_working_dir for first opened config is cwd
+    assert cwd == cfg.config.current_working_dir
     config = Config()
-    # new config have last_data_dir == home
-    assert home == config.last_data_dir
+    # new config have current_working_dir == cwd
+    assert cwd == config.current_working_dir
 
     cfg.config.add_recent_file("test_file1", "test_format_file1")
     # add first file
@@ -57,9 +57,9 @@ def test_config(request):
     assert cfg.config.get_format_file("test_file1") == "test_format_file_new_1"
     assert cfg.config.get_format_file("test_file2") == "1.8.3"
 
-    config. update_last_data_dir("/home/test.yaml")
-    # test update_last_data_dir
-    assert config.last_data_dir == "/home"
+    config. update_current_working_dir("/home/test.yaml")
+    # test update_current_working_dir
+    assert config.current_working_dir == "/home"
 
     cfg.config.save()
     cfg.config.recent_files = []
@@ -83,8 +83,8 @@ def test_meconfig_static(request):
     assert cfg.config.__class__ == Config
 
     def fin_test_config():
-        import config
-        config.delete_config_file("ModelEditorData_test")
+        import gm_base.config
+        gm_base.config.delete_config_file("ModelEditorData_test")
     request.addfinalizer(fin_test_config)
 
     cfg.format_files = []

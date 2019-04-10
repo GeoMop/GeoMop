@@ -1,0 +1,56 @@
+##################################################################
+###    !Coupling_OperatorSplitting - !Heat_AdvectionDiffusion_DG 
+##################################################################
+  heat_equation: !Heat_AdvectionDiffusion_DG
+    input_fields:
+      - region: ALL
+        time: 0.0
+        porosity:
+        fluid_density:
+        fluid_heat_capacity:
+        fluid_heat_conductivity:
+        solid_density:
+        solid_heat_capacity:
+        solid_heat_conductivity:
+        disp_l:
+        disp_t:
+        fluid_thermal_source:
+        solid_thermal_source:
+        fluid_ref_temperature:
+        fluid_heat_exchange_rate:
+        solid_heat_exchange_rate:
+        solid_ref_temperature:
+        fracture_sigma:
+        init_temperature:
+      - region: .BOUNDARY
+        time: 0.0
+        bc_type: dirichlet
+        bc_temperature:
+    balance:
+      times:
+      cumulative:
+    time:
+      start_time:
+      end_time:
+      min_dt:
+      max_dt:
+    output_stream:
+      format: !vtk
+        variant: ascii
+      precision:
+      observe_points:
+        - name:
+          point:
+    solver:
+      r_tol:
+      a_tol:
+    output:
+      times:
+        - begin:
+          step:
+          end:
+      fields:
+          - temperature
+          - field: init_temperature
+            times: [ 0.0 ]
+      observe_fields: temperature

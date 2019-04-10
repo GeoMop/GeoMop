@@ -20,7 +20,7 @@
                 ],
                 "surface_id": 1
             },
-            "name": "New Layer",
+            "name": "stratum",
             "node_region_ids": [
                 0,
                 0,
@@ -95,7 +95,7 @@
             "boundary": false,
             "brep_shape_ids": [],
             "color": "#f0f0e8",
-            "mesh_step": 1.0,
+            "mesh_step": 0.0,
             "name": "NONE_0D",
             "not_used": true,
             "topo_dim": "node"
@@ -105,7 +105,7 @@
             "boundary": false,
             "brep_shape_ids": [],
             "color": "#f0f0e8",
-            "mesh_step": 1.0,
+            "mesh_step": 0.0,
             "name": "NONE_1D",
             "not_used": true,
             "topo_dim": "segment"
@@ -115,7 +115,7 @@
             "boundary": false,
             "brep_shape_ids": [],
             "color": "#f0f0e8",
-            "mesh_step": 1.0,
+            "mesh_step": 0.0,
             "name": "NONE_2D",
             "not_used": true,
             "topo_dim": "polygon"
@@ -125,7 +125,7 @@
             "boundary": false,
             "brep_shape_ids": [],
             "color": "#ffd3d0",
-            "mesh_step": 0.01,
+            "mesh_step": 0.0,
             "name": "Bulk",
             "not_used": false,
             "topo_dim": "polygon"
@@ -135,7 +135,7 @@
             "boundary": false,
             "brep_shape_ids": [],
             "color": "#5500ff",
-            "mesh_step": 0.01,
+            "mesh_step": 0.0,
             "name": "Fracture",
             "not_used": false,
             "topo_dim": "segment"

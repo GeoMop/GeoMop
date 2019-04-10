@@ -7,23 +7,25 @@ import argparse
 import os
 import signal
 import sys
-__lib_dir__ = os.path.join(os.path.split(
-    os.path.dirname(os.path.realpath(__file__)))[0], "common")
-sys.path.insert(1, __lib_dir__)
 
 import PyQt5.QtWidgets as QtWidgets
 from PyQt5.QtWidgets import QMessageBox
 import PyQt5.QtCore as QtCore
 
-import icon
-from meconfig import cfg
-from ui.dialogs.json_editor import JsonEditorDlg
-from ui import MainWindow
-from util import constants
+sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
+
+import gm_base.icon as icon
+from gm_base.geomop_util_qt import Autosave
+from ModelEditor.meconfig import MEConfig as cfg
+from ModelEditor.ui.dialogs.json_editor import JsonEditorDlg
+from ModelEditor.ui import MainWindow
+from ModelEditor.util import constants
+from ModelEditor.ui.dialogs.new_file_dialog import NewFileDialog
 import subprocess
 
+
 RELOAD_INTERVAL = 5000
-"""interval for file time checjing in ms"""
+"""interval for file time checking in ms"""
 
 class ModelEditor:
     """Model editor main class"""
@@ -34,6 +36,7 @@ class ModelEditor:
 
         # main window
         self._app = QtWidgets.QApplication(sys.argv)
+        #print("Model app: ", str(self._app))
         self._app.setWindowIcon(icon.get_app_icon("me-geomap"))
         self.mainwindow = MainWindow(self)
         cfg.main_window = self.mainwindow
@@ -43,11 +46,26 @@ class ModelEditor:
 
         # show
         self.mainwindow.show()
-        
+
+        self.autosave = Autosave(cfg.config.CONFIG_DIR, lambda: cfg.curr_file, self.mainwindow.editor.text)
+        """Object handling automatic saving"""
+        self._restore_backup()
+        if len(cfg.document) > 0:
+            self.mainwindow.reload()
+        self.mainwindow.editor.textChanged.connect(self.autosave.start_autosave)
+
         self.reloader_timer = QtCore.QTimer()
         """timer for file time checking in ms"""
         self.reloader_timer.timeout.connect(self.check_file)
         self.reloader_timer.start(RELOAD_INTERVAL)
+
+    def _restore_backup(self):
+        """recover file from backup file if it exists and if user wishes so"""
+        if self.autosave.restore_backup():
+            cfg.document = cfg.read_file(self.autosave.backup_filename())
+            cfg.changed = True
+            self.mainwindow.editor.reload()
+        self.autosave.autosave_timer.stop()
         
     def check_file(self):
         """timer for file time checking in ms"""
@@ -59,11 +77,22 @@ class ModelEditor:
         """new file menu action"""
         if not self.save_old_file():
             return
+
+        dialog = NewFileDialog(self.mainwindow, cfg.config.data_dir)
+        if dialog.exec_() == dialog.Rejected:
+            return
+
         cfg.new_file()
+        for template in dialog.templates():
+            with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'resources',
+                                   'yaml_templates',template),'r') as file:
+                cfg.document += file.read()
+
+        cfg.save_as(dialog.get_file_name())
         self.mainwindow.reload()
         self.mainwindow.update_recent_files(0)
         self._update_document_name()
-        self.mainwindow.info.update_from_data({'record_id': cfg.root_input_type['id']}, False)
+        self.mainwindow.info_page.update_from_data({'record_id': cfg.root_input_type['id']}, False)
         self.mainwindow.show_status_message("New file is opened")
 
     def open_file(self):
@@ -75,6 +104,7 @@ class ModelEditor:
             cfg.config.data_dir, "Yaml Files (*.yaml)")
         if yaml_file[0]:
             cfg.open_file(yaml_file[0])
+            self._restore_backup()
             self.mainwindow.reload()
             self.mainwindow.update_recent_files()
             self._update_document_name()
@@ -83,6 +113,7 @@ class ModelEditor:
     def open_set_file(self, file):
         """open set file"""
         cfg.open_file(file)
+        self._restore_backup()
         self.mainwindow.reload()
         self.mainwindow.update_recent_files()
         self._update_document_name()
@@ -113,6 +144,7 @@ class ModelEditor:
         if not self.save_old_file():
             return
         cfg.open_recent_file(action.data())
+        self._restore_backup()
         self.mainwindow.reload()
         self.mainwindow.update_recent_files()
         self._update_document_name()
@@ -127,6 +159,7 @@ class ModelEditor:
         cfg.update_yaml_file(self.mainwindow.editor.text())
         cfg.save_file()
         self.mainwindow.show_status_message("File is saved")
+        self.autosave.delete_backup()
 
     def save_as(self):
         """save file menu action"""
@@ -148,6 +181,7 @@ class ModelEditor:
         dialog.setOption(QtWidgets.QFileDialog.DontConfirmOverwrite, False)
         dialog.setViewMode(QtWidgets.QFileDialog.Detail)
         if dialog.exec_():
+            self.autosave.delete_backup()
             file_name = dialog.selectedFiles()[0]
             cfg.save_as(file_name)
             self.mainwindow.update_recent_files()
@@ -156,13 +190,17 @@ class ModelEditor:
             return True
         return False
 
-    def transform(self, file):
-        """Run transformation according rules in set file"""
+    def transform(self, to_version):
+        """Run transformation to version to_version."""
         cfg.update_yaml_file(self.mainwindow.editor.text())
-        cfg.transform(file)
+        cfg.transform(to_version)
         # synchronize cfg document with editor text
         self.mainwindow.editor.setText(cfg.document, keep_history=True)
         self.mainwindow.reload()
+
+    def transform_get_version_list(self):
+        """Returns list of versions available to transformation."""
+        return cfg.transform_get_version_list()
 
     def edit_transformation_file(self, file):
         """edit transformation rules in file"""
@@ -221,11 +259,13 @@ class ModelEditor:
                     return self.save_as()
                 else:
                     self.save_file()
+            if reply == QtWidgets.QMessageBox.No:
+                self.autosave.delete_backup()
         return True
 
     def main(self):
         """go"""
-        self._app.exec_()
+        self._app.exec()
 
 
 def main():
@@ -240,12 +280,12 @@ def main():
 
     # logging
     if not args.debug:
-        from geomop_util.logging import log_unhandled_exceptions
+        from gm_base.geomop_util.logging import log_unhandled_exceptions
 
         def on_unhandled_exception(type_, exception, tback):
             """Unhandled exception callback."""
             # pylint: disable=unused-argument
-            from geomop_dialogs import GMErrorDialog
+            from gm_base.geomop_dialogs import GMErrorDialog
             if model_editor is not None:
                 err_dialog = None
                 # display message box with the exception

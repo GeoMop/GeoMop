@@ -21,6 +21,8 @@ Tests:
 from .json_data import JsonData
 from .environment import Environment
 from .pbs import PbsConfig, Pbs
+from gm_base.global_const import GEOMOP_INTERNAL_DIR_NAME
+from .path_converter import lin2win_conv_path
 
 # import in code
 #from .service_base import ServiceStatus
@@ -72,6 +74,8 @@ class ExecArgs(JsonData):
         """
         self.args = []
         """ Arguments passed to executable."""
+        self.secret_args = []
+        """Arguments passed to executable, but not saved to service config file."""
         self.pbs_args = PbsConfig()
         """
         Arguments passed to PBS system.
@@ -123,7 +127,7 @@ class ProcessBase(JsonData):
         args = []
         if self.time_limit > 0 or self.memory_limit > 0:
             args.append(self.environment.python)
-            args.append(os.path.join(self.environment.geomop_root, "common/exec_with_limit.py"))
+            args.append(os.path.join(self.environment.geomop_root, "gm_base/exec_with_limit.py"))
             if self.time_limit > 0:
                 args.append("-t")
                 args.append(str(self.time_limit))
@@ -161,10 +165,13 @@ class ProcessExec(ProcessBase):
             args = self._get_limit_args()
             if self.executable.script:
                 args.append(self.environment.python)
-            args.append(os.path.join(self.environment.geomop_root,
-                                     self.executable.path,
-                                     self.executable.name))
+            if os.path.isabs(self.executable.path):
+                args.append(self.executable.path)
+            else:
+                args.append(os.path.join(self.environment.geomop_root,
+                                         self.executable.path))
             args.extend(self.exec_args.args)
+            args.extend(self.exec_args.secret_args)
             cwd = os.path.join(self.environment.geomop_analysis_workspace,
                                self.exec_args.work_dir)
             r, w = os.pipe()
@@ -173,7 +180,9 @@ class ProcessExec(ProcessBase):
                 try:
                     os.close(r)
                     os.setsid()
-                    with open(os.path.join(cwd, "out.txt"), 'w') as fd_out:
+                    conf_dir = os.path.join(cwd, GEOMOP_INTERNAL_DIR_NAME)
+                    os.makedirs(conf_dir, exist_ok=True)
+                    with open(os.path.join(conf_dir, "std_out.txt"), 'w') as fd_out:
                         p = psutil.Popen(args, stdout=fd_out, stderr=subprocess.STDOUT, cwd=cwd)
                     os.write(w, "{}@{}".format(p.pid, p.create_time()).encode())
                     os.close(w)
@@ -307,11 +316,14 @@ class ProcessPBS(ProcessBase):
         else:
             interpreter = None
 
-        command = os.path.join(self.environment.geomop_root,
-                               self.executable.path,
-                               self.executable.name)
+        if os.path.isabs(self.executable.path):
+            command = self.executable.path
+        else:
+            command = os.path.join(self.environment.geomop_root,
+                                   self.executable.path)
 
-        pbs.prepare_file(command, interpreter, [], self.exec_args.args, self._get_limit_args())
+        pbs.prepare_file(command, interpreter, [], self.exec_args.args + self.exec_args.secret_args,
+                         self._get_limit_args())
         logging.debug("Qsub params: " + str(pbs.get_qsub_args()))
         process = subprocess.Popen(pbs.get_qsub_args(),
                         stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
@@ -404,13 +416,21 @@ class ProcessPBS(ProcessBase):
         return ret
 
     def kill(self):
+        # todo: Spravne by se melo pockat az se proces ukonci (pomoci qstat), jako u ProcessExec.
+        # Ale to by zase dlouho trvalo.
+        # Pokud je sluzba ve fronte pbs, tak bude tato implementace fungovat dobre.
+        # Problem muze nastat pokud jiz sluzba bezi, ale to s ní zase muzeme komunikovat pres socket
+        # a ukoncit ji pres nej.
         try:
             output = subprocess.check_output(["qdel", self.process_id],
                                              universal_newlines=True,
-                                             timeout=60)
+                                             timeout=60,
+                                             stderr=subprocess.STDOUT)
             return True
         except subprocess.TimeoutExpired:
             return False
+        except subprocess.CalledProcessError:
+            return True
 
 
 class ProcessDocker(ProcessBase):
@@ -422,24 +442,107 @@ class ProcessDocker(ProcessBase):
     the docker info (image in particular) part of the installation so accessible through the environment.
     """
 
+    def __init__(self, process_config):
+        self.docker_port_expose = ("", 0, 0)
+        """Docker port expose (host_interface, host_port, container_port)"""
+        self.fterm_path = ""
+        """Path to fterm.bat (only used on win)"""
+        super().__init__(process_config)
+
+    @staticmethod
+    def _is_docker_machine_running():
+        try:
+            subprocess.check_output(["docker", "ps"], stderr=subprocess.DEVNULL)
+        except (OSError, subprocess.CalledProcessError):
+            return False
+        return True
+
     def start(self):
         """
         See client_test_py for a docker starting process.
         :return: process_id - possibly hash of the running container.
         """
-        home = os.environ["HOME"]
-        cwd = os.path.join(self.environment.geomop_analysis_workspace,
-                           self.exec_args.work_dir)
-        args = ["docker", "run", "-d", "-v", home + ':' + home, "-w", cwd, "geomop/jobpanel"]
+        # port expose
+        arg_p = ""
+        if self.docker_port_expose[2] > 0:
+            arg_p = str(self.docker_port_expose[2])
+            if self.docker_port_expose[1] > 0:
+                arg_p = "{}:".format(self.docker_port_expose[1]) + arg_p
+            if self.docker_port_expose[0] != "":
+                if self.docker_port_expose[1] <= 0:
+                    arg_p = ":" + arg_p
+                arg_p = self.docker_port_expose[0] + ":" + arg_p
+
+        geomop_root = self.environment.geomop_root
+        workspace = self.environment.geomop_analysis_workspace
+        cwd = workspace + "/" + self.exec_args.work_dir
+
+        # wrapper
+        wrapper_path = geomop_root + "/JobPanel/backend/docker_wrapper.py"
+        # if sys.platform == "win32":
+        #     wrapper_path = "/" + wrapper_path
+        args = [self.environment.python, wrapper_path]
+
         args.extend(self._get_limit_args())
+
         if self.executable.script:
             args.append(self.environment.python)
-        args.append(os.path.join(self.environment.geomop_root,
-                                 self.executable.path,
-                                 self.executable.name))
+
+        if self.executable.path.startswith("/"):
+            path = self.executable.path
+        else:
+            path = geomop_root + "/" + self.executable.path
+        # if sys.platform == "win32":
+        #     path = "/" + path
+        args.append(path)
+
         args.extend(self.exec_args.args)
-        output = subprocess.check_output(args, universal_newlines=True)
-        self.process_id = output.strip()
+        args.extend(self.exec_args.secret_args)
+
+        if sys.platform == "win32":
+            # start docker machine
+            subprocess.check_output(["dockerd.bat"], stderr=subprocess.DEVNULL)
+            if not self._is_docker_machine_running():
+                time.sleep(1)
+                while not self._is_docker_machine_running():
+                    time.sleep(1)
+                time.sleep(5)
+
+            # flags = "-d"
+            # if arg_p != "":
+            #     flags += " -p " + arg_p
+            # if self.fterm_path != "":
+            #     base_args = [self.fterm_path]
+            # else:
+            #     base_args = ["fterm.bat"]
+            # base_args.extend(["--", flags, "/" + cwd])
+            base_args = ["docker", "run", "-d"]
+            if arg_p != "":
+                base_args.extend(["-p", arg_p])
+            base_args.extend(["-v", lin2win_conv_path(geomop_root) + ":" + geomop_root,
+                              "-v", lin2win_conv_path(workspace) + ":" + workspace,
+                              "-w", cwd,
+                              "flow123d/3.0.1"])
+            output = subprocess.check_output(base_args + args, universal_newlines=True)
+            self.process_id = output.strip()
+        else:
+            #home = os.environ["HOME"]
+            uid = os.getuid()
+            gid = os.getgid()
+            base_args = ["docker", "run", "-d"]
+            if arg_p != "":
+                base_args.extend(["-p", arg_p])
+            base_args.extend(["-v", geomop_root + ":" + geomop_root,
+                              "-v", workspace + ":" + workspace,
+                              "-w", cwd,
+                              "-e", "uid={}".format(uid), "-e", "gui={}".format(gid),
+                              "flow123d/3.0.1"])
+            # When we want to use ssh keys, it is possible to add following arguments,
+            # then keys will be copied to docker.
+            # "-e", "home=/mnt//home/radek", "-v", "/home/radek:/mnt//home/radek"
+            output = subprocess.check_output(base_args + args, universal_newlines=True)
+            self.process_id = output.strip()
+
         return self.process_id
 
     def kill(self):
@@ -447,5 +550,13 @@ class ProcessDocker(ProcessBase):
         See client_test.py, BackedProxy.__del__
         :return:
         """
-        output = subprocess.check_output(['docker', 'rm', '-f', self.process_id])
+        # if sys.platform == "win32":
+        #     args = ["fdocker.bat"]
+        # else:
+        args = ["docker"]
+        args.extend(["rm", "-f", self.process_id])
+        try:
+            output = subprocess.check_output(args, stderr=subprocess.DEVNULL)
+        except subprocess.CalledProcessError:
+            pass
         return True

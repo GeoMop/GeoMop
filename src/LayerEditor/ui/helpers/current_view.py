@@ -1,4 +1,4 @@
-from ui.data import EventLocation
+from ..data import EventLocation
 import time
 
 
@@ -37,7 +37,9 @@ class CurrentView():
         elif self.event_location is EventLocation.diagram:
             return self.diagram_id==self.cfg.diagram_id()  
         elif self.event_location is EventLocation.region:
-            return self.diagram_id==self.cfg.diagram_id()  
+            return self.diagram_id==self.cfg.diagram_id() 
+        elif self.event_location is EventLocation.surfaces:
+            return self.diagram_id==self.cfg.diagram_id()
         raise ValueError("Invalid event location type")
         
     def cmp(self, event_location, first_location):
@@ -49,7 +51,9 @@ class CurrentView():
         elif self.event_location is EventLocation.diagram:
             return self.diagram_id==self.cfg.diagram_id()
         elif self.event_location is EventLocation.region:
-            return self.diagram_id==self.cfg.diagram_id()  
+            return self.diagram_id==self.cfg.diagram_id()
+        elif self.event_location is EventLocation.surfaces:
+            return self.diagram_id==self.cfg.diagram_id()
         raise ValueError("Invalid event location type")
         
     def set_view(self):

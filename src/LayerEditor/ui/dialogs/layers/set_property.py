@@ -1,5 +1,5 @@
 """
-Dialogs for settings text name property or depth
+Dialogs for settings text name property or elevation
 """
 
 import PyQt5.QtWidgets as QtWidgets
@@ -14,7 +14,7 @@ class SetNameDlg(QtWidgets.QDialog):
 
         grid = QtWidgets.QGridLayout(self)
         
-        d_name = QtWidgets.QLabel("Layer {0} Name:".format(category), self)
+        d_name = QtWidgets.QLabel("{0} Name:".format(category), self)
         self.name = QtWidgets.QLineEdit()
         self.name.setText(value)
         grid.addWidget(d_name, 0, 0)
@@ -34,7 +34,7 @@ class SetNameDlg(QtWidgets.QDialog):
 
 class SetSurfaceDlg(QtWidgets.QDialog):
 
-    def __init__(self, surface,  parent=None, min=None, max=None):
+    def __init__(self, interface,  parent=None, min=None, max=None):
         super(SetSurfaceDlg, self).__init__(parent)
         self.setWindowTitle("Set Surface")
 
@@ -42,7 +42,7 @@ class SetSurfaceDlg(QtWidgets.QDialog):
         
         d_surface = QtWidgets.QLabel("Set Interface Surface:", self)
         grid.addWidget(d_surface, 0, 0)
-        i = LayersHelpers.add_surface_to_grid(self, grid, 1, surface)
+        i = LayersHelpers.add_surface_to_grid(self, grid, 1, interface)
         
         self.validator = QtGui.QDoubleValidator()
         
@@ -52,7 +52,7 @@ class SetSurfaceDlg(QtWidgets.QDialog):
             self.validator.setTop( max)
         self.validator.setNotation(QtGui.QDoubleValidator.StandardNotation)
         
-        self.depth.setValidator(self.validator)
+        self.elevation.setValidator(self.validator)
         
         self._tranform_button = QtWidgets.QPushButton("Set Surface", self)
         self._tranform_button.clicked.connect(self.accept)
@@ -63,17 +63,17 @@ class SetSurfaceDlg(QtWidgets.QDialog):
         button_box.addButton(self._tranform_button, QtWidgets.QDialogButtonBox.AcceptRole)
         button_box.addButton(self._cancel_button, QtWidgets.QDialogButtonBox.RejectRole)
 
-        grid.addWidget(button_box, i, 3, 1, 3)
+        grid.addWidget(button_box, i, 1, 1, 2)
         self.setLayout(grid)
 
     def accept(self):
         """
-        Accepts the form if depth data fields are valid.
+        Accepts the form if elevation data fields are valid.
         :return: None
         """
-        if LayersHelpers.validate_depth(self.depth, self.validator, self):
+        if LayersHelpers.validate_depth(self.elevation, self.validator, self):
              super(SetSurfaceDlg, self).accept()
              
-    def fill_surface(self, surface):
+    def fill_surface(self, interface):
         """Fill set surface"""
-        return LayersHelpers.fill_surface(self, surface)
+        return LayersHelpers.fill_surface(self, interface)

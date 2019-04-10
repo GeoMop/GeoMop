@@ -48,25 +48,30 @@ class PortForwarder:
                 logging.info('Connected!  Tunnel open %r -> %r -> %r' % (self.request.getpeername(),
                                                                          sock.getpeername(),
                                                                          ("localhost", forward_to_port)))
-                while not self.port_forwarder.discard_data:
-                    r, w, x = select.select([self.request, sock], [], [])
-                    if self.request in r:
-                        data = self.request.recv(1024)
-                        if len(data) == 0:
-                            break
-                        if not self.port_forwarder.discard_data:
-                            sock.send(data)
-                    if sock in r:
-                        data = sock.recv(1024)
-                        if len(data) == 0:
-                            break
-                        if not self.port_forwarder.discard_data:
-                            self.request.send(data)
+                peername = None
+                try:
+                    while not self.port_forwarder.discard_data:
+                        r, w, x = select.select([self.request, sock], [], [])
+                        if self.request in r:
+                            data = self.request.recv(1024)
+                            if len(data) == 0:
+                                break
+                            if not self.port_forwarder.discard_data:
+                                sock.send(data)
+                        if sock in r:
+                            data = sock.recv(1024)
+                            if len(data) == 0:
+                                break
+                            if not self.port_forwarder.discard_data:
+                                self.request.send(data)
 
-                peername = self.request.getpeername()
+                    peername = self.request.getpeername()
+                except OSError:
+                    pass
                 sock.close()
                 self.request.close()
-                logging.info('Tunnel closed from %r' % (peername,))
+                if peername is not None:
+                    logging.info('Tunnel closed from %r' % (peername,))
 
         # port 0 means to select an arbitrary unused port
         server = ForwardServer(('', 0), Handler)

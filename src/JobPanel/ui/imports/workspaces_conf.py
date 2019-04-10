@@ -1,19 +1,21 @@
-from geomop_util import Serializable
-import ui.imports.ie_presets as ie
-from ui.data.preset_data import EnvPreset, PbsPreset, ResPreset, SshPreset
-from ui.data.mj_data import MultiJob, MultiJobPreset
-from ui.dialogs.import_dialog import ImportDialog
-from data.states import TaskStatus
+from gm_base.geomop_util import Serializable
+from . import ie_presets as ie
+from JobPanel.ui.data.preset_data import EnvPreset, PbsPreset, ResPreset, SshPreset
+from JobPanel.ui.data.mj_data import MultiJob, MultiJobPreset
+from JobPanel.ui.dialogs.import_dialog import ImportDialog
+from JobPanel.data.states import TaskStatus
 from PyQt5 import QtWidgets
 
-import config as cfg
+import gm_base.config as base_cfg
+from gm_base.global_const import GEOMOP_INTERNAL_DIR_NAME
 import os
 import uuid
 import yaml
 import time
+import platform
 
 BASE_DIR = 'JobPanel'
-WORKSPACE_CONF_DIR = 'conf'
+WORKSPACE_CONF_DIR = GEOMOP_INTERNAL_DIR_NAME
 
 
 class WorkspaceConf():
@@ -37,7 +39,7 @@ class WorkspaceConf():
         """Workspace path"""
         self.id = kw_or_def("id")
         """Id for link to workspaces mj statisctics (name of mj dir)"""
-        self.pc = os.uname()[1]
+        self.pc = platform.node()
         """computer name"""
         self.selected_mj = kw_or_def("selected_mj", 0) 
         """last selected mj"""
@@ -98,6 +100,8 @@ class WorkspaceConf():
             if not os.path.isdir(path):
                 continue
             # resource
+            # MJ no longer has resources
+            continue
             new_res = mj.preset.resource_preset
             # if some preset in res is changed, change res too
             is_known = True
@@ -247,8 +251,8 @@ class WorkspaceConf():
         # construct and repair name of confusing presets in workspace config
         mj_container.multijobs.clear() 
         for key, mj in  valid_mj.items():
-            if mj.preset.resource_preset in conf_res:
-                mj.preset.resource_preset = prefix + "_" + mj.preset.resource_preset
+            # if mj.preset.resource_preset in conf_res:
+            #     mj.preset.resource_preset = prefix + "_" + mj.preset.resource_preset
             mj.error = "Multijob was processed from different location."
             mj.state.analysis = mj.preset.analysis
             mj.state.name = mj.preset.name
@@ -326,7 +330,9 @@ class WorkspacesConf():
         if path is None:
             return None
         res=os.path.realpath(path)
-        return os.path.normcase(res)
+        #return os.path.normcase(res)
+        # Modified due to docker path problems.
+        return os.path.normpath(res)
     
     def get_id(self):
         """get id selected mj"""
@@ -346,13 +352,13 @@ class WorkspacesConf():
             self.workspaces[self.selected].selected_mj = selected_mj
             self.workspaces[self.selected].analysis = selected_analysis
         directory = os.path.join(BASE_DIR, self.DIR)
-        cfg.save_config_file(self.FILE_NAME, self, directory)
+        base_cfg.save_config_file(self.FILE_NAME, self, directory)
     
     @classmethod
     def open(cls):
         """deserialize settings"""    
         directory = os.path.join(BASE_DIR, cls.DIR)
-        config = cfg.get_config_file(cls.FILE_NAME, directory, cls=WorkspacesConf)
+        config = base_cfg.get_config_file(cls.FILE_NAME, directory, cls=WorkspacesConf)
         if config is None:
             config =  WorkspacesConf()
         return config
