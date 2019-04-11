@@ -5,8 +5,9 @@ Main window.
 """
 import os, sys
 
-from PyQt5.QtWidgets import QToolBox, QSizePolicy, QVBoxLayout, QWidget
+from PyQt5.QtWidgets import QToolBox, QSizePolicy, QVBoxLayout, QWidget, QTabWidget
 
+from .tab_widget import TabWidget
 from .toolbox_view import ToolboxView
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
@@ -33,6 +34,7 @@ class MainWidget(QtWidgets.QMainWindow):
         self.dock2.setAllowedAreas(QtCore.Qt.LeftDockWidgetArea | QtCore.Qt.RightDockWidgetArea)
 
         self.w = Workspace(self)
+        self.w2 = Workspace(self)
 
         self.toolbox_layout = ActionCategory()
         self.toolbox_layout2 = ActionCategory()
@@ -65,8 +67,12 @@ class MainWidget(QtWidgets.QMainWindow):
         self.addDockWidget(QtCore.Qt.RightDockWidgetArea, self.dock)
 
         self.resize(1000, 500)
-        self.setCentralWidget(self.w)
+        self.tab_widget = TabWidget(self.edit_menu)
+        self.tab_widget.setTabsClosable(True)
+        self.tab_widget.setTabShape(1)
+        self.tab_widget.addTab(self.w, "first_file.file")
+        self.tab_widget.addTab(self.w2, "second_file.file")
+        self.setCentralWidget(self.tab_widget)
 
     def eventFilter(self, QObject, QEvent):
-        print("hi")
         return True

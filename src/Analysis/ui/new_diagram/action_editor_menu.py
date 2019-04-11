@@ -8,7 +8,7 @@ from PyQt5 import QtWidgets, QtCore, QtGui
 
 class ActionEditorMenu(QtWidgets.QMenu):
     """Definition of menu containing editing options."""
-    def __init__(self, parent):
+    def __init__(self, parent=None):
         super(ActionEditorMenu, self).__init__(parent)
         self.setTitle("Edit")
         self.new_action = QtWidgets.QAction("New action")

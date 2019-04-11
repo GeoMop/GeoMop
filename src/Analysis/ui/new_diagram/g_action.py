@@ -47,7 +47,6 @@ class GAction(QtWidgets.QGraphicsPathItem):
                                                 self.resize_handle_width * 2)
 
         self._add_ports()
-        print(self.in_ports)
         self.in_ports[-1].appending_port = True
 
 

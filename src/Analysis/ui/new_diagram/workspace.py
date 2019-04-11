@@ -10,6 +10,7 @@ from PyQt5.QtCore import QDir
 from PyQt5.QtGui import QDrag
 from PyQt5.QtWidgets import QFileDialog
 
+from .action_editor_menu import ActionEditorMenu
 from .g_action import GAction
 from .g_connection import GConnection
 from .action_for_subactions import GActionForSubactions
@@ -28,10 +29,6 @@ class Workspace(QtWidgets.QGraphicsView):
         self.viewport_moved = False
 
         self.edit_menu = self.parent().edit_menu
-        self.edit_menu.new_action.triggered.connect(self.scene.add_action)
-        self.edit_menu.delete.triggered.connect(self.scene.delete_items)
-        self.edit_menu.add_random.triggered.connect(self.scene.add_random_items)
-        self.edit_menu.order.triggered.connect(self.scene.order_diagram)
         #self.edit_menu.add_while.triggered.connect(self.scene.add_while_loop)
 
         #self.setMouseTracking(True)
@@ -57,8 +54,6 @@ class Workspace(QtWidgets.QGraphicsView):
 
         self.prof = cProfile.Profile()
         self.prof.enable()
-
-
 
     def mousePressEvent(self, press_event):
         super(Workspace, self).mousePressEvent(press_event)
