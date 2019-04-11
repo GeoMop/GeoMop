@@ -1,4 +1,4 @@
-from common.analysis import workflow
+from src.common.analysis import workflow
 
 class Tuple(workflow._ActionBase):
     #__action_parameters = [('input', 'Any')]

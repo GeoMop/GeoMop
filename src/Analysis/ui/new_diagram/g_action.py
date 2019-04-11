@@ -14,7 +14,7 @@ from .graphics_data_model import ActionData
 
 class GAction(QtWidgets.QGraphicsPathItem):
     """Base class for all actions."""
-    def __init__(self, graphics_data_item, parent=None):
+    def __init__(self, graphics_data_item, parent=None, n_ports=2):
         """Initializes action.
         :param parent: Action which holds this subaction: this action is inside parent action.
         :param position: Position of this action inside parent.
@@ -46,8 +46,7 @@ class GAction(QtWidgets.QGraphicsPathItem):
         self.resize_handles = RectResizeHandles(self, self.resize_handle_width,
                                                 self.resize_handle_width * 2)
 
-        self._add_ports()
-        self.in_ports[-1].appending_port = True
+        self._add_ports(n_ports)
 
 
         self.setCacheMode(self.DeviceCoordinateCache)
@@ -134,11 +133,11 @@ class GAction(QtWidgets.QGraphicsPathItem):
         else:
             return self.out_ports[index]
 
-    def _add_ports(self):
-        for i in range(2):
+    def _add_ports(self, n_ports):
+        for i in range(n_ports):
             self.add_port(True, "Input Port" + str(i))
-        for i in range(3):
-            self.add_port(False, "Output Port" + str(i))
+
+        self.add_port(False, "Output Port")
 
 
 

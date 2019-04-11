@@ -19,7 +19,7 @@ class TabWidget(QTabWidget):
         self.removeTab(index)
 
     def add_action(self):
-        self.currentWidget().scene.add_action()
+        self.currentWidget().scene.add_action(self.currentWidget().scene.new_action_pos)
 
     def delete_items(self):
         self.currentWidget().scene.delete_items()

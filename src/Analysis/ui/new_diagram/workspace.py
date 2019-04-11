@@ -6,7 +6,7 @@ Workspace where all user input is processed.
 import cProfile
 import time
 from PyQt5 import QtWidgets, QtCore, QtGui, QtOpenGL
-from PyQt5.QtCore import QDir
+from PyQt5.QtCore import QDir, QPoint
 from PyQt5.QtGui import QDrag
 from PyQt5.QtWidgets import QFileDialog
 
@@ -19,10 +19,11 @@ from .scene import Scene
 
 class Workspace(QtWidgets.QGraphicsView):
     """Graphics scene which handles user input and shows user the results."""
-    def __init__(self, parent=None):
+    def __init__(self, workflow, parent=None):
         """Initializes class."""
         super(Workspace, self).__init__(parent)
-        self.scene = Scene()
+        self.workflow = workflow
+        self.scene = Scene(workflow)
         self.setScene(self.scene)
         self.setRenderHint(QtGui.QPainter.Antialiasing, True)
         self.last_mouse_event_pos = QtCore.QPoint()
@@ -54,6 +55,22 @@ class Workspace(QtWidgets.QGraphicsView):
 
         self.prof = cProfile.Profile()
         self.prof.enable()
+
+        self.initialize_workspace_from_workflow(workflow)
+
+    def initialize_workspace_from_workflow(self, workflow):
+        for action_name in workflow._actions:
+            self.scene.add_action(QPoint(0.0,0.0), action_name)
+            action = workflow._actions[action_name]
+
+        for slot_name, slot in workflow._slots. items():
+            self.scene.add_action(QPoint(0.0, 0.0), slot.instance_name)
+
+        self.scene.update_scene()
+        self.scene.order_diagram()
+        if (len(self.scene.actions) > 0):
+            self.ensureVisible(self.scene.itemsBoundingRect())
+
 
     def mousePressEvent(self, press_event):
         super(Workspace, self).mousePressEvent(press_event)

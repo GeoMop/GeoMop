@@ -10,7 +10,7 @@ from .port import Port, OutputPort
 
 class GConnection(QtWidgets.QGraphicsPathItem):
     """Representation of connection between two ports."""
-    def __init__(self, graphics_data_item, port1, port2=None, parent=None):
+    def __init__(self, port1, port2=None, parent=None):
         """Initializes connection.
         :param port1: OutputPort or any port if port2 is None.
         :param port2: InputPort.
@@ -29,7 +29,6 @@ class GConnection(QtWidgets.QGraphicsPathItem):
         self.setFlag(self.ItemIsSelectable)
         self._shape = QtGui.QPainterPath()
         self.update_gfx()
-        self.graphics_data_item = graphics_data_item
 
     def is_connected(self, port):
         """Returns True if this connection is attached to specified port."""

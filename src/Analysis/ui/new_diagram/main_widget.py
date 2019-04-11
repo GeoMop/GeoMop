@@ -17,12 +17,22 @@ from .action_editor_menu import ActionEditorMenu
 from .g_action import GAction
 from .tree_item import TreeItem
 from .action_category import ActionCategory
-from .input_action import InputGAction
+from .g_input_action import GInputAction
 from .output_action import OutputGAction
+from src.common.analysis import actions
+from src.common.analysis import workflow as wf
 
 
 class MainWidget(QtWidgets.QMainWindow):
     def __init__(self, parent=None):
+        @wf.workflow
+        def test_workflow(a, b):
+            c = actions.Tuple(a).name("c")
+            d = actions.Tuple(a, b)
+            e = actions.Tuple(c, d)
+            return e
+
+
         super(MainWidget, self).__init__(parent)
         self.menu = self.menuBar()
         self.edit_menu = ActionEditorMenu(self)
@@ -33,12 +43,12 @@ class MainWidget(QtWidgets.QMainWindow):
         self.dock2 = QtWidgets.QDockWidget("Toolbox", self)
         self.dock2.setAllowedAreas(QtCore.Qt.LeftDockWidgetArea | QtCore.Qt.RightDockWidgetArea)
 
-        self.w = Workspace(self)
-        self.w2 = Workspace(self)
+        self.w = Workspace(test_workflow, self)
+        self.w2 = Workspace(test_workflow, self)
 
         self.toolbox_layout = ActionCategory()
         self.toolbox_layout2 = ActionCategory()
-        self.item1 = ToolboxView(InputGAction(TreeItem(["Input", 0, 0, 50, 50])), self.toolbox_layout)
+        self.item1 = ToolboxView(GInputAction(TreeItem(["Input", 0, 0, 50, 50])), self.toolbox_layout)
         self.item2 = ToolboxView(OutputGAction(TreeItem(["Output", 0, 0, 50, 50])), self.toolbox_layout)
         self.item3 = ToolboxView(GAction(TreeItem(["calibration", 0, 0, 50, 50])), self.toolbox_layout)
         self.item4 = ToolboxView(GAction(TreeItem(["action", 0, 0, 50, 50])), self.toolbox_layout)

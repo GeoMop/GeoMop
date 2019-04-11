@@ -4,7 +4,7 @@ from .g_action import GAction
 from .g_connection import GConnection
 from .port import OutputPort
 from .action_for_subactions import GActionForSubactions
-from .graphics_data_model import ActionDataModel, ConnectionDataModel
+from .graphics_data_model import ActionDataModel, ConnectionDataModel, ActionData
 import random
 import math
 import copy
@@ -16,9 +16,9 @@ class ActionTypes:
 
 
 class Scene(QtWidgets.QGraphicsScene):
-    def __init__(self):
+    def __init__(self, workflow):
         super(Scene, self).__init__()
-
+        self.workflow = workflow
         self.actions_for_subactions = []
         self.actions = []
         self.connections = []
@@ -60,12 +60,34 @@ class Scene(QtWidgets.QGraphicsScene):
             if self.new_connection is not None:
                 self.addItem(self.new_connection)
 
-            for child in self.connection_model.get_item().children():
-                self.draw_connection(child)
+            for action_name, action in self.workflow._actions.items():
+                i = 0
+                for other_action in action._inputs:
+                    port1 = self.get_action(other_action.instance_name).out_ports[0]
+                    port2 = self.get_action(action_name).in_ports[i]
+                    self.connections.append(GConnection(port1, port2))
+                    port1.connections.append(self.connections[-1])
+                    port2.connections.append(self.connections[-1])
+                    self.addItem(self.connections[-1])
+                    self.update()
+                    i += 1
+
 
     def draw_action(self, item):
-        self.actions.append(GAction(item, self.root_item))
-        #self.addItem(self.actions[-1])
+        action = self.workflow._actions.get(item.data(ActionData.NAME))
+        if action is None:
+            self.actions.append(GAction(item, self.root_item, 0))
+        else:
+            self.actions.append(GAction(item, self.root_item, len(action._inputs)))
+
+        for child in item.children():
+            self.draw_action(child)
+
+        self.update()
+
+    def draw_slots(self, item):
+        n_ports = len(self.workflow.slots[item.data(ActionData.NAME)]._inputs)
+        self.actions.append(GAction(item, self.root_item, n_ports))
 
         for child in item.children():
             self.draw_action(child)
@@ -149,7 +171,7 @@ class Scene(QtWidgets.QGraphicsScene):
 
         return dist
 
-    def get_action(self, name):
+    def get_action(self, name: str) -> GAction:
         for action in self.actions:
             if action.name == name:
                 return action
@@ -192,10 +214,10 @@ class Scene(QtWidgets.QGraphicsScene):
         self.update_model = False
         self.update()
 
-    def add_action(self):
+    def add_action(self, new_action_pos, name=None):
         """Create new action and add it to workspace."""
-        [parent, pos] = self.find_top_afs(self.new_action_pos)
-        self.action_model.add_item(pos.x(), pos.y(), 50, 50)
+        [parent, pos] = self.find_top_afs(new_action_pos)
+        self.action_model.add_item(pos.x(), pos.y(), 50, 50, name)
         self.update_model = True
 
     '''
@@ -244,7 +266,7 @@ class Scene(QtWidgets.QGraphicsScene):
             else:
                 self.set_enable_ports(True, False)
             self.views()[0].setDragMode(QtWidgets.QGraphicsView.NoDrag)
-            self.new_connection = GConnection(None, port)
+            self.new_connection = GConnection(port)
             self.addItem(self.new_connection)
             self.new_connection.setFlag(QtWidgets.QGraphicsPathItem.ItemIsSelectable, False)
         else:
