@@ -5,6 +5,7 @@ import sys
 import os
 import signal
 import argparse
+import json
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 
@@ -13,6 +14,7 @@ from LayerEditor.leconfig import cfg
 import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtCore as QtCore
 import gm_base.icon as icon
+from gm_base.geomop_util_qt import Autosave
 from LayerEditor.ui.dialogs.set_diagram import SetDiagramDlg
 from LayerEditor.ui.dialogs.make_mesh import MakeMeshDlg
 
@@ -52,36 +54,63 @@ class LayerEditor:
 
         # set geomop root dir
         cfg.geomop_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-        
-        self.exit = False
-        if init_dialog:
-            init_dlg = SetDiagramDlg()
-            ret = init_dlg.exec_()
-            if init_dlg.closed:
-                self.exit = True
-                return
-        else:
-            ret = QtWidgets.QDialog.Accepted
-            cfg.diagram.area.set_area([0, 0, 100, 100],[0, 100, 100, 0])
-            
         self.mainwindow = MainWindow(self)
         cfg.set_main(self.mainwindow)
-        
+
+        self.exit = False
+
+
+        # save_fn = lambda: json.dumps(cfg.le_serializer.cfg_to_geometry(
+        #                              cfg, self.autosave.backup_filename()).serialize(),
+        #                                             indent=4, sort_keys=True)
+        save_fn = lambda c=cfg: cfg.le_serializer.save(c)
+        self.autosave = Autosave(cfg.config.CONFIG_DIR, lambda: cfg.curr_file, save_fn)
+
+        # Try to restore Untitled.yaml.
+        if self._restore_backup():
+            init_dlg_result = QtWidgets.QDialog.Accepted
+        else:
+            if init_dialog:
+                init_dlg = SetDiagramDlg()
+                init_dlg_result = init_dlg.exec_()
+                if init_dlg.closed:
+                    self.exit = True
+                    return
+            else:
+                init_dlg_result = QtWidgets.QDialog.Accepted
+                cfg.diagram.area.set_area([0, 0, 100, 100],[0, 100, 100, 0])
+
+
         # show
-        self.mainwindow.show()        
-        
-        if ret!=QtWidgets.QDialog.Accepted:
+        self.mainwindow.show()
+
+        if init_dlg_result != QtWidgets.QDialog.Accepted:
             if not self.open_file():
                 self.mainwindow.close()
                 self.mainwindow._layer_editor = None
                 del self.mainwindow
                 self.exit = True
                 return
-        
+
         # set default values
         self.mainwindow.paint_new_data()
-        self._update_document_name()        
-        
+        self._update_document_name()
+        self.autosave.start_autosave()
+        #self.mainwindow.diagramScene.regionsUpdateRequired.connect(self.autosave.on_content_change)
+
+
+    def _restore_backup(self):
+        """recover file from backup file if it exists and if user wishes so"""
+        restored = self.autosave.restore_backup()
+        if restored:
+            cfg.main_window.release_data(cfg.diagram_id())
+            cfg.history.remove_all()
+            cfg.le_serializer.load(cfg, self.autosave.backup_filename())
+            cfg.main_window.refresh_all()
+            cfg.history.last_save_labels = -1
+        self.autosave.autosave_timer.stop()
+        return restored
+
     def new_file(self):
         """new file menu action"""
         if not self.save_old_file():
@@ -110,6 +139,7 @@ class LayerEditor:
         if file[0]:
             cfg.open_file(file[0])
             self._update_document_name()
+            self._restore_backup()
             self.mainwindow.show_status_message("File '" + file[0] + "' is opened")
             return True
         return False
@@ -141,6 +171,7 @@ class LayerEditor:
         cfg.open_recent_file(action.data())
         self.mainwindow.update_recent_files()
         self._update_document_name()
+        self._restore_backup()
         self.mainwindow.show_status_message("File '" + action.data() + "' is opened")
 
     def save_file(self):
@@ -150,6 +181,7 @@ class LayerEditor:
         if cfg.confront_file_timestamp():
             return
         cfg.save_file()
+        self.autosave.delete_backup()
         self.mainwindow.show_status_message("File is saved")
 
     def save_as(self):
@@ -168,6 +200,7 @@ class LayerEditor:
         dialog.setOption(QtWidgets.QFileDialog.DontConfirmOverwrite, False)
         dialog.setViewMode(QtWidgets.QFileDialog.Detail)
         if dialog.exec_():
+            self.autosave.delete_backup()
             file_name = dialog.selectedFiles()[0]
             cfg.save_file(file_name)
             self.mainwindow.update_recent_files()
@@ -198,6 +231,8 @@ class LayerEditor:
                     return self.save_as()
                 else:
                     self.save_file()
+            if reply == QtWidgets.QMessageBox.No:
+                self.autosave.delete_backup()
         return True
 
     def main(self):

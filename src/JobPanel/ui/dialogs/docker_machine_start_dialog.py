@@ -4,6 +4,8 @@ Dialog for starting Docker Machine.
 
 from PyQt5 import QtWidgets, QtCore
 
+import subprocess
+
 
 class DockerMachineStartDialog(QtWidgets.QDialog):
     def __init__(self, parent=None):
@@ -18,20 +20,59 @@ class DockerMachineStartDialog(QtWidgets.QDialog):
         label.setAlignment(QtCore.Qt.AlignCenter)
         mainVerticalLayout.addWidget(label)
 
-        self.setMinimumSize(320, 100)
+        # button
+        button = QtWidgets.QPushButton("Terminate")
+        button.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        button.clicked.connect(self.reject)
+        mainVerticalLayout.addWidget(button)
+        mainVerticalLayout.setAlignment(button, QtCore.Qt.AlignHCenter)
 
-        self._close_enabled = False
+        self.setMinimumSize(320, 150)
 
-        # process
-        self._proc = QtCore.QProcess(self)
-        self._proc.finished.connect(self._proc_finished)
-        self._proc.error.connect(self._proc_finished)
-        self._proc.start("docker-machine start")
+        self._timer = QtCore.QTimer()
+        self._timer.timeout.connect(self._check_docker)
 
-    def _proc_finished(self):
-        self._close_enabled = True
-        self.close()
+        self._running_counter = 0
+
+    def exec(self):
+        if not self._start_docker_machine():
+            msg_box = QtWidgets.QMessageBox(self)
+            msg_box.setWindowTitle("Error")
+            msg_box.setIcon(QtWidgets.QMessageBox.Critical)
+            msg_box.setText("Unable to start Docker Machine.")
+            msg_box.exec()
+
+            return QtWidgets.QDialog.Rejected
+
+        if self._is_docker_machine_running():
+            return QtWidgets.QDialog.Accepted
+
+        self._timer.start(1000)
+
+        return super().exec()
+
+    def _start_docker_machine(self):
+        try:
+            subprocess.check_output(["dockerd.bat"], stderr=subprocess.DEVNULL)
+        except (OSError, subprocess.CalledProcessError):
+            return False
+        return True
+
+    def _is_docker_machine_running(self):
+        try:
+            subprocess.check_output(["docker", "ps"], stderr=subprocess.DEVNULL)
+        except (OSError, subprocess.CalledProcessError):
+            return False
+        return True
+
+    def _check_docker(self):
+        if self._is_docker_machine_running():
+            self._running_counter += 1
+
+        if self._running_counter >= 5:
+            self._timer.stop()
+            self.accept()
 
     def reject(self):
-        if self._close_enabled:
-            super().reject()
+        self._timer.stop()
+        super().reject()

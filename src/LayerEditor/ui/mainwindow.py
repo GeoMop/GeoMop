@@ -131,11 +131,11 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def refresh_all(self):
         """For new data"""
+        self.set_topology()
         if not cfg.diagram.shp.is_empty():
-            # refresh deserialized shapefile 
+            # refresh deserialized shapefile
             cfg.diagram.recount_canvas()
             self.refresh_diagram_shp()
-        self.set_topology()        
         self.diagramScene.set_data()
         self.layers.reload_layers(cfg)
         cfg.diagram.regions.reload_regions(cfg)
@@ -275,9 +275,9 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def _update_regions(self):
         """Update region panel, eventually set tab according to the selection in diagram"""
-        regions = self.diagramScene.selection.get_selected_regions(cfg.diagram)
-        if regions:
-            self.regions.select_current_regions(regions)
+        regions_of_layers = self.diagramScene.selection.get_selected_regions(cfg.diagram)
+        if regions_of_layers:
+            self.regions.select_current_regions(regions_of_layers)
         self.regions.update_regions_panel()
             
     def config_changed(self):

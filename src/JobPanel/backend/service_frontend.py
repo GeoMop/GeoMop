@@ -18,6 +18,7 @@ import os
 import json
 import sys
 import random
+import psutil
 
 
 class ServiceFrontend(ServiceBase):
@@ -257,6 +258,17 @@ class ServiceFrontend(ServiceBase):
                     done = False
                     break
 
+    def _get_free_tcp_port(self):
+        """
+        Returns free tcp port.
+        :return:
+        """
+        while True:
+            occupied_ports = [con.laddr.port for con in psutil.net_connections(kind="tcp")]
+            port = random.randrange(30001, 60000)
+            if port not in occupied_ports:
+                return port
+
     def start_backend(self):
         """
         Starts backend.
@@ -323,12 +335,15 @@ class ServiceFrontend(ServiceBase):
         # win workaround
         if sys.platform == "win32":
             container_port = 33033
-            host_port = random.randrange(30001, 60000)
-            service_data["process"]["docker_port_expose"] = [host_port, container_port]
+            host_port = self._get_free_tcp_port()
+            host_interface = "127.0.0.1"
+            service_data["process"]["docker_port_expose"] = [host_interface, host_port, container_port]
 
             service_data["requested_listen_port"] = container_port
 
-            service_data["listen_address_substitute"] = ["192.168.99.100", host_port]
+            service_data["listen_address_substitute"] = [host_interface, host_port]
+
+            #service_data["process"]["fterm_path"] = os.path.join(self.get_geomop_root(), "flow123d\\bin\\fterm.bat")
 
         # start backend
         child_id = self.request_start_child(service_data)

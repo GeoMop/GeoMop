@@ -91,9 +91,9 @@ class Regions(QtWidgets.QToolBox):
         
     def _show_layers(self):
         """Refresh layers view"""
-        data = cfg.diagram.regions                
-        self.layers = data.get_layers(self.topology_idx)
-        data.current_topology_id = self.topology_idx
+        regions = cfg.diagram.regions
+        self.layers = regions.get_layers(self.topology_idx)
+        regions.current_topology_id = self.topology_idx
         self.regions = {}
         self.dims = {}
         self.dim_label = {}
@@ -109,7 +109,7 @@ class Regions(QtWidgets.QToolBox):
         self.mesh_step_label = {}
         self.mesh_step = {}
         self.layers_id = []
-        data.current_regions = {}
+        regions.current_regions = {}
         for layer_id in self.layers:
             self.layers_id.append(layer_id) 
             widget = self._add_region_panel(layer_id, self._get_last_region(layer_id))            
@@ -117,7 +117,7 @@ class Regions(QtWidgets.QToolBox):
             self._set_box_title(i, layer_id)
         index = self._get_last_layer()
         self.setCurrentIndex(index)
-        data.current_layer_id = self.layers_id[self.currentIndex()]
+        regions.current_layer_id = self.layers_id[self.currentIndex()]
         
     def _get_last_layer(self):
         """Return last layer_id"""
@@ -322,7 +322,7 @@ class Regions(QtWidgets.QToolBox):
         data = cfg.diagram.regions
         reg_idx = self.get_current_region()
         shapes = data.get_shapes_of_region(reg_idx)
-        if not any(shapes):
+        if not shapes:
             data.delete_region(reg_idx)
             for layer_id in data.layers_topology[data.current_topology_id]:
                 self.regions[layer_id].removeItem(reg_idx)

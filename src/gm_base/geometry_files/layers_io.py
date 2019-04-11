@@ -153,8 +153,4 @@ def read_geometry(file_name):
     return convert_file_to_actual_format(json_lg, base_path=base_path)
 
 
-def write_geometry(file_name, lg):
-    """Write LayerGeometry data to file"""
-    with open(file_name, 'w') as f:
-        json.dump(lg.serialize(), f, indent=4, sort_keys=True)
 

@@ -15,6 +15,7 @@ import PyQt5.QtCore as QtCore
 sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 
 import gm_base.icon as icon
+from gm_base.geomop_util_qt import Autosave
 from ModelEditor.meconfig import MEConfig as cfg
 from ModelEditor.ui.dialogs.json_editor import JsonEditorDlg
 from ModelEditor.ui import MainWindow
@@ -24,7 +25,7 @@ import subprocess
 
 
 RELOAD_INTERVAL = 5000
-"""interval for file time checjing in ms"""
+"""interval for file time checking in ms"""
 
 class ModelEditor:
     """Model editor main class"""
@@ -45,11 +46,26 @@ class ModelEditor:
 
         # show
         self.mainwindow.show()
-        
+
+        self.autosave = Autosave(cfg.config.CONFIG_DIR, lambda: cfg.curr_file, self.mainwindow.editor.text)
+        """Object handling automatic saving"""
+        self._restore_backup()
+        if len(cfg.document) > 0:
+            self.mainwindow.reload()
+        self.mainwindow.editor.textChanged.connect(self.autosave.start_autosave)
+
         self.reloader_timer = QtCore.QTimer()
         """timer for file time checking in ms"""
         self.reloader_timer.timeout.connect(self.check_file)
         self.reloader_timer.start(RELOAD_INTERVAL)
+
+    def _restore_backup(self):
+        """recover file from backup file if it exists and if user wishes so"""
+        if self.autosave.restore_backup():
+            cfg.document = cfg.read_file(self.autosave.backup_filename())
+            cfg.changed = True
+            self.mainwindow.editor.reload()
+        self.autosave.autosave_timer.stop()
         
     def check_file(self):
         """timer for file time checking in ms"""
@@ -88,6 +104,7 @@ class ModelEditor:
             cfg.config.data_dir, "Yaml Files (*.yaml)")
         if yaml_file[0]:
             cfg.open_file(yaml_file[0])
+            self._restore_backup()
             self.mainwindow.reload()
             self.mainwindow.update_recent_files()
             self._update_document_name()
@@ -96,6 +113,7 @@ class ModelEditor:
     def open_set_file(self, file):
         """open set file"""
         cfg.open_file(file)
+        self._restore_backup()
         self.mainwindow.reload()
         self.mainwindow.update_recent_files()
         self._update_document_name()
@@ -126,6 +144,7 @@ class ModelEditor:
         if not self.save_old_file():
             return
         cfg.open_recent_file(action.data())
+        self._restore_backup()
         self.mainwindow.reload()
         self.mainwindow.update_recent_files()
         self._update_document_name()
@@ -140,6 +159,7 @@ class ModelEditor:
         cfg.update_yaml_file(self.mainwindow.editor.text())
         cfg.save_file()
         self.mainwindow.show_status_message("File is saved")
+        self.autosave.delete_backup()
 
     def save_as(self):
         """save file menu action"""
@@ -161,6 +181,7 @@ class ModelEditor:
         dialog.setOption(QtWidgets.QFileDialog.DontConfirmOverwrite, False)
         dialog.setViewMode(QtWidgets.QFileDialog.Detail)
         if dialog.exec_():
+            self.autosave.delete_backup()
             file_name = dialog.selectedFiles()[0]
             cfg.save_as(file_name)
             self.mainwindow.update_recent_files()
@@ -238,6 +259,8 @@ class ModelEditor:
                     return self.save_as()
                 else:
                     self.save_file()
+            if reply == QtWidgets.QMessageBox.No:
+                self.autosave.delete_backup()
         return True
 
     def main(self):
