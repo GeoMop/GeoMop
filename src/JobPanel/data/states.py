@@ -1,3 +1,5 @@
+from gm_base.global_const import GEOMOP_INTERNAL_DIR_NAME
+
 import json
 import os
 import logging
@@ -284,7 +286,7 @@ class JobsState:
 
     def load_file(self, conf_dir):
         """Job data serialization"""       
-        file = os.path.join(conf_dir, "_jobs_states.json")
+        file = os.path.join(conf_dir, GEOMOP_INTERNAL_DIR_NAME, "jobs_states.json")
         try:
             with open(file, "r") as json_file:
                 data = json.load(json_file)

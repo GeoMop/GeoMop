@@ -1,16 +1,25 @@
-# GeoMop nsi build script for Windows x86 platform
+# GeoMop nsi build script for Windows x86_64 platform
 # 
 #--------------------------------
+
+
+# Maximum compression.
+SetCompressor /SOLID lzma
+
+
+# installation only for current user
+!define MULTIUSER_EXECUTIONLEVEL Standard
+!define MULTIUSER_INSTALLMODE_INSTDIR "GeoMop"
+!include MultiUser.nsh
 
 # Define directories.
 !define GIT_DIR "."
 !define SRC_DIR "${GIT_DIR}\src"
 !define BUILD_DIR "${GIT_DIR}\build\win_x86"
-!define APP_HOME_DIR "$APPDATA\GeoMop"
 !define DATA_DIR "${GIT_DIR}\data"
 
 !define PYTHON_MAJOR   "3"
-!define PYTHON_MINOR   "4"
+!define PYTHON_MINOR   "6"
 
 # The following are derived from the above.
 !define PYTHON_VERS    "${PYTHON_MAJOR}.${PYTHON_MINOR}"
@@ -23,25 +32,21 @@
 !include LogicLib.nsh
 
 
-# Maximum compression.
-SetCompressor /SOLID lzma
-
-
 # Read version information from file.
 !searchparse /file "${GIT_DIR}\VERSION" '' VERSION ''
 
 
 Name "GeoMop ${VERSION}"
 Caption "GeoMop ${VERSION} Setup"
-InstallDir "$PROGRAMFILES\GeoMop"
-OutFile "${GIT_DIR}\dist\geomop_${VERSION}_x86.exe"
+#InstallDir "$PROGRAMFILES\GeoMop"
+OutFile "${GIT_DIR}\dist\geomop_${VERSION}_x86_64.exe"
 
 # Registry key to check for directory (so if you install again, it will 
 # overwrite the old one automatically)
-InstallDirRegKey HKLM "Software\GeoMop" "Install_Dir"
+InstallDirRegKey HKCU "Software\GeoMop" "Install_Dir"
 
 # Request application privileges for Windows Vista and newer
-RequestExecutionLevel admin
+#RequestExecutionLevel admin
 
 #--------------------------------
 
@@ -67,8 +72,12 @@ Var PYTHON_SCRIPTS
 
 Function .onInit
 
+  !insertmacro MULTIUSER_INIT
+
+  !define APP_HOME_DIR "$APPDATA\GeoMop"
+
   CheckPython:
-    # Check if 32b Python is installed.
+    # Check if Python is installed.
     ReadRegStr $PYTHON_EXE HKCU "${PYTHON_HK}" ""
 
     ${If} $PYTHON_EXE == ""
@@ -77,12 +86,12 @@ Function .onInit
 
     # Install Python.
     ${If} $PYTHON_EXE == ""
-      MessageBox MB_YESNO|MB_ICONQUESTION "Python ${PYTHON_VERS} 32b is not installed. Do you wish to install it?" IDYES InstallPython
+      MessageBox MB_YESNO|MB_ICONQUESTION "Python ${PYTHON_VERS} 64b is not installed. Do you wish to install it?" IDYES InstallPython
                   Abort
       InstallPython:
         SetOutPath $INSTDIR\prerequisites
-        File "${BUILD_DIR}\python-3.4.4.msi"
-        ExecWait 'msiexec /i python-3.4.4.msi'
+        File "${BUILD_DIR}\python-3.6.7-amd64.exe"
+        ExecWait 'python-3.6.7-amd64.exe'
 
         # Check installation.
         Goto CheckPython
@@ -91,6 +100,10 @@ Function .onInit
     # Set the path to the python.exe instead of directory.
     StrCpy $PYTHON_EXE "$PYTHON_EXEpython.exe"
 
+FunctionEnd
+
+Function un.onInit
+  !insertmacro MULTIUSER_UNINIT
 FunctionEnd
 
 #--------------------------------
@@ -108,13 +121,13 @@ Section "Runtime Environment" SecRuntime
 
   # Install virtualenv.
   SetOutPath $INSTDIR\prerequisites
-  File "${BUILD_DIR}\virtualenv-15.1.0-py2.py3-none-any.whl"
-  ExecWait '"$PYTHON_EXE" -m pip install "$INSTDIR\prerequisites\virtualenv-15.1.0-py2.py3-none-any.whl"'
+  File "${BUILD_DIR}\virtualenv-16.1.0-py2.py3-none-any.whl"
+  ExecWait '"$PYTHON_EXE" -m pip install "$INSTDIR\prerequisites\virtualenv-16.1.0-py2.py3-none-any.whl"'
   ExecWait '"$PYTHON_EXE" -m virtualenv "$INSTDIR\env"'
 
   # Copy PyQt5 and other Python packages.
   SetOutPath $INSTDIR
-  File /r "${BUILD_DIR}\env"
+  #File /r "${BUILD_DIR}\env"
 
   # Copy the common folder.
   File /r /x *~ /x __pycache__ /x pylintrc /x *.pyc "${SRC_DIR}\common"
@@ -127,18 +140,41 @@ Section "Runtime Environment" SecRuntime
   File "${GIT_DIR}\CHANGELOG.md"
   File "${GIT_DIR}\LICENSE"
 
+  # Copy documentation
+  SetOutPath $INSTDIR\doc
+  File "${BUILD_DIR}\Geomop 1.1.0 reference guide.pdf"
+
   # Set the varible with path to python virtual environment scripts.
   StrCpy $PYTHON_SCRIPTS "$INSTDIR\env\Scripts"
 
+  # Install Markdown.
+  SetOutPath $INSTDIR\prerequisites
+  File "${BUILD_DIR}\Markdown-3.0.1-py2.py3-none-any.whl"
+  ExecWait '"$PYTHON_SCRIPTS\python.exe" -m pip install "$INSTDIR\prerequisites\Markdown-3.0.1-py2.py3-none-any.whl"'
+
+  # Install PyYAML.
+  SetOutPath $INSTDIR\prerequisites
+  File "${BUILD_DIR}\PyYAML-3.13-cp36-cp36m-win_amd64.whl"
+  ExecWait '"$PYTHON_SCRIPTS\python.exe" -m pip install "$INSTDIR\prerequisites\PyYAML-3.13-cp36-cp36m-win_amd64.whl"'
+
+  # Install PyQt5.
+  SetOutPath $INSTDIR\prerequisites
+  File "${BUILD_DIR}\PyQt5_sip-4.19.13-cp36-none-win_amd64.whl"
+  ExecWait '"$PYTHON_SCRIPTS\python.exe" -m pip install "$INSTDIR\prerequisites\PyQt5_sip-4.19.13-cp36-none-win_amd64.whl"'
+  File "${BUILD_DIR}\PyQt5-5.11.3-5.11.2-cp35.cp36.cp37.cp38-none-win_amd64.whl"
+  ExecWait '"$PYTHON_SCRIPTS\python.exe" -m pip install "$INSTDIR\prerequisites\PyQt5-5.11.3-5.11.2-cp35.cp36.cp37.cp38-none-win_amd64.whl"'
+  File "${BUILD_DIR}\QScintilla-2.10.8-5.11.2-cp35.cp36.cp37.cp38-none-win_amd64.whl"
+  ExecWait '"$PYTHON_SCRIPTS\python.exe" -m pip install "$INSTDIR\prerequisites\QScintilla-2.10.8-5.11.2-cp35.cp36.cp37.cp38-none-win_amd64.whl"'
+
   # Install NumPy.
   SetOutPath $INSTDIR\prerequisites
-  File "${BUILD_DIR}\numpy-1.11.3+mkl-cp34-cp34m-win32.whl"
-  ExecWait '"$PYTHON_SCRIPTS\python.exe" -m pip install "$INSTDIR\prerequisites\numpy-1.11.3+mkl-cp34-cp34m-win32.whl"'
+  File "${BUILD_DIR}\numpy-1.13.1+mkl-cp36-cp36m-win_amd64.whl"
+  ExecWait '"$PYTHON_SCRIPTS\python.exe" -m pip install "$INSTDIR\prerequisites\numpy-1.13.1+mkl-cp36-cp36m-win_amd64.whl"'
 
   # Install SciPy.
   SetOutPath $INSTDIR\prerequisites
-  File "${BUILD_DIR}\scipy-0.18.1-cp34-cp34m-win32.whl"
-  ExecWait '"$PYTHON_SCRIPTS\python.exe" -m pip install "$INSTDIR\prerequisites\scipy-0.18.1-cp34-cp34m-win32.whl"'
+  File "${BUILD_DIR}\scipy-0.18.1-cp36-cp36m-win_amd64.whl"
+  ExecWait '"$PYTHON_SCRIPTS\python.exe" -m pip install "$INSTDIR\prerequisites\scipy-0.18.1-cp36-cp36m-win_amd64.whl"'
 
   # Install pyshp.
   SetOutPath $INSTDIR\prerequisites
@@ -152,8 +188,8 @@ Section "Runtime Environment" SecRuntime
 
   # Install psutil.
   SetOutPath $INSTDIR\prerequisites
-  File "${BUILD_DIR}\psutil-5.4.6.tar.gz"
-  ExecWait '"$PYTHON_SCRIPTS\python.exe" -m pip install "$INSTDIR\prerequisites\psutil-5.4.6.tar.gz"'
+  File "${BUILD_DIR}\psutil-5.4.8-cp36-cp36m-win_amd64.whl"
+  ExecWait '"$PYTHON_SCRIPTS\python.exe" -m pip install "$INSTDIR\prerequisites\psutil-5.4.8-cp36-cp36m-win_amd64.whl"'
 
   # Install pyDes.
   SetOutPath $INSTDIR\prerequisites
@@ -188,26 +224,28 @@ Section "Runtime Environment" SecRuntime
   File "${GIT_DIR}\sample\ModelEditor\YamlFiles\flow_vtk_source.yaml"
 
   # Copy the DLLs.
-  SetOutPath "$WINDIR\System32\"
-  File /r "${BUILD_DIR}\dll\"
+  #SetOutPath "$WINDIR\System32\"
+  #File /r "${BUILD_DIR}\dll\"
 
 SectionEnd
 
 
-/*
 # Flow123d with support for GeoMop.
 Section "Flow123d" SecFlow
 
   # Section is mandatory.
   SectionIn RO
 
-  RMDir /r "$INSTDIR\flow123d"
-  SetOutPath $INSTDIR
-  File /r "${BUILD_DIR}\flow123d"
-  ExecWait '"$INSTDIR\flow123d\install.bat"'
+  #RMDir /r "$INSTDIR\flow123d"
+  #SetOutPath $INSTDIR
+  #File /r "${BUILD_DIR}\flow123d"
+  #SetOutPath "$INSTDIR\flow123d"
+  #ExecWait '"$INSTDIR\flow123d\install.bat"'
+  SetOutPath $INSTDIR\prerequisites
+  File "${BUILD_DIR}\flow123d_3.0.1_windows_install.exe"
+  ExecShellWait "" '"$INSTDIR\prerequisites\flow123d_3.0.1_windows_install.exe"'
 
 SectionEnd
-*/
 
 
 Section "-JobsScheduler" SecJobsScheduler
@@ -258,10 +296,10 @@ Section "JobPanel" SecJobPanel
   CreateDirectory "$INSTDIR\JobPanel\versions"
 
   # Grant jobs, lock folder permissions to Users
-  ExecWait 'icacls "$INSTDIR\JobPanel\jobs" /grant *S-1-5-32-545:(F)'
-  ExecWait 'icacls "$INSTDIR\JobPanel\lock" /grant *S-1-5-32-545:(F)'
-  ExecWait 'icacls "$INSTDIR\JobPanel\log" /grant *S-1-5-32-545:(F)'
-  ExecWait 'icacls "$INSTDIR\JobPanel\versions" /grant *S-1-5-32-545:(F)'
+  #ExecWait 'icacls "$INSTDIR\JobPanel\jobs" /grant *S-1-5-32-545:(F)'
+  #ExecWait 'icacls "$INSTDIR\JobPanel\lock" /grant *S-1-5-32-545:(F)'
+  #ExecWait 'icacls "$INSTDIR\JobPanel\log" /grant *S-1-5-32-545:(F)'
+  #ExecWait 'icacls "$INSTDIR\JobPanel\versions" /grant *S-1-5-32-545:(F)'
 
 SectionEnd
 
@@ -352,7 +390,7 @@ Section "Start Menu shortcuts" SecStartShortcuts
 
   IfFileExists "$INSTDIR\JobPanel\job_panel.py" 0 +3
     SetOutPath $INSTDIR\JobPanel
-    CreateShortcut "$SMPROGRAMS\GeoMop\JobPanel.lnk" "$INSTDIR\bin\pythonw.bat" '"$INSTDIR\JobPanel\job_panel.py"' "$INSTDIR\gm_base\resources\icons\ico\jp-geomap.ico" 0
+    CreateShortcut "$SMPROGRAMS\GeoMop\JobPanel.lnk" "$INSTDIR\bin\pythonw.bat" '"$INSTDIR\JobPanel\job_panel.py"' "$INSTDIR\gm_base\resources\icons\ico\geomap.ico" 0
 
   IfFileExists "$INSTDIR\LayerEditor\layer_editor.py" 0 +3
     SetOutPath $INSTDIR\LayerEditor
@@ -369,7 +407,7 @@ Section "Desktop icons" SecDesktopIcons
 
   IfFileExists "$INSTDIR\JobPanel\job_panel.py" 0 +3
     SetOutPath $INSTDIR\JobPanel
-    CreateShortCut "$DESKTOP\JobPanel.lnk" "$INSTDIR\bin\pythonw.bat" '"$INSTDIR\JobPanel\job_panel.py"' "$INSTDIR\gm_base\resources\icons\ico\jp-geomap.ico" 0
+    CreateShortCut "$DESKTOP\JobPanel.lnk" "$INSTDIR\bin\pythonw.bat" '"$INSTDIR\JobPanel\job_panel.py"' "$INSTDIR\gm_base\resources\icons\ico\geomap.ico" 0
 
   IfFileExists "$INSTDIR\LayerEditor\layer_editor.py" 0 +3
     SetOutPath $INSTDIR\LayerEditor
@@ -395,11 +433,11 @@ Section "-Default resources data" SecDefaultResourcesData
   # Section is mandatory.
   SectionIn RO
 
-  IfFileExists "${APP_HOME_DIR}" +4 0
+  IfFileExists "${APP_HOME_DIR}" +2 0
     CreateDirectory "${APP_HOME_DIR}"
     # fill data home to default resources data
-    SetOutPath "${APP_HOME_DIR}"
-    File /r "${DATA_DIR}/*"
+    #SetOutPath "${APP_HOME_DIR}"
+    #File /r "${DATA_DIR}/*"
 
 SectionEnd
 
@@ -412,13 +450,13 @@ Section -post
   WriteUninstaller "uninstall.exe"
 
   ; Write the installation path into the registry
-  WriteRegStr HKLM SOFTWARE\GeoMop "Install_Dir" "$INSTDIR"
+  WriteRegStr HKCU SOFTWARE\GeoMop "Install_Dir" "$INSTDIR"
   
   ; Write the uninstall keys for Windows
-  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\GeoMop" "DisplayName" "GeoMop"
-  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\GeoMop" "UninstallString" "$\"$INSTDIR\uninstall.exe$\""
-  WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\GeoMop" "NoModify" 1
-  WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\GeoMop" "NoRepair" 1
+  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\GeoMop" "DisplayName" "GeoMop"
+  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\GeoMop" "UninstallString" "$\"$INSTDIR\uninstall.exe$\""
+  WriteRegDWORD HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\GeoMop" "NoModify" 1
+  WriteRegDWORD HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\GeoMop" "NoRepair" 1
   
 SectionEnd
 
@@ -426,9 +464,9 @@ SectionEnd
 # Section description text.
 !insertmacro MUI_FUNCTION_DESCRIPTION_BEGIN
 !insertmacro MUI_DESCRIPTION_TEXT ${SecRuntime} \
-"The runtime environment for GeoMop - Python 3.4 with PyQt5."
-# !insertmacro MUI_DESCRIPTION_TEXT ${SecFlow} \
-# "Flow123d with support for GeoMop."
+"The runtime environment for GeoMop - Python 3.6 with PyQt5."
+!insertmacro MUI_DESCRIPTION_TEXT ${SecFlow} \
+"Flow123d with support for GeoMop."
 !insertmacro MUI_DESCRIPTION_TEXT ${SecJobsScheduler} \
 "Remove jobs scheduler."
 !insertmacro MUI_DESCRIPTION_TEXT ${SecAnalysis} \
@@ -458,8 +496,8 @@ SectionEnd
 Section "Uninstall"
   
   # Remove registry keys
-  DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\GeoMop"
-  DeleteRegKey HKLM SOFTWARE\GeoMop
+  DeleteRegKey HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\GeoMop"
+  DeleteRegKey HKCU SOFTWARE\GeoMop
 
   # Delete desktop icons.
   Delete "$DESKTOP\JobPanel.lnk"
@@ -468,6 +506,9 @@ Section "Uninstall"
 
   # Remove start menu shortcuts.
   RMDir /r "$SMPROGRAMS\GeoMop"
+
+  # Uninstall Flow123d
+  #ExecWait '"$INSTDIR\flow123d\uninstall.bat"'
 
   # Remove GeoMop installation directory and all files within.
   RMDir /r "$INSTDIR"

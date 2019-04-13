@@ -1,4 +1,4 @@
-flow123d_version:
+flow123d_version: 2.2.0
 problem: !Coupling_Sequential
   description:
   mesh:

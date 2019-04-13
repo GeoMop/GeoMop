@@ -249,7 +249,7 @@ class LineAnalyzer:
 
     @staticmethod
     def get_autocomplete_context(line, index):
-        """Create autocomplete context for this line at give cursor position.
+        """Create autocomplete context for this line at given cursor position.
 
         :param str line: line of text
         :param int index: position of cursor in the line

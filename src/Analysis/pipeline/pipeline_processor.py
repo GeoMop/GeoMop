@@ -143,23 +143,6 @@ class Pipelineprocessor():
             self._action_lock.release()
             return ret
 
-        @staticmethod
-        def __read_err(err):
-            """read error from input"""
-            try:
-                import fdpexpect
-                import pexpect
-                
-                fd = fdpexpect.fdspawn(err)
-                txt = fd.read_nonblocking(size=10000, timeout=5)
-                txt = str(txt, 'utf-8').strip()
-            except pexpect.TIMEOUT:
-                return None
-            except Exception as err:
-                logger.warning("Task output error:" + str(err))
-                return None
-            return txt
-        
         def run(self):
             """worker thread"""
             while True:
@@ -187,7 +170,7 @@ class Pipelineprocessor():
                             process = subprocess.Popen(runner.command, stderr=subprocess.PIPE, cwd=runner.work_dir)
                             return_code = process.poll()
                             if return_code is not None:
-                                out =  self.__read_err(process.stderr)
+                                out = process.stderr.read().decode(errors="replace")
                                 err = "Can not start action {0}(return code:{1} ,stderr:{2}".format(
                                     self._action. _get_instance_name(), str(return_code), out)
                                 logger.error(err)

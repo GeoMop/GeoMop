@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=GeoMop - Job Panel
+Comment=Manager for running remote jobs
+Exec=geomop-jp %U
+Terminal=false
+Type=Application
+MimeType=text/plain;
+Icon=/usr/share/geomop/src/gm_base/resources/icons/geomap_128.png
+Categories=TextEditor;Development;
+StartupNotify=true

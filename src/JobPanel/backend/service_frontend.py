@@ -6,9 +6,10 @@ from .path_converter import if_win_win2lin_conv_path
 from JobPanel.services.backend_service import MJReport
 from JobPanel.services.multi_job_service import MJStatus
 from JobPanel.ui.data.mj_data import MultiJobState
-from JobPanel.data.states import TaskStatus as GuiTaskStatus
+from JobPanel.data.states import TaskStatus
 from JobPanel.data.secret import Secret
 from JobPanel.communication import Installation
+from gm_base.global_const import GEOMOP_INTERNAL_DIR_NAME
 
 import threading
 import time
@@ -17,6 +18,7 @@ import os
 import json
 import sys
 import random
+import psutil
 
 
 class ServiceFrontend(ServiceBase):
@@ -51,7 +53,7 @@ class ServiceFrontend(ServiceBase):
         geomop_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
         geomop_analysis_workspace = data_app.workspaces.get_path()
         workspace = ""
-        config_file_name = "_frontend_service.conf"
+        config_file_name = GEOMOP_INTERNAL_DIR_NAME + "/frontend_service.conf"
 
         # try load frontend service config file
         file = os.path.join(geomop_analysis_workspace,
@@ -98,21 +100,6 @@ class ServiceFrontend(ServiceBase):
         self._mj_report_time = 0.0
         """Last time request_get_mj_report sent"""
 
-
-        # Interface old
-        ###############
-        self._start_jobs = []
-        """array of job ids, that will be started"""
-        self._delete_jobs = []
-        """array of jobs ids, that will be stopped"""
-        self._run_jobs = []
-        """array of running jobs ids"""
-        self._state_change_jobs = []
-        """array of jobs ids, that have changed state"""
-        self._results_change_jobs = []
-        """array of jobs ids, that have changed results"""
-        self._jobs_change_jobs = []
-        """array of jobs ids, that have changed jobs state"""
         self._jobs_deleted = {}
         """
         Dictionary of jobs ids=>None (ids=>error), that was deleted data.
@@ -123,9 +110,6 @@ class ServiceFrontend(ServiceBase):
         Dictionary of jobs ids=>None (ids=>error), that was downloaded data.
         If job was not downloaded, in dictionary value is error text.
         """
-        self._logs_change_jobs=[]
-        """array of jobs ids, that have changed jobs logs"""
-
 
         self._data_app = data_app
         self._backend_proxy = None
@@ -186,29 +170,29 @@ class ServiceFrontend(ServiceBase):
                 self._mj_report[k] = v
 
                 # update MJ data
-                status = GuiTaskStatus.none
+                status = TaskStatus.none
                 if v.proxy_stopped:
-                    status = GuiTaskStatus.stopped
+                    status = TaskStatus.stopped
                 elif v.service_status == ServiceStatus.queued:
                     if v.proxy_stopping:
-                        status = GuiTaskStatus.stopping
+                        status = TaskStatus.stopping
                     else:
-                        status = GuiTaskStatus.queued
+                        status = TaskStatus.queued
                 elif v.service_status == ServiceStatus.running:
                     if v.proxy_stopping:
-                        status = GuiTaskStatus.stopping
+                        status = TaskStatus.stopping
                     else:
-                        status = GuiTaskStatus.running
+                        status = TaskStatus.running
                 elif v.service_status == ServiceStatus.done:
                     if v.mj_status == MJStatus.success:
-                        status = GuiTaskStatus.finished
+                        status = TaskStatus.finished
                     elif v.mj_status == MJStatus.error:
-                        status = GuiTaskStatus.error
+                        status = TaskStatus.error
                     elif v.mj_status == MJStatus.stopping:
-                        status = GuiTaskStatus.stopped
+                        status = TaskStatus.stopped
                     else:
                         # todo: divny, nemelo by nikdy nastat
-                        status = GuiTaskStatus.running
+                        status = TaskStatus.running
 
                 run_interval = 0.0
                 if v.done_time:
@@ -230,6 +214,10 @@ class ServiceFrontend(ServiceBase):
 
                 self._mj_changed_state.add(k)
 
+        # remove old items
+        for k in [k for k in self._mj_report.keys() if k not in new_mj_report]:
+            del self._mj_report[k]
+
     def _process_delete_answers(self):
         """
         Process answers from request_delete_mj.
@@ -246,6 +234,8 @@ class ServiceFrontend(ServiceBase):
                         logging.error("Error in delete mj")
                     else:
                         self._jobs_deleted[item[0]] = res["data"]
+                        if item[0] in self._mj_report:
+                            del self._mj_report[item[0]]
                     done = False
                     break
 
@@ -268,24 +258,16 @@ class ServiceFrontend(ServiceBase):
                     done = False
                     break
 
-    # Interface old
-    ###############
-    def poll(self):
+    def _get_free_tcp_port(self):
         """
-        This function plans and makes all the needed actions in the main thread.
-        Function should be called periodically from the UI.
+        Returns free tcp port.
+        :return:
         """
-        pass
-
-    def pause_all(self):
-        """Pause all running and starting jobs (use when app is closing)."""
-        pass
-
-    def stop_all(self):
-        """stop all running and starting jobs"""
-        pass
-
-
+        while True:
+            occupied_ports = [con.laddr.port for con in psutil.net_connections(kind="tcp")]
+            port = random.randrange(30001, 60000)
+            if port not in occupied_ports:
+                return port
 
     def start_backend(self):
         """
@@ -293,7 +275,7 @@ class ServiceFrontend(ServiceBase):
         :return:
         """
         workspace = ""
-        config_file_name = "_backend_service.conf"
+        config_file_name = GEOMOP_INTERNAL_DIR_NAME + "/backend_service.conf"
 
         # kill old backend container
         self.kill_backend()
@@ -353,12 +335,15 @@ class ServiceFrontend(ServiceBase):
         # win workaround
         if sys.platform == "win32":
             container_port = 33033
-            host_port = random.randrange(30001, 60000)
-            service_data["process"]["docker_port_expose"] = [host_port, container_port]
+            host_port = self._get_free_tcp_port()
+            host_interface = "127.0.0.1"
+            service_data["process"]["docker_port_expose"] = [host_interface, host_port, container_port]
 
             service_data["requested_listen_port"] = container_port
 
-            service_data["listen_address_substitute"] = ["192.168.99.100", host_port]
+            service_data["listen_address_substitute"] = [host_interface, host_port]
+
+            #service_data["process"]["fterm_path"] = os.path.join(self.get_geomop_root(), "flow123d\\bin\\fterm.bat")
 
         # start backend
         child_id = self.request_start_child(service_data)
@@ -382,8 +367,10 @@ class ServiceFrontend(ServiceBase):
             executor = ProcessDocker({"process_id": self.backend_process_id})
             executor.kill()
 
-    # Interface new
-    ###############
+    def get_backend_status(self):
+        """Returns True if backend is online."""
+        return (self._backend_proxy is not None) and self._backend_proxy._online
+
     def mj_start(self, mj_id):
         """Start multijob"""
         err, mj_conf = config_builder.build(self._data_app, mj_id)
@@ -391,9 +378,11 @@ class ServiceFrontend(ServiceBase):
         # error handling
         preset = self._data_app.multijobs[mj_id].preset
         mj_config_path = Installation.get_config_dir_static(preset.name, preset.analysis)
+        mj_config_path_conf = os.path.join(mj_config_path, GEOMOP_INTERNAL_DIR_NAME)
         file = "mj_preparation.log"
         try:
-            with open(os.path.join(mj_config_path, file), 'w') as fd:
+            os.makedirs(mj_config_path_conf, exist_ok=True)
+            with open(os.path.join(mj_config_path_conf, file), 'w') as fd:
                 if len(err) > 0:
                     fd.write("Errors in MJ preparation:\n")
                     for e in err:
@@ -404,7 +393,7 @@ class ServiceFrontend(ServiceBase):
             pass
         if len(err) > 0:
             mj = self._data_app.multijobs[mj_id]
-            mj.state.status = GuiTaskStatus.error
+            mj.state.status = TaskStatus.error
             mj.state.update_time = time.time()
             self._mj_changed_state.add(mj_id)
             return
@@ -438,6 +427,10 @@ class ServiceFrontend(ServiceBase):
         ret = list(self._mj_changed_state)
         self._mj_changed_state.clear()
         return ret
+
+    def get_mj_delegator_online(self):
+        """Returns dict of MJ delegator online"""
+        return {k: v.delegator_online for k, v in self._mj_report.items()}
 
     def ssh_test(self, ssh):
         """Performs ssh test"""

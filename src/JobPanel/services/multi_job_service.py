@@ -14,6 +14,7 @@ from JobPanel.backend.json_data import JsonData, ClassFactory, JsonDataNoConstru
 from JobPanel.backend.connection import ConnectionStatus, SSHError
 from Analysis.pipeline.pipeline_processor import Pipelineprocessor
 from Analysis.pipeline import *
+from gm_base.global_const import GEOMOP_INTERNAL_DIR_NAME
 
 
 class MJStatus(enum.IntEnum):
@@ -186,11 +187,13 @@ class MultiJob(ServiceBase):
         # copy files from reuse MJ
         identical_list = None
         if (self.reuse_mj != "") and self.copy_reuse_mj():
-            identical_list = "_identical_list.json"
+            identical_list = os.path.join(GEOMOP_INTERNAL_DIR_NAME, "identical_list.json")
 
         # pipeline processor
         log_level = logging.INFO if self.log_all else logging.WARNING
-        self._pipeline_processor = Pipelineprocessor(pipeline, log_level=log_level, identical_list=identical_list)
+        self._pipeline_processor = Pipelineprocessor(pipeline, log_level=log_level,
+                                                     save_path=GEOMOP_INTERNAL_DIR_NAME,
+                                                     identical_list=identical_list)
 
         # validation
         err = self._pipeline_processor.validate()
@@ -206,7 +209,7 @@ class MultiJob(ServiceBase):
     # todo: it should be run in LongRequest
     def copy_reuse_mj(self):
         # test if identical list exist
-        if not os.path.isfile("_identical_list.json"):
+        if not os.path.isfile(os.path.join(GEOMOP_INTERNAL_DIR_NAME, "identical_list.json")):
             return False
 
         # test if reuse MJ exist
@@ -214,15 +217,15 @@ class MultiJob(ServiceBase):
         if not os.path.isdir(reuse_mj_dir):
             return False
 
-        # test if reuse backup dir exist
-        reuse_backup_dir = os.path.join(reuse_mj_dir, "backup")
-        if not os.path.isdir(reuse_backup_dir):
+        # test if reuse store dir exist
+        store_dir = os.path.join(GEOMOP_INTERNAL_DIR_NAME, "store")
+        reuse_store_dir = os.path.join(reuse_mj_dir, store_dir)
+        if not os.path.isdir(reuse_store_dir):
             return False
 
-        # copy backup dir
-        backup_dir = "backup"
-        shutil.rmtree(backup_dir, ignore_errors=True)
-        shutil.copytree(reuse_backup_dir, backup_dir)
+        # copy store dir
+        shutil.rmtree(store_dir, ignore_errors=True)
+        shutil.copytree(reuse_store_dir, store_dir)
 
         # copy output dirs
         for dir in os.listdir(reuse_mj_dir):
@@ -282,7 +285,7 @@ class MultiJob(ServiceBase):
         #os.makedirs(os.path.join(analysis_workspace, job_dir), exist_ok=True)
         service_data["workspace"] = job_dir
 
-        service_data["config_file_name"] = "_job_service.conf"
+        service_data["config_file_name"] = GEOMOP_INTERNAL_DIR_NAME + "/job_service.conf"
 
         # copy action input files
         # already prepared by analysis
@@ -456,7 +459,7 @@ class MultiJob(ServiceBase):
                          os.path.join(rem_an_work, self._jobs[job_id].job_dir))
 
             # log file
-            con.download([os.path.join(self._jobs[job_id].job_dir, "job_service.log")],
+            con.download([os.path.join(self._jobs[job_id].job_dir, GEOMOP_INTERNAL_DIR_NAME, "job_service.log")],
                          loc_an_work,
                          rem_an_work)
         except (SSHError, FileNotFoundError, PermissionError):
@@ -484,13 +487,13 @@ class MultiJob(ServiceBase):
 
 
 if __name__ == "__main__":
-    logging.basicConfig(filename='mj_service.log', filemode="w",
+    logging.basicConfig(filename=os.path.join(GEOMOP_INTERNAL_DIR_NAME, "mj_service.log"), filemode="w",
                         format='%(asctime)s %(levelname)-8s %(name)-12s %(message)s',
                         level=logging.INFO)
 
 
     try:
-        input_file = "_mj_service.conf"
+        input_file = os.path.join(GEOMOP_INTERNAL_DIR_NAME, "mj_service.conf")
         with open(input_file, "r") as f:
             config = json.load(f)
 

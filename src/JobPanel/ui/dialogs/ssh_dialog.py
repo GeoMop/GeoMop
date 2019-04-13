@@ -36,6 +36,19 @@ class SshDialog(AFormContainer):
         self.ui.validator.connect(self.valid)
 
         self.preset = None
+
+        self.parent = parent
+
+        self.ui.nameLineEdit.textChanged.connect(self.handle_data_changed)
+        self.ui.hostLineEdit.textChanged.connect(self.handle_data_changed)
+        self.ui.geomop_rootLineEdit.textChanged.connect(self.handle_data_changed)
+        self.ui.workspaceLineEdit.textChanged.connect(self.handle_data_changed)
+        self.ui.userLineEdit.textChanged.connect(self.handle_data_changed)
+        self.ui.passwordLineEdit.textChanged.connect(self.handle_data_changed)
+        self.ui.rememberPasswordCheckbox.stateChanged.connect(self.handle_data_changed)
+        self.ui.pbsSystemComboBox.currentIndexChanged.connect(self.handle_data_changed)
+
+        self.edit_enable(False)
        
     def first_focus(self):
         """
@@ -155,8 +168,8 @@ class SshDialog(AFormContainer):
             self.valid()
         else:
             self.ui.nameLineEdit.setText("charon")
-            self.ui.hostLineEdit.setText("charon-ft.nti.tul.cz")
-            self.ui.geomop_rootLineEdit.setText('/storage/liberec1-tul/home/radeksrb/geomop_1.1.0')
+            self.ui.hostLineEdit.setText("charon.nti.tul.cz")
+            self.ui.geomop_rootLineEdit.setText('/storage/liberec3-tul/home/radeksrb/geomop_1.1.0')
             self.ui.workspaceLineEdit.setText('workspace')
             self.ui.userLineEdit.clear()
             self.ui.passwordLineEdit.clear()
@@ -174,8 +187,23 @@ class SshDialog(AFormContainer):
             self.ui.pbsSystemComboBox.setCurrentIndex(1)
 
             #self.ui.envPresetComboBox.setCurrentIndex(-1)
-        return 
-            
+        self.update_test_labels()
+        self.edit_enable(True)
+
+    def edit_enable(self, enable=True):
+        self.ui.nameLineEdit.setEnabled(enable)
+        self.ui.hostLineEdit.setEnabled(enable)
+        self.ui.geomop_rootLineEdit.setEnabled(enable)
+        self.ui.workspaceLineEdit.setEnabled(enable)
+        self.ui.userLineEdit.setEnabled(enable)
+        self.ui.passwordLineEdit.setEnabled(enable)
+        self.ui.rememberPasswordCheckbox.setEnabled(enable)
+        self.ui.pbsSystemComboBox.setEnabled(enable)
+        self.ui.btnTest.setEnabled(enable)
+
+        if enable:
+            self.ui._handle_remember_password_checkbox_changed()
+
     def set_data_container(self, data, frontend_service):
         self.data = data
         self.frontend_service = frontend_service
@@ -208,6 +236,10 @@ class SshDialog(AFormContainer):
                 
     def handle_test(self):
         """Do ssh connection test"""
+        if self.is_dirty():
+            if not self.parent._handle_save_preset_action():
+                return
+
         preset = self.get_data()['preset']
         if not preset.to_pc:
             dialog = SshPasswordDialog(None, preset)
@@ -217,8 +249,52 @@ class SshDialog(AFormContainer):
                 return
         else:
             preset.pwd = self.ui.passwordLineEdit.text()
-        dialog = TestSSHDialog(self.ui.mainVerticalLayoutWidget, preset, self.frontend_service)
+        dialog = TestSSHDialog(self.parent, preset, self.frontend_service)
         dialog.exec_()
+        if dialog.finished and (dialog.res_data is not None) and (not dialog.res_data["errors"]):
+            self.parent.presets[preset.name].tested = True
+            self.parent.presets[preset.name].home_dir = dialog.res_data["home_dir"]
+            if "version" in dialog.res_data["installation_info"]:
+                self.parent.presets[preset.name].geomop_version = dialog.res_data["installation_info"]["version"]
+            else:
+                self.parent.presets[preset.name].geomop_version = ""
+            if "revision" in dialog.res_data["installation_info"]:
+                self.parent.presets[preset.name].geomop_revision = dialog.res_data["installation_info"]["revision"]
+            else:
+                self.parent.presets[preset.name].geomop_revision = ""
+            if "executables" in dialog.res_data["installation_info"]:
+                self.parent.presets[preset.name].executables = \
+                    [e["name"] for e in dialog.res_data["installation_info"]["executables"]]
+            else:
+                self.parent.presets[preset.name].executables = []
+            self.parent.presets.save()
+        else:
+            self.parent.presets[preset.name].tested = False
+            self.parent.presets[preset.name].home_dir = ""
+            self.parent.presets[preset.name].executables = []
+            self.parent.presets.save()
+        self.update_test_labels()
+
+    def handle_data_changed(self):
+        self.update_test_labels()
+
+    def update_test_labels(self):
+        exec_text = "Available executables:\n"
+        version_text = "GeoMop version: "
+        revision_text = "GeoMop revision: "
+        if self.parent.presets and (not self.is_dirty()) and self.preset.name in self.parent.presets and \
+                self.parent.presets[self.preset.name].tested:
+            self.ui.testedLabel.setText("The connection is tested.")
+            self.ui.testedLabel.setStyleSheet("QLabel { color : green; }")
+            version_text += self.parent.presets[self.preset.name].geomop_version
+            revision_text += self.parent.presets[self.preset.name].geomop_revision[:10]
+            exec_text += ", ".join(self.parent.presets[self.preset.name].executables)
+        else:
+            self.ui.testedLabel.setText("The connection must be tested before use.")
+            self.ui.testedLabel.setStyleSheet("QLabel { color : red; }")
+        self.ui.availableExecutablesLabel.setText(exec_text)
+        self.ui.geomopVersionLabel.setText(version_text)
+        self.ui.geomopRevisionLabel.setText(revision_text)
 
 
 class UiSshDialog():
@@ -281,7 +357,7 @@ class UiSshDialog():
         # 3 row
         self.geomop_rootLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
         self.geomop_rootLabel.setText("GeoMop root directory:")
-        self.geomop_rootLabel.setToolTip("Absolute path to GeoMop installation on remote server.")
+        self.geomop_rootLabel.setToolTip("Absolute path to GeoMop installation on the remote server.")
         self.formLayout.setWidget(3, QtWidgets.QFormLayout.LabelRole,
                                   self.geomop_rootLabel)
         self.geomop_rootLineEdit = QtWidgets.QLineEdit(self.mainVerticalLayoutWidget)
@@ -294,8 +370,8 @@ class UiSshDialog():
         # 4 row
         self.workspaceLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
         self.workspaceLabel.setText("Analysis workspace directory:")
-        self.workspaceLabel.setToolTip("Absolute or relative (relative to user home) path on remote server "
-                                       "to directory where will be stored remote computations.")
+        self.workspaceLabel.setToolTip("Absolute or relative (to user's home) path\n "
+                                       "to the workspace on the remote server.")
         self.formLayout.setWidget(4, QtWidgets.QFormLayout.LabelRole,
                                   self.workspaceLabel)
         self.workspaceLineEdit = QtWidgets.QLineEdit(self.mainVerticalLayoutWidget)
@@ -379,12 +455,26 @@ class UiSshDialog():
                                    
         # 9 row
         self.btnTest = QtWidgets.QPushButton(dialog)
-        self.btnTest.setText("Test Connection")
+        self.btnTest.setText("Save and Test")
         #self.btnTest.setEnabled(False)
         self.formLayout.setWidget(9, QtWidgets.QFormLayout.FieldRole,
                                    self.btnTest)
                                    
         self.btnTest.clicked.connect(parent.handle_test)
+
+        self.testedLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
+        self.testedLabel.setWordWrap(True)
+        self.formLayout.setWidget(10, QtWidgets.QFormLayout.SpanningRole, self.testedLabel)
+
+        self.geomopVersionLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
+        self.formLayout.setWidget(11, QtWidgets.QFormLayout.SpanningRole, self.geomopVersionLabel)
+
+        self.geomopRevisionLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
+        self.formLayout.setWidget(12, QtWidgets.QFormLayout.SpanningRole, self.geomopRevisionLabel)
+
+        self.availableExecutablesLabel = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
+        self.availableExecutablesLabel.setWordWrap(True)
+        self.formLayout.setWidget(13, QtWidgets.QFormLayout.SpanningRole, self.availableExecutablesLabel)
 
         return self.formLayout
 

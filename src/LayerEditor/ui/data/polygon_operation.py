@@ -75,7 +75,7 @@ class PolygonOperation():
         self.decomposition.remove_free_point(point.de_id)
         
     def add_line(self, diagram, line, label=None, not_history=True):
-        """Add new point to decomposition"""
+        """Add new line to decomposition"""
         if self.tmp_line is not None:
             segment = self.decomposition.new_segment(
                 self.decomposition.points[self.tmp_line.p1.de_id], 
@@ -338,7 +338,7 @@ class PolygonOperation():
         diagram.del_polygon(spolygon, label, not_history)
 
     def _split_polygon(self, diagram, polygon_id, polygon_old_id, label, not_history):
-        """split poligon"""
+        """split polygon"""
         self._reload_boundary(diagram, polygon_old_id)
         self._fix_lines(diagram, polygon_id, polygon_old_id)
         self._add_polygon(diagram, polygon_id, label, not_history, polygon_old_id)

@@ -304,71 +304,35 @@ class YamlEditorWidget(QsciScintilla):
             to_col -= self.tabWidth()
             self.setSelection(from_line, from_col, to_line, to_col)
 
-    def comment(self, line):
-        """Toggle comment for selected lines.
-        
-        If var. line is not none and line is in selected lines, toggle
-        comment for selected lines else line comment in var. line.        
-        If  is var. line is none no line and selected, toggle comment 
-       for the current line.
-
-        If no line is selected, toggle comment for current line.
+    def comment(self):
+        """
+        Toggle comment for selected lines.
         """
         with self.reload_chunk:
-            from_line, from_col, to_line, to_col = self.getSelection()
+            orig_sel = from_line, from_col, to_line, to_col = self.getSelection()
             
             nothing_selected = from_line == -1
-            if not nothing_selected and \
-                line is not None and \
-                (line<from_line or line>to_line):
-                nothing_selected = True
             if nothing_selected:
-                # apply to current line
-                if line is None:
-                    line, __ = self.getCursorPosition()                    
-                t_from_line = t_to_line = line
+                line, __ = self.getCursorPosition()
+                from_line = to_line = line
             else:
-                t_from_line = from_line
-                t_to_line = to_line
-            # prepare lines with and without comment
-            is_comment = True
-            lines_without_comment = []
-            lines_with_comment = []
-            b_shift=0
-            e_shift=0
-            
-            for line_index in range(t_from_line, t_to_line + 1):
-                line = self.text(line_index).replace('\n', '')
-                lines_with_comment.append('# ' + line)
-                if LineAnalyzer.begins_with_comment(line):   
-                    new_line = LineAnalyzer.uncomment(line)
-                    lines_without_comment.append(new_line)
-                    if  line_index == t_from_line:
-                        b_shift=len(new_line)-len(line)
-                    if  line_index == t_to_line:
-                        e_shift=len(new_line)-len(line)
-                else:                    
-                    is_comment = False
+                # Block ending at line start end at previous line.
+                if to_col == 0:
+                    to_line -= 1
 
-            # replace the selection with the toggled comment
-            self.setSelection(t_from_line, 0, t_to_line + 1, 0)  # select entire text
-            if is_comment:  # check if comment is applied to all lines
-                lines_without_comment.append('')
-                self.replaceSelectedText('\n'.join(lines_without_comment))
-            else:  # not a comment already - prepend all lines with '# '
-                if from_col==0:
-                    b_shift=0
-                else:
-                    b_shift=2
-                e_shift=2
-                lines_with_comment.append('')
-                self.replaceSelectedText('\n'.join(lines_with_comment))                
-            if nothing_selected and from_line!=-1:
-                self.setSelection(from_line, from_col, to_line, to_col)
-            elif not nothing_selected:
-                from_col += b_shift
-                to_col += e_shift
-                self.setSelection(from_line, from_col, to_line, to_col)
+            lines = [self.text(il).rstrip('\n') for il in range(from_line, to_line + 1)]
+            all_lines_commented = all([ LineAnalyzer.begins_with_comment(line) for line in lines])
+            if all_lines_commented:
+                lines = [LineAnalyzer.uncomment(line) for line in lines]
+            else:
+                lines = ['# ' + line for line in lines]
+
+            self.setSelection(from_line, 0, to_line+1, 0)
+            lines.append('')
+            self.replaceSelectedText('\n'.join(lines))
+
+            if not nothing_selected:
+                self.setSelection(*orig_sel)
 
     def undo(self):
         """Undo a single reload."""
@@ -382,8 +346,8 @@ class YamlEditorWidget(QsciScintilla):
 
     def copy(self):
         """Copy to clipboard."""
-        with self.reload_chunk:
-            super(YamlEditorWidget, self).copy()
+        #if reload chunk is used then the info_panel will be also reloaded
+        super(YamlEditorWidget, self).copy()
 
     def cut(self):
         """Cut to clipboard."""
@@ -500,7 +464,8 @@ class YamlEditorWidget(QsciScintilla):
         if node is None:
             line, index = self.getCursorPosition()
             node = cfg.get_data_node(Position(line + 1, index + 1))
-        self._valid_bounds = self._pos.node_init(node, self)
+        if node is not None:
+            self._valid_bounds = self._pos.node_init(node, self)
 
 # -------------------------- AUTOCOMPLETE ---------------------------------
 
@@ -714,16 +679,19 @@ class YamlEditorWidget(QsciScintilla):
         for shortcut_name, action in actions:
             shortcut = cfg.get_shortcut(shortcut_name)
             if shortcut.matches_key_event(event):
-                return action()
+                if shortcut_name == 'copy' and not self.hasSelectedText():
+                    return super(YamlEditorWidget, self).keyPressEvent(event)
+                else:
+                    return action()
 
         return super(YamlEditorWidget, self).keyPressEvent(event)
 
     def contextMenuEvent(self, event):
         """Override default context menu of Scintilla."""
-        line = None
-        if event.reason()==QContextMenuEvent.Mouse:
-            line=self.lineAt(event.pos())
-        context_menu = EditMenu(self, self, line)
+        # line = None
+        # if event.reason()==QContextMenuEvent.Mouse:
+        #     line=self.lineAt(event.pos())
+        context_menu = EditMenu(self, self)
         context_menu.exec_(event.globalPos())
         event.accept()
 
@@ -980,8 +948,6 @@ class EditorPosition:
             number is for intendation purpose"""
         self._new_line_indent = None
         """indentation for  new array item operation"""
-        self._old_line_prefix = None
-        """indentation for  old array item operation"""
         self._spec_char = ""
         """make special char operation"""
         self.fatal = False
@@ -993,28 +959,46 @@ class EditorPosition:
 
     def new_line_completation(self, editor):
         """Add specific symbols to start of line when new line was added.
-
-        ``_old_line_prefix`` is set to indentation and new array (-)
-        symbol if need be.
         """
         if editor.lines() > len(self._old_text) and editor.lines() > self.line + 1:
+            tab_width = LineAnalyzer.TAB_WIDTH
             self._old_line_indent = self.line
-            pre_line = editor.text(self.line)
+            pre_line = LineAnalyzer.strip_comment(editor.text(self.line)).rstrip()
+            curr_line_index = self.line
+
+            # find previous non-empty line and erase whitespaces from the end
+            while LineAnalyzer.is_empty(pre_line) and curr_line_index > 0:
+                curr_line_index -= 1
+                pre_line = LineAnalyzer.strip_comment(editor.text(curr_line_index)).rstrip()
+
+            # get last node on line
+            node = cfg.get_data_node(Position(curr_line_index + 1, len(pre_line)))
+
+            if node is None:
+                node = self.node
+
             indent = LineAnalyzer.get_indent(pre_line)
-            index = pre_line.find("- ")
-            if index > -1 and index == indent:
-                indent_bullet = ("- " if cfg.config.symbol_completion else "")
-                if self.node is None or  \
-                   self.node.implementation != DataNode.Implementation.scalar or \
-                   not StructureAnalyzer.is_edit_parent_array(self.node):
-                    self._new_line_indent = indent*' '+"  "
+            index = pre_line.find("-")
+            indent_bullet = ("- " if cfg.config.symbol_completion else "")
+
+            # if this is first line after sequence keyword than add '- '
+            if node is not None and \
+                    node.implementation == DataNode.Implementation.sequence and \
+                    pre_line.find(node.key.value + ':') > -1:
+                self._new_line_indent = (indent + tab_width) * ' ' + indent_bullet
+
+            elif index > -1 and index == indent:
+                # if last line contained '-' at the beginning, add '- ' to the new line
+                if (node is not None and
+                        pre_line.find(':') == -1 and
+                        pre_line.find('!') == -1):
+                    self._new_line_indent = indent * ' ' + indent_bullet
                 else:
-                    self._new_line_indent = indent*' ' + indent_bullet
-                self._old_line_prefix = indent*' ' + indent_bullet
+                    self._new_line_indent = (indent + tab_width) * ' '
+
             else:
-                self._new_line_indent = indent*' '
-            self._old_line_prefix = indent*' '
-            
+                self._new_line_indent = indent * ' '
+
     def make_post_operation(self, editor, line, index):
         """Complete special chars after text is updated and
         fix parent if new line is added (new_line_completation
@@ -1036,9 +1020,10 @@ class EditorPosition:
                     if self.node is not None:
                         na = NodeAnalyzer(self._old_text, self.node)
                     else:
-                        na = NodeAnalyzer(self._old_text, cfg.root)                
+                        na = NodeAnalyzer(self._old_text, cfg.root)
+
                     self.pred_parent = na.get_parent_for_unfinished(self.line, self.index,
-                                                                    editor.text(self.line))                    
+                                                                    editor.text(self.line))
             self._old_line_indent = None
         if cfg.config.symbol_completion and self._spec_char != "" and editor.lines() > line:
             editor.insertAt(self._spec_char, line, index)
@@ -1209,6 +1194,7 @@ class EditorPosition:
     def reload_autocompletion(self, editor):
         """Create new autocomplete options when newline is added."""
         node = None
+
         if editor.pred_parent is not None:
             node = editor.pred_parent
         elif self.node is not None:

@@ -11,9 +11,11 @@ from JobPanel.backend.service_base import ServiceBase, LongRequest, ServiceStatu
 from JobPanel.backend.json_data import JsonData, JsonDataNoConstruct
 from JobPanel.backend.service_proxy import ServiceProxy
 from JobPanel.services.multi_job_service import JobReport, JobStatus, MJStatus
-from JobPanel.data.states import TaskStatus as GuiTaskStatus
-from JobPanel.backend.connection import ConnectionStatus, SSHError, SSHAuthenticationError
+from JobPanel.data.states import TaskStatus
+from JobPanel.backend.connection import (ConnectionStatus, SSHError, SSHAuthenticationError, SSHWorkspaceError,
+                                         SSHDelegatorError)
 from JobPanel.data.secret import Secret
+from gm_base.global_const import GEOMOP_INTERNAL_DIR_NAME
 
 
 class MJInfo(JsonData):
@@ -74,6 +76,7 @@ class MJReport(JsonData):
         self.finished_jobs = 0
         self.running_jobs = 0
         self.jobs_report_save_counter = 0
+        self.delegator_online = False
 
         super().__init__(config)
 
@@ -90,7 +93,8 @@ class MJReport(JsonData):
                 self.estimated_jobs == other.estimated_jobs and \
                 self.finished_jobs == other.finished_jobs and \
                 self.running_jobs == other.running_jobs and \
-                self.jobs_report_save_counter == other.jobs_report_save_counter
+                self.jobs_report_save_counter == other.jobs_report_save_counter and \
+                self.delegator_online == other.delegator_online
         else:
             return NotImplemented
 
@@ -248,7 +252,7 @@ class Backend(ServiceBase):
                 changed = True
 
                 if (v.status in [JobStatus.done, JobStatus.error]) and (v.name not in mj.job_log_planed_to_download):
-                    mj.files_to_download.append(os.path.join(v.name, "job_service.log"))
+                    mj.files_to_download.append(os.path.join(v.name, GEOMOP_INTERNAL_DIR_NAME, "job_service.log"))
                     mj.job_log_planed_to_download.append(v.name)
 
             # We need update run_interval
@@ -268,17 +272,17 @@ class Backend(ServiceBase):
         jobs_states = []
         for k, v in mj._jobs_report.items():
             # status
-            status = GuiTaskStatus.none
+            status = TaskStatus.none
             if v.status in [JobStatus.starting, JobStatus.queued]:
-                status = GuiTaskStatus.queued
+                status = TaskStatus.queued
             elif v.status in [JobStatus.running, JobStatus.downloading_result]:
-                status = GuiTaskStatus.running
+                status = TaskStatus.running
             elif v.status == JobStatus.done:
-                status = GuiTaskStatus.finished
+                status = TaskStatus.finished
             elif v.status == JobStatus.error:
-                status = GuiTaskStatus.error
+                status = TaskStatus.error
             elif v.status == JobStatus.stopped:
-                status = GuiTaskStatus.stopped
+                status = TaskStatus.stopped
 
             # run_interval
             run_interval = 0.0
@@ -298,7 +302,8 @@ class Backend(ServiceBase):
         # save to file
         file = os.path.join(self.get_analysis_workspace(),
                             mj.proxy.workspace,
-                            "_jobs_states.json")
+                            GEOMOP_INTERNAL_DIR_NAME,
+                            "jobs_states.json")
         try:
             with open(file, 'w') as fd:
                 json.dump(jobs_states, fd, indent=4, sort_keys=True)
@@ -375,7 +380,7 @@ class Backend(ServiceBase):
         """
         for mj in self.mj_info.values():
             if mj.proxy._status == ServiceStatus.done and not mj.log_planed_to_download:
-                mj.files_to_download.append("mj_service.log")
+                mj.files_to_download.append(os.path.join(GEOMOP_INTERNAL_DIR_NAME, "mj_service.log"))
                 mj.log_planed_to_download = True
 
     def _process_queues(self):
@@ -523,6 +528,9 @@ class Backend(ServiceBase):
                 if "mj_status" in conf:
                     rep.mj_status = MJStatus[conf["mj_status"]]
 
+            con = mj.proxy._connection
+            rep.delegator_online = (con is not None) and (con._status == ConnectionStatus.online)
+
             reports[str(k)] = rep.serialize()
         return reports
 
@@ -572,36 +580,55 @@ class Backend(ServiceBase):
         :param ssh_conf:
         :return:
         """
-        ret = {"executables": [],
-               "errors": []}
+        ret = {"installation_info": None,
+               "errors": [],
+               "home_dir": "",
+               "successful_steps": []}
 
         try:
             con = self.get_connection(ssh_conf)
         except SSHAuthenticationError:
-            ret["errors"].append("Authentication error")
+            ret["errors"].append("Authentication error\n"
+                                 "Check your user name and password, edit boxes 'User' and 'Password'.")
+            return ret
+        except SSHWorkspaceError:
+            ret["errors"].append("Unable to write to workspace.\n"
+                                 "Check your workspace directory, edit box 'Analysis workspace directory'.")
+            return ret
+        except SSHDelegatorError as e:
+            ret["errors"].append("Unable to start or connect to delegator.\n"
+                                 "Check your GeoMop root directory, edit box 'GeoMop root directory'.\n"
+                                 "Delegator std output and error:\n{}\n{}".format(e.std_out, e.std_err))
             return ret
         except SSHError:
-            ret["errors"].append("Unable to connect to host.")
+            ret["errors"].append("Unable to connect to host.\nCheck the host address, edit box 'Host'.")
             return ret
+        else:
+            ret["successful_steps"].append("Connected to host server.")
+
+        ret["home_dir"] = con.get_home_dir()
 
         delegator_proxy = con.get_delegator()
         answer = []
-        delegator_proxy.call("request_get_executables_from_installation", con.environment.geomop_root, answer)
+        delegator_proxy.call("request_get_installation_info", con.environment.geomop_root, answer)
         for i in range(100):
             time.sleep(0.1)
             if len(answer) > 0:
                 res = answer[0]
                 if "error" in res:
                     logging.error("Error in ssh test")
-                    ret["errors"].append("Error in communication with Delegator.")
+                    ret["errors"].append("Error in communication with Delegator.\n"
+                                         "Check GeoMop root directory, edit box 'GeoMop root directory'")
                 else:
+                    ret["successful_steps"].append("Communication with Delegator.")
                     if res["data"] is None:
-                        ret["errors"].append("Error in reading executables.")
+                        ret["errors"].append("Error in reading installation info.")
                     else:
-                        for executable in res["data"]:
-                            ret["executables"].append(executable["name"])
+                        ret["successful_steps"].append("Installation info was read.")
+                        ret["installation_info"] = res["data"]
                 return ret
-        ret["errors"].append("Timeout in communication with Delegator.")
+        ret["errors"].append("Timeout in communication with Delegator.\n"
+                             "Check GeoMop root directory, edit box 'GeoMop root directory'")
         return ret
 
 
@@ -611,13 +638,13 @@ class Backend(ServiceBase):
 
 
 if __name__ == "__main__":
-    logging.basicConfig(filename='backend_service.log', filemode="w",
+    logging.basicConfig(filename=os.path.join(GEOMOP_INTERNAL_DIR_NAME, "backend_service.log"), filemode="w",
                         format='%(asctime)s %(levelname)-8s %(name)-12s %(message)s',
                         level=logging.INFO)
 
 
     try:
-        input_file = "_backend_service.conf"
+        input_file = os.path.join(GEOMOP_INTERNAL_DIR_NAME, "backend_service.conf")
         with open(input_file, "r") as f:
             config = json.load(f)
 

@@ -89,7 +89,7 @@ class MultiJobDialog(AFormDialog):
 
     PURPOSE_COPY_PREFIX = "Copy_of"
 
-    def __init__(self, parent=None, data=None):
+    def __init__(self, parent=None, data=None, frontend_service=None):
         super().__init__(parent)
 
         self.excluded = {"name": []}
@@ -100,6 +100,7 @@ class MultiJobDialog(AFormDialog):
         self.ui.setup_ui(self)
         self.ui.validator.connect(self.valid)
         self.data = data
+        self.frontend_service = frontend_service
 
         self._from_mj = None
 
@@ -158,6 +159,14 @@ class MultiJobDialog(AFormDialog):
         self.pbs_show_pbs()
 
     def accept(self):
+        if not self.frontend_service.get_backend_status():
+            msg_box = QtWidgets.QMessageBox(self)
+            msg_box.setWindowTitle("Error")
+            msg_box.setIcon(QtWidgets.QMessageBox.Critical)
+            msg_box.setText("Backend is offline.\nWait a while or try restart frontend.")
+            msg_box.exec()
+            return
+
         self.pbs_save()
         super().accept()
 
@@ -321,14 +330,26 @@ class MultiJobDialog(AFormDialog):
             for key in keys:
                 self.ui.multiJobSshPresetComboBox.addItem(self.ssh[key].name, key)
                 #self.ui.jobSshPresetComboBox.addItem(self.ssh[key].name, key)
-                self.permitted['mj_ssh_preset'].append(key)
-                #self.permitted['j_ssh_preset'].append(key)
+                if self.ssh[key].tested:
+                    self.permitted['mj_ssh_preset'].append(key)
+                    #self.permitted['j_ssh_preset'].append(key)
+                else:
+                    model = self.ui.multiJobSshPresetComboBox.model()
+                    item = model.item(self.ui.multiJobSshPresetComboBox.count() - 1)
+                    item.setFlags(item.flags() & ~(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled))
+                    # model = self.ui.jobSshPresetComboBox.model()
+                    # item = model.item(self.ui.jobSshPresetComboBox.count() - 1)
+                    # item.setFlags(item.flags() & ~(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled))
             self.ui.multiJobSshPresetComboBox.setCurrentIndex(
                 self.ui.multiJobSshPresetComboBox.findData(
-                    'local' if self.preset is None or self.preset.mj_ssh_preset is None else self.preset.mj_ssh_preset))
+                    'local' if self.preset is None or self.preset.mj_ssh_preset is None or
+                               self.preset.mj_ssh_preset not in self.permitted['mj_ssh_preset']
+                        else self.preset.mj_ssh_preset))
             # self.ui.jobSshPresetComboBox.setCurrentIndex(
             #     self.ui.jobSshPresetComboBox.findData(
-            #         'local' if self.preset is None or self.preset.j_ssh_preset is None else self.preset.j_ssh_preset))
+            #         'local' if self.preset is None or self.preset.j_ssh_preset is None or
+            #                    self.preset.j_ssh_preset not in self.permitted['j_ssh_preset']
+            #             else self.preset.j_ssh_preset))
 
     def get_data(self):
         key = self.ui.idLineEdit.text()
@@ -522,6 +543,8 @@ class MultiJobDialog(AFormDialog):
             preset.pbs_system = self.ui.pbs_pbsSystemComboBox.currentData()
         if self.ui.pbs_queueLineEdit.text():
             preset.queue = self.ui.pbs_queueLineEdit.text()
+        else:
+            preset.queue = ''
         if self.ui.pbs_walltimeLineEdit.text():
             preset.walltime = self.ui.pbs_walltimeLineEdit.text()
         else:

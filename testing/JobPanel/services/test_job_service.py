@@ -1,6 +1,7 @@
 from JobPanel.backend.service_base import ServiceBase, ServiceStatus
 from testing.JobPanel.mock.passwords import get_test_password
 from .port_forwarder import PortForwarder
+from gm_base.global_const import GEOMOP_INTERNAL_DIR_NAME
 
 import threading
 import os
@@ -62,7 +63,7 @@ def test_correct_run(request):
                     "process": pe,
                     "job_executable": je,
                     "workspace": "job",
-                    "config_file_name": "_job_service.conf",
+                    "config_file_name": GEOMOP_INTERNAL_DIR_NAME + "/job_service.conf",
                     "wait_before_run": 10.0}
 
     # start job
@@ -142,7 +143,7 @@ def test_correct_run_connection_fail(request):
                     "process": pe,
                     "job_executable": je,
                     "workspace": "job",
-                    "config_file_name": "_job_service.conf",
+                    "config_file_name": GEOMOP_INTERNAL_DIR_NAME + "/job_service.conf",
                     "wait_before_run": 15.0}
 
     # start job

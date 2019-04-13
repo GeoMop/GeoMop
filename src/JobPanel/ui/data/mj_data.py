@@ -10,9 +10,10 @@ import time
 import copy
 
 from JobPanel.communication import Installation
-from JobPanel.data.states import TaskStatus, JobsState
+from JobPanel.data.states import TaskStatus, JobsState, TASK_STATUS_PERMITTED_ACTIONS, MultijobActions
 from ..data.preset_data import APreset
 from gm_base.geomop_util import Serializable
+from gm_base.global_const import GEOMOP_INTERNAL_DIR_NAME
 
 
 class MultiJobState:
@@ -179,6 +180,11 @@ class MultiJob:
         excluded=['valid']
     )
 
+    rdeleted_actions = {
+        MultijobActions.delete_remote,
+        MultijobActions.download_whole
+    }
+
     def __init__(self, preset, **kwargs):
         def kw_or_def(key, default=None):
             return kwargs[key] if key in kwargs else default
@@ -192,6 +198,8 @@ class MultiJob:
         self.last_status = kw_or_def('last_status', None)
         """State before deleting"""
         self.valid = True
+        """actions dependent on internal state of mj"""
+
 
     @property
     def id(self):
@@ -222,6 +230,18 @@ class MultiJob:
         states.load_file(conf_path)
         return states.jobs
 
+    def is_action_forbidden(self, action):
+        """Return True if specified action is forbidden for this MultiJob
+        :param action: MultiJob action e.g. delete or stop
+        :return: False if action is permitted and true if it is forbidden
+        """
+        mj_local = self.preset.mj_ssh_preset is None
+        return(self.state.status is None or
+               (self.state.status, action) not in TASK_STATUS_PERMITTED_ACTIONS or
+               (action in self.rdeleted_actions and self.preset.deleted_remote) or
+               (action == MultijobActions.download_whole and (self.preset.downloaded or mj_local)) or
+               (action == MultijobActions.reuse and not mj_local and self.preset.deleted_remote))
+
     def get_logs(self):
         """
         Scans log directory and returns log files.
@@ -229,17 +249,18 @@ class MultiJob:
         """
         logs = []
         mj_config_path = Installation.get_config_dir_static(self.preset.name, self.preset.analysis)
+        mj_config_path_conf = os.path.join(mj_config_path, GEOMOP_INTERNAL_DIR_NAME)
 
         # MJ preparation log
         file = "mj_preparation.log"
-        if os.path.isfile(os.path.join(mj_config_path, file)):
-            log = MultiJobLog(os.path.normpath(mj_config_path), file)
+        if os.path.isfile(os.path.join(mj_config_path_conf, file)):
+            log = MultiJobLog(os.path.normpath(mj_config_path_conf), file)
             logs.append(log)
 
         # MJ log
         file = "mj_service.log"
-        if os.path.isfile(os.path.join(mj_config_path, file)):
-            log = MultiJobLog(os.path.normpath(mj_config_path), file)
+        if os.path.isfile(os.path.join(mj_config_path_conf, file)):
+            log = MultiJobLog(os.path.normpath(mj_config_path_conf), file)
             logs.append(log)
 
         # Jobs log
@@ -247,8 +268,9 @@ class MultiJob:
             job_dir = os.path.join(mj_config_path, dir)
             if os.path.isdir(job_dir) and dir.startswith("action_"):
                 file = "job_service.log"
-                if os.path.isfile(os.path.join(job_dir, file)):
-                    log = MultiJobLog(os.path.normpath(job_dir), file)
+                job_dir_conf = os.path.join(job_dir, GEOMOP_INTERNAL_DIR_NAME)
+                if os.path.isfile(os.path.join(job_dir_conf, file)):
+                    log = MultiJobLog(os.path.normpath(job_dir_conf), file)
                     logs.append(log)
 
         return logs
@@ -282,7 +304,6 @@ class MultiJob:
             elif recurs and os.path.isdir(new):
                 ress.extend(self._get_result_from_dir(new))
         return ress
-                
 
     def get_configs(self):
         """

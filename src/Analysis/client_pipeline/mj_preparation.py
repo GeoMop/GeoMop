@@ -5,6 +5,8 @@ from Analysis.pipeline import *
 
 from Analysis.client_pipeline.parametrized_actions_preparation import Flow123dActionPreparation
 from Analysis.client_pipeline.identical_list_creator import *
+from gm_base.global_const import GEOMOP_INTERNAL_DIR_NAME
+
 
 class MjPreparation():
     @staticmethod
@@ -26,6 +28,7 @@ class MjPreparation():
         mj_dir = os.path.join(analysis_dir, "mj", mj)
         mj_config_dir = mj_dir
         os.makedirs(mj_config_dir, exist_ok=True)
+        os.makedirs(os.path.join(mj_config_dir, GEOMOP_INTERNAL_DIR_NAME), exist_ok=True)
         mj_precondition_dir = mj_dir
         os.makedirs(mj_precondition_dir, exist_ok=True)
 
@@ -113,7 +116,7 @@ class MjPreparation():
 
         # create compare list
         compare_list = pipeline2._get_hashes_list()
-        compare_list_file_name = "_compare_list.json"
+        compare_list_file_name = os.path.join(GEOMOP_INTERNAL_DIR_NAME, "compare_list.json")
         e = ILCreator.save_compare_list(compare_list, os.path.join(mj_precondition_dir, compare_list_file_name))
         if len(e) > 0:
             err.extend(e)
@@ -128,7 +131,7 @@ class MjPreparation():
                     err.extend(e)
                     return ret
                 il = ILCreator.create_identical_list(compare_list, last_cl)
-                il_file_name = "_identical_list.json"
+                il_file_name = os.path.join(GEOMOP_INTERNAL_DIR_NAME, "identical_list.json")
                 il.save(os.path.join(mj_config_dir, il_file_name))
                 input_files.append(il_file_name)
 

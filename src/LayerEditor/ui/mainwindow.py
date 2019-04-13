@@ -117,6 +117,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.layers.editInterfaceChanged.connect(self.refresh_curr_data)
         self.layers.topologyChanged.connect(self.set_topology)
         self.layers.refreshArea.connect(self._refresh_area)
+        self.layers.clearDiagramSelection.connect(self.clear_diagram_selection)
         self.regions.regionChanged.connect(self._region_changed)
         self.wg_surface_panel.show_grid.connect(self._show_grid)
         #self.surfaces.refreshArea.connect(self._refresh_area)
@@ -130,27 +131,28 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def refresh_all(self):
         """For new data"""
+        self.set_topology()
         if not cfg.diagram.shp.is_empty():
-            # refresh deserialized shapefile 
+            # refresh deserialized shapefile
             cfg.diagram.recount_canvas()
             self.refresh_diagram_shp()
-        self.set_topology()        
         self.diagramScene.set_data()
         self.layers.reload_layers(cfg)
         cfg.diagram.regions.reload_regions(cfg)
         self.refresh_view_data(0)
         self.update_layers_panel()
+        self._refresh_area()
         if not cfg.diagram.position_set():
-            self.display_area()        
+            self.display_area()
 
     def paint_new_data(self):
         """Propagate new diagram scene to canvas"""
-        self.display_area()
         self.layers.change_size()
         self.diagramScene.show_init_area(True)
         if not cfg.config.show_init_area:
             self.diagramScene.show_init_area(False)            
-        
+        self.display_area()
+
     def refresh_curr_data(self, old_i, new_i):
         """Propagate new diagram scene to canvas"""
         if old_i == new_i:
@@ -266,12 +268,16 @@ class MainWindow(QtWidgets.QMainWindow):
     def set_topology(self):
         """Current topology or its structure is changed"""
         self.regions.set_topology(cfg.diagram.topology_idx)
-        
+
+    def clear_diagram_selection(self):
+        """Selection has to be emptied"""
+        self.diagramScene.selection.deselect_selected()
+
     def _update_regions(self):
         """Update region panel, eventually set tab according to the selection in diagram"""
-        regions = self.diagramScene.selection.get_selected_regions(cfg.diagram)
-        if regions:
-            self.regions.select_current_regions(regions)
+        regions_of_layers = self.diagramScene.selection.get_selected_regions(cfg.diagram)
+        if regions_of_layers:
+            self.regions.select_current_regions(regions_of_layers)
         self.regions.update_regions_panel()
             
     def config_changed(self):
@@ -297,7 +303,6 @@ class MainWindow(QtWidgets.QMainWindow):
         else:
             self.diagramScene.hide_grid()
 
-        
     def _refresh_area(self):
         """Refresh init area"""
         if self.diagramScene.init_area is not None:

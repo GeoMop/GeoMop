@@ -255,9 +255,11 @@ class DataContainer:
         if self.workspaces.select_workspace(path, self):
             if not Analysis.exists(self.workspaces.get_path(), self.config.analysis):
                 self.config.analysis = None
-            self.pause_func()
+            if self.pause_func is not None:
+                self.pause_func()
             self.multijobs = MultiJobData.open(self.workspaces.get_id(), self.workspaces.get_path())
-            self.reload_func()
+            if self.reload_func is not None:
+                self.reload_func()
             self.config.selected_mj = self.workspaces.get_selected_mj()
             self.config.analysis = self.workspaces.get_selected_analysis() 
             self.save_mj()

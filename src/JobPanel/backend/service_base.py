@@ -274,6 +274,7 @@ class ServiceBase(JsonData):
         file = os.path.join(self.get_analysis_workspace(),
                             self.workspace,
                             self.config_file_name)
+        os.makedirs(os.path.dirname(file), exist_ok=True)
         with open(file, 'w') as fd:
             json.dump(self.serialize(), fd, indent=4, sort_keys=True)
 
@@ -517,15 +518,6 @@ class ServiceBase(JsonData):
         """
         connection = self.get_connection(service_data["service_host_connection"])
 
-        # determine absolute workspace path, in case of connection is ConnectionSSH
-        # shc = service_data["service_host_connection"]
-        # if (shc["__class__"] == "ConnectionSSH") and \
-        #         (not os.path.isabs(shc["environment"]["geomop_analysis_workspace"])):
-        #     abspath = connection.get_analysis_workspace_absolute_path()
-        #     if abspath != "":
-        #         shc["environment"] = shc["environment"].copy()
-        #         shc["environment"]["geomop_analysis_workspace"] = abspath
-
         from .service_proxy import ServiceProxy
         proxy = ServiceProxy({})
         proxy.set_rep_con(self._repeater, connection)
@@ -569,19 +561,19 @@ class ServiceBase(JsonData):
         return executor.kill()
 
     @LongRequest
-    def request_get_executables_from_installation(self, geomop_root=None):
+    def request_get_installation_info(self, geomop_root=None):
         """
-        Return executables from installation where service running.
+        Return installation info from environment where service running.
         Parameter geomop_root is used because Delegator does not have set service_host_connection.
         :return:
         """
         if geomop_root is None:
             geomop_root = self.get_geomop_root()
-        file = os.path.join(geomop_root, "executables.json")
+        file = os.path.join(geomop_root, "installation.json")
         try:
             with open(file, 'r') as fd:
-                executables = json.load(fd)
+                installation = json.load(fd)
         except Exception as e:
-            logging.error("Loading installation executables error: {0}".format(e))
+            logging.error("Loading installation info error: {0}".format(e))
             return None
-        return executables
+        return installation
