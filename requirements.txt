@@ -8,7 +8,6 @@ psutil
 pyDes
 ruamel.yaml
 PyQt5
-PyQtWebEngine
 qscintilla
 plotly
 matplotlib

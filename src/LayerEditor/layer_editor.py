@@ -15,8 +15,6 @@ import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtCore as QtCore
 import gm_base.icon as icon
 from gm_base.geomop_util_qt import Autosave
-from LayerEditor.ui.dialogs.set_diagram import SetDiagramDlg
-from LayerEditor.ui.dialogs.init_dialog import InitDialog
 
 from LayerEditor.ui.dialogs.make_mesh import MakeMeshDlg
 
@@ -49,39 +47,21 @@ class LayerEditor:
         self.mainwindow = MainWindow(self)
         cfg.set_main(self.mainwindow)
 
-
-
-        # save_fn = lambda: json.dumps(cfg.le_serializer.cfg_to_geometry(
-        #                              cfg, self.autosave.backup_filename()).serialize(),
-        #                                             indent=4, sort_keys=True)
         save_fn = lambda c=cfg: cfg.le_serializer.save(c)
         self.autosave = Autosave(cfg.config.CONFIG_DIR, lambda: cfg.curr_file, save_fn)
 
         # Try to restore Untitled.yaml.
-        if self._restore_backup():
-            init_dlg_result = QtWidgets.QDialog.Accepted
-        else:
+        if not self._restore_backup():
 
-        assert not cfg.changed()
-        if input_file is None:
-            self.exit = not self.new_file()
-        else:
-            self.open_file(False, input_file)
-            self.exit = False
+            assert not cfg.changed()
+            if input_file is None:
+                self.exit = not self.new_file()
+            else:
+                self.open_file(input_file)
+                self.exit = False
 
-        # if ret!=QtWidgets.QDialog.Accepted:
-        #     if not self.open_file():
-        #         self.mainwindow.close()
-        #         self.mainwindow._layer_editor = None
-        #         del self.mainwindow
-        #         self.exit = True
-        #         return
-
-        # set default values
-        self.mainwindow.paint_new_data()
-        self._update_document_name()
-        self.autosave.start_autosave()
-        #self.mainwindow.diagramScene.regionsUpdateRequired.connect(self.autosave.on_content_change)
+            # set default values
+            self.autosave.start_autosave()
 
 
     def _restore_backup(self):
@@ -113,28 +93,19 @@ class LayerEditor:
         if not self.save_old_file():
             return
 
-        init_dlg = InitDialog()
-        init_dlg.open_existing_signal.connect(self.open_file)
-
-        accepted = init_dlg.exec()
-        if not accepted:
-            return False
-
-        if not accepted:
-            if not self.open_file(False):
-                return False
-        else:
-            cfg.new_file()
-            self.mainwindow.refresh_all()
-            self.mainwindow.paint_new_data()
+        cfg.new_file()
+        cfg.diagram.area.set_area([(0, 0), (100, 0), (100, 100), (0, 100)])
+        self.mainwindow.refresh_all()
+        self.mainwindow.paint_new_data()
         self._update_document_name()
         return True
 
-    def open_file(self, checked, in_file=None):
+    def open_file(self, in_file=None):
         """
         open file menu action
         handler for triggered signal.
         """
+
         if not self.save_old_file():
             return False
         if in_file is None:
@@ -293,7 +264,6 @@ def main():
 
     if args.debug:
         cfg.config.__class__.DEBUG_MODE = True
-    #else:
 
     # enable Ctrl+C from console to kill the application
     signal.signal(signal.SIGINT, signal.SIG_DFL)
@@ -313,3 +283,4 @@ if __name__ == "__main__":
     main()
 
 
+X
