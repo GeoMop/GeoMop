@@ -140,6 +140,10 @@ Section "Runtime Environment" SecRuntime
   File "${GIT_DIR}\CHANGELOG.md"
   File "${GIT_DIR}\LICENSE"
 
+  # Copy documentation
+  SetOutPath $INSTDIR\doc
+  File "${BUILD_DIR}\Geomop 1.1.0 reference guide.pdf"
+
   # Set the varible with path to python virtual environment scripts.
   StrCpy $PYTHON_SCRIPTS "$INSTDIR\env\Scripts"
 
@@ -232,11 +236,14 @@ Section "Flow123d" SecFlow
   # Section is mandatory.
   SectionIn RO
 
-  RMDir /r "$INSTDIR\flow123d"
-  SetOutPath $INSTDIR
-  File /r "${BUILD_DIR}\flow123d"
-  SetOutPath "$INSTDIR\flow123d"
-  ExecWait '"$INSTDIR\flow123d\install.bat"'
+  #RMDir /r "$INSTDIR\flow123d"
+  #SetOutPath $INSTDIR
+  #File /r "${BUILD_DIR}\flow123d"
+  #SetOutPath "$INSTDIR\flow123d"
+  #ExecWait '"$INSTDIR\flow123d\install.bat"'
+  SetOutPath $INSTDIR\prerequisites
+  File "${BUILD_DIR}\flow123d_3.0.1_windows_install.exe"
+  ExecShellWait "" '"$INSTDIR\prerequisites\flow123d_3.0.1_windows_install.exe"'
 
 SectionEnd
 
@@ -426,7 +433,7 @@ Section "-Default resources data" SecDefaultResourcesData
   # Section is mandatory.
   SectionIn RO
 
-  IfFileExists "${APP_HOME_DIR}" +4 0
+  IfFileExists "${APP_HOME_DIR}" +2 0
     CreateDirectory "${APP_HOME_DIR}"
     # fill data home to default resources data
     #SetOutPath "${APP_HOME_DIR}"
@@ -501,7 +508,7 @@ Section "Uninstall"
   RMDir /r "$SMPROGRAMS\GeoMop"
 
   # Uninstall Flow123d
-  ExecWait '"$INSTDIR\flow123d\uninstall.bat"'
+  #ExecWait '"$INSTDIR\flow123d\uninstall.bat"'
 
   # Remove GeoMop installation directory and all files within.
   RMDir /r "$INSTDIR"

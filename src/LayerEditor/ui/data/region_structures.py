@@ -799,7 +799,8 @@ class Regions():
         elif dim == 3:
             layer_region = self.layer_region_2D
         else:
-            assert False, "Dimension error in getting region shapes, value: %dim" % dim
+            return None
+            #assert False, "Dimension error in getting region shapes, value: %dim" % dim
         if layer_region:
             shapes = []
             for layer_id in self.layers_topology[self.current_topology_id]:

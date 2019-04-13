@@ -63,8 +63,8 @@ class LayerEditor:
         self.mainwindow.show()
         self.mainwindow.paint_new_data()
         self._update_document_name()
-
-        self.mainwindow.diagramScene.regionsUpdateRequired.connect(self.autosave.on_content_change)
+        self.autosave.start_autosave()
+        #self.mainwindow.diagramScene.regionsUpdateRequired.connect(self.autosave.on_content_change)
 
 
     def qapp_setup(self):

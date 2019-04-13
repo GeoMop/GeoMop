@@ -52,7 +52,7 @@ class ModelEditor:
         self._restore_backup()
         if len(cfg.document) > 0:
             self.mainwindow.reload()
-        self.mainwindow.editor.textChanged.connect(self.autosave.on_content_change)
+        self.mainwindow.editor.textChanged.connect(self.autosave.start_autosave)
 
         self.reloader_timer = QtCore.QTimer()
         """timer for file time checking in ms"""

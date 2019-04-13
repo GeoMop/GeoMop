@@ -11,7 +11,8 @@ from PyQt5 import QtCore, QtWidgets
 
 class Autosave:
 
-    AUTOSAVE_INTERVAL = 1500
+    AUTOSAVE_INTERVAL = 1000
+    # in miliseconds
     DEFAULT_FILENAME = "Untitled.yaml"
 
     def __init__(self, default_backup_dir, curr_filename_fnc, string_to_save_fnc):
@@ -22,10 +23,10 @@ class Autosave:
         """
         self.curr_filename_fnc = curr_filename_fnc
         self.text = string_to_save_fnc
-
+        self.content_hash = None
         self.autosave_timer = QtCore.QTimer()
         """timer for periodical saving"""
-        self.autosave_timer.setSingleShot(True)
+        #self.autosave_timer.setSingleShot(True)
         self.autosave_timer.timeout.connect(self._autosave)
         if not os.path.isdir(default_backup_dir):
             try:
@@ -48,8 +49,12 @@ class Autosave:
 
     def _autosave(self):
         """Periodically saves specified string (current file)."""
-        with codecs.open(self.backup_filename(), 'w', 'utf-8') as file_d:
-            file_d.write(self.text())
+        content = self.text()
+        content_hash = hash(content)
+        if self.content_hash != content_hash:
+            self.content_hash = content_hash
+            with codecs.open(self.backup_filename(), 'w', 'utf-8') as file_d:
+                file_d.write(content)
 
     def restore_backup(self):
         """When new file is opened, check if there is backup file and ask user if it should be recovered.
@@ -80,8 +85,6 @@ class Autosave:
         """Delete backup file if is no longer needed."""
         if os.path.exists(self.backup_filename()):
             os.remove(self.backup_filename())
-        self.autosave_timer.stop()
 
-    def on_content_change(self):
-        """Restart timer when current document changed."""
+    def start_autosave(self):
         self.autosave_timer.start(self.AUTOSAVE_INTERVAL)

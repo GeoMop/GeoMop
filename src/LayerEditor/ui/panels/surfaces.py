@@ -80,11 +80,10 @@ class SurfFormData(GL.Surface):
 
         return self
 
-    def init_from_file(self):
-        try:
-            self._approx_maker = ba.SurfaceApprox.approx_from_file(self.grid_file, self.file_delimiter, self.file_skip_lines)
-        except:
-            return None
+    def init_from_file(self, file):
+        self._approx_maker = ba.SurfaceApprox.approx_from_file(file, self.file_delimiter,
+                                                               self.file_skip_lines)
+        self.grid_file = file
         self._quad = self._approx_maker.compute_default_quad()
         self._nuv = self._approx_maker.compute_default_nuv()
         self._changed_forms = True
@@ -102,6 +101,32 @@ class SurfFormData(GL.Surface):
     def set_name(self, name):
         self.name = name
         self._changed_forms = True
+
+    def set_name_from_file(self, names):
+        init_name = os.path.basename(self.grid_file)
+        init_name, _ext = os.path.splitext(init_name)
+        self.name = self.get_unique_name(init_name, names)
+
+    @staticmethod
+    def get_unique_name(init_name, names):
+        """
+        # TODO: make this a general function to provide unique default name. have general machanism to this in common. Given a list of names
+        # and given a name prefix return a first unique name.
+        # usage: get_unique_name(name, [surf.name for surf in surfaces.surfaces])
+
+        :param init_name:
+        :param names:
+        :return:
+        """
+        name_set = set(names)
+        namebase = name = init_name
+        i = 1
+
+        while name in name_set:
+            name = namebase + "_" + str(i)
+            i += 1
+        return name
+
 
     def set_nuv(self, nuv):
         self._nuv = nuv
@@ -365,25 +390,6 @@ class Surfaces(QtWidgets.QWidget):
         """
         return self.wg_surf_combo.currentIndex()
 
-    @staticmethod
-    def get_unique_name(init_name, names):
-        """
-        # TODO: make this a general function to provide unique default name. have general machanism to this in common. Given a list of names
-        # and given a name prefix return a first unique name.
-        # usage: get_unique_name(name, [surf.name for surf in surfaces.surfaces])
-
-        :param init_name:
-        :param names:
-        :return:
-        """
-        name_set = set(names)
-        namebase = name = init_name
-        i = 1
-
-        while name in name_set:
-            name = namebase + "_" + str(i)
-            i += 1
-        return name
 
     def _make_separator(self):
         sep = QtWidgets.QFrame()
@@ -511,48 +517,41 @@ class Surfaces(QtWidgets.QWidget):
         self._fill_forms()
 
 
+
+
     def add_surface_from_file(self):
         """
         Handle wg_add_button. Open a file and add new unsaved surface into combo and current panel content.
         """
         if not self.empty_forms():
             return
-        file, pattern = QtWidgets.QFileDialog.getOpenFileName(
-            self, "Choose grid file", self.home_dir, "File (*.*)")
-        if not file:
-            return
-
-        init_name = os.path.basename(file)
-        init_name, _ext = os.path.splitext(init_name)
-        name = self.get_unique_name(init_name, [surf.name for surf in self.layers.surfaces])
-
         new_data = SurfFormData()
-        new_data.name = name
-        new_data.grid_file = file
         new_data.file_skip_lines = self.data.file_skip_lines
         new_data.file_delimiter = self.data.file_delimiter
-        data = new_data.init_from_file()
-        if data is None:
-            # Error in file
-            self._set_message("Error: Invalid file.")
-        else:
-            self.data = data
-        self.wg_view_button.setChecked(True)
+        data = self._load_file(new_data)
+        if data:
+            new_data.set_name_from_file([surf.name for surf in self.layers.surfaces])
+            self.data = new_data
+            self.wg_view_button.setChecked(True)
         self._fill_forms()
 
 
     def reload(self):
+        self._load_file(self.data)
+        self.wg_view_button.setChecked(True)
+        self._fill_forms()
+
+    def _load_file(self, surface_data):
         file, pattern = QtWidgets.QFileDialog.getOpenFileName(
             self, "Choose grid file", self.home_dir, "File (*.*)")
         if not file:
             return
-        result = self.data.init_from_file()
-        if result is None:
-            # Error in file
-            self._set_message("Error: Invalid file.")
-
-        self.wg_view_button.setChecked(True)
-        self._fill_forms()
+        try:
+            return surface_data.init_from_file(file)
+        except Exception as e:
+            err_dialog = GMErrorDialog(self)
+            err_dialog.open_error_dialog("Wrong grid file structure!", error=e)
+            return None
 
     def apply(self):
         """Save changes to file and compute new elevation and error"""

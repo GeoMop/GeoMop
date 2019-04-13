@@ -386,9 +386,9 @@ class Diagram():
     Use only class functions for adding new shapes. This function ensure folloving 
     requirements. New class function must ensure this requirements too.
     requirements:
-        - All points is unique
+        - All points are unique
         - All points contains used lines
-        - Point is griater if is right or x coordinate is equol and point is below 
+        - Point is griater if is right or x coordinate is equal and point is below
         - Line.p1<line.p2
     """
     shp = ShpFiles()

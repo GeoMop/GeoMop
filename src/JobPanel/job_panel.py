@@ -95,9 +95,10 @@ class JobPanel(object):
         """Run app and show UI"""
 
         # on win start Docker Machine
-        if sys.platform == "win32":
-            dlg = DockerMachineStartDialog()
-            dlg.exec()
+        # if sys.platform == "win32":
+        #     dlg = DockerMachineStartDialog()
+        #     if not dlg.exec():
+        #         sys.exit(1)
 
         # start frontend service
         self._frontend_service.run_before()

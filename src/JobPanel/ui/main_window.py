@@ -220,6 +220,8 @@ class MainWindow(QtWidgets.QMainWindow):
         if len(self.frontend_service._jobs_deleted) > 0 or \
                 len(self.frontend_service._jobs_downloaded) > 0:
             self.multijobs_changed.emit(self.data.multijobs)
+            if not self.ui.overviewWidget.selectedItems():
+                self.ui.tabWidget.reload_view(None)
 
         self.frontend_service._jobs_deleted = {}
         self.frontend_service._jobs_downloaded = {}
