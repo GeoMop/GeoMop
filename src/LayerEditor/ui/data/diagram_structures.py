@@ -379,7 +379,7 @@ class Zoom():
         self.position_set = zoom['position_set']
          
          
-class Diagram():
+class Diagram:
     """
     Layer diagram
     
@@ -501,7 +501,7 @@ class Diagram():
 
     def region_color_changed(self):
         """Layer color is changed, refresh all region colors"""
-        for shapes in [self.polygons. self.lines, self.points]:
+        for shapes in [self.polygons, self.lines, self.points]:
             for shape in shapes:
                 if shape.object is not None:
                     shape.object.update_color()

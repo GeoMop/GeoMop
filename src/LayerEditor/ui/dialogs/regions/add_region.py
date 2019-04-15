@@ -142,7 +142,7 @@ class AddRegionDlg(QtWidgets.QDialog):
 
     def is_unique_region_name(self, reg_name):
         """ Return False in the case of colision with an existing region name."""
-        return reg_name not in set(self.region_names)
+        return reg_name not in self.region_names
 
     def reg_name_changed(self, reg_name):
         """ Called when Region Line Edit is changed."""
@@ -182,14 +182,15 @@ class AddRegionDlg(QtWidgets.QDialog):
         Accepts the form if region data is valid.
         :return: None
         """
-        error = None
-        for region_name in self.region_names:
-            if self.region_name.text() == region_name:
-                error = "Region name already exist"
-                break
-        if len(self.region_name.text())==0 or self.region_name.text().isspace():
+        new_name = self.region_name.text()
+        if not new_name.strp():
             error = "Region name is empty"
-        if error is not None:
+        elif new_name in self.region_names:
+            error = "Region name already exist"
+        else:
+            error = None
+
+        if error:
             err_dialog = GMErrorDialog(self)
             err_dialog.open_error_dialog(error)
         else:
