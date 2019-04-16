@@ -11,6 +11,7 @@ import traceback
 LOGGER_PREFIX = 'GeoMop-'
 
 
+
 if 'APPDATA' in os.environ:
     __config_dir__ = os.path.join(os.environ['APPDATA'], 'GeoMop')
 else:
@@ -18,7 +19,11 @@ else:
 
 
 def log_unhandled_exceptions(context_name, callback=None):
-    """Initialize logging for unhandled exceptions.
+    """
+    Initialize logging for unhandled exceptions.
+    set 'sys.excepthook' to a logging callback.
+    TODO: No reason to do logging unless we give user instruction to send the log.
+    Meaningless to create the log in .geomop like now.
 
     :param str context_name: name of the context (for example, ModelEditor)
     :param function callback: a function callback with three parameters (type, exception, tback)

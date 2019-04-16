@@ -8,11 +8,12 @@ CWD="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 function usage {
     echo "Install GeoMop to specified directory."
-    echo "Usage: install.sh GEOMOP_ROOT_DIR FLOW123D_PATH"
+    echo "Usage: install.sh GEOMOP_ROOT_DIR EXECUTABLE_1_NAME EXECUTABLE_1_PATH EXECUTABLE_2_NAME EXECUTABLE_2_PATH ..."
     exit
 }
 
-if [[ $# -ne 2 ]]; then
+num_par=$#
+if [[ $((num_par%2)) -eq 0 ]]; then
     usage
     exit
 fi
@@ -20,9 +21,6 @@ fi
 
 # GeoMop root directory
 GEOMOP_INST="$( realpath "$1" )"
-
-# flow123d path
-FLOW_PATH="$( realpath "$2" )"
 
 
 mkdir -p "$GEOMOP_INST"
@@ -72,25 +70,50 @@ module add python-3.4.1-gcc python34-modules-gcc
 EOF
 chmod +x "$BIN/python"
 
-cat > "$BIN/flow123d" <<EOF
+shift;
+executable_list=()
+while [[ -n $1 ]]; do
+    executable_list+=($1)
+    cat > "$BIN/$1" <<EOF
 #!/bin/bash
 # flow123d wrapper
 
 module purge
 module load metabase
 
-"$FLOW_PATH" "\$@"
+"$2" "\$@"
 EOF
-chmod +x "$BIN/flow123d"
+    chmod +x "$BIN/$1"
+    shift;
+    shift;
+done
 
 
-echo "Creating executables.json..."
-cat > "$GEOMOP_INST/executables.json" <<EOF
-[
-    {
-        "__class__": "Executable",
-        "name": "flow123d",
-        "path": "$GEOMOP_INST/bin/flow123d"
-    }
-]
+echo "Creating installation.json..."
+GEOMOP_VER=$(head -n 1 "$CWD/../../VERSION")
+GEOMOP_REV=$(git rev-parse HEAD)
+cat > "$GEOMOP_INST/installation.json.tmp" << EOF
+{
+    "executables": [
+EOF
+
+for executable in "${executable_list[@]}" ; do
+    cat >> "$GEOMOP_INST/installation.json.tmp" << EOF
+        {
+            "__class__": "Executable",
+            "name": "$executable",
+            "path": "$GEOMOP_INST/bin/$executable"
+        }
+        ,
+EOF
+done
+
+head -n -1 "$GEOMOP_INST/installation.json.tmp" > "$GEOMOP_INST/installation.json"
+rm "$GEOMOP_INST/installation.json.tmp"
+
+cat >> "$GEOMOP_INST/installation.json" << EOF
+    ],
+    "version": "$GEOMOP_VER",
+    "revision": "$GEOMOP_REV"
+}
 EOF

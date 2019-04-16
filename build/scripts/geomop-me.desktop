@@ -5,6 +5,6 @@ Exec=geomop-me %U
 Terminal=false
 Type=Application
 MimeType=text/plain;
-Icon=/usr/share/geomop/src/common/icon/128x128/me-geomap.png
+Icon=/usr/share/geomop/src/gm_base/resources/icons/me-geomap_128.png
 Categories=TextEditor;Development;
 StartupNotify=true

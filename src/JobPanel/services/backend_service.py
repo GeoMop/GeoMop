@@ -15,7 +15,7 @@ from JobPanel.data.states import TaskStatus
 from JobPanel.backend.connection import (ConnectionStatus, SSHError, SSHAuthenticationError, SSHWorkspaceError,
                                          SSHDelegatorError)
 from JobPanel.data.secret import Secret
-from gm_base.config import GEOMOP_INTERNAL_DIR_NAME
+from gm_base.global_const import GEOMOP_INTERNAL_DIR_NAME
 
 
 class MJInfo(JsonData):
@@ -76,6 +76,7 @@ class MJReport(JsonData):
         self.finished_jobs = 0
         self.running_jobs = 0
         self.jobs_report_save_counter = 0
+        self.delegator_online = False
 
         super().__init__(config)
 
@@ -92,7 +93,8 @@ class MJReport(JsonData):
                 self.estimated_jobs == other.estimated_jobs and \
                 self.finished_jobs == other.finished_jobs and \
                 self.running_jobs == other.running_jobs and \
-                self.jobs_report_save_counter == other.jobs_report_save_counter
+                self.jobs_report_save_counter == other.jobs_report_save_counter and \
+                self.delegator_online == other.delegator_online
         else:
             return NotImplemented
 
@@ -526,6 +528,9 @@ class Backend(ServiceBase):
                 if "mj_status" in conf:
                     rep.mj_status = MJStatus[conf["mj_status"]]
 
+            con = mj.proxy._connection
+            rep.delegator_online = (con is not None) and (con._status == ConnectionStatus.online)
+
             reports[str(k)] = rep.serialize()
         return reports
 
@@ -575,7 +580,7 @@ class Backend(ServiceBase):
         :param ssh_conf:
         :return:
         """
-        ret = {"executables": [],
+        ret = {"installation_info": None,
                "errors": [],
                "home_dir": "",
                "successful_steps": []}
@@ -605,7 +610,7 @@ class Backend(ServiceBase):
 
         delegator_proxy = con.get_delegator()
         answer = []
-        delegator_proxy.call("request_get_executables_from_installation", con.environment.geomop_root, answer)
+        delegator_proxy.call("request_get_installation_info", con.environment.geomop_root, answer)
         for i in range(100):
             time.sleep(0.1)
             if len(answer) > 0:
@@ -617,11 +622,10 @@ class Backend(ServiceBase):
                 else:
                     ret["successful_steps"].append("Communication with Delegator.")
                     if res["data"] is None:
-                        ret["errors"].append("Error in reading executables.")
+                        ret["errors"].append("Error in reading installation info.")
                     else:
-                        ret["successful_steps"].append("Executables were read.")
-                        for executable in res["data"]:
-                            ret["executables"].append(executable["name"])
+                        ret["successful_steps"].append("Installation info was read.")
+                        ret["installation_info"] = res["data"]
                 return ret
         ret["errors"].append("Timeout in communication with Delegator.\n"
                              "Check GeoMop root directory, edit box 'GeoMop root directory'")

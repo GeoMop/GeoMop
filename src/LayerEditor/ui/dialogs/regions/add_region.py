@@ -4,7 +4,6 @@ Dialog for adding region to interface.
 from gm_base.geometry_files.format_last import RegionDim
 import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtGui as QtGui
-from LayerEditor.leconfig import cfg
 from gm_base.geomop_dialogs import GMErrorDialog
 import gm_base.icon as icon
 
@@ -86,8 +85,10 @@ class AddRegionDlg(QtWidgets.QDialog):
 
 
 
-    def __init__(self,  parent=None):
+    def __init__(self, init_dim,  region_names, parent=None):
         super(AddRegionDlg, self).__init__(parent)
+        self.region_names = region_names
+
         self.setWindowTitle("Add Region")
 
         grid = QtWidgets.QGridLayout(self)
@@ -99,18 +100,8 @@ class AddRegionDlg(QtWidgets.QDialog):
         self.region_dim.addItem(self.REGION_DESCRIPTION[RegionDim.fracture], RegionDim.fracture)
         self.region_dim.addItem(self.REGION_DESCRIPTION[RegionDim.bulk], RegionDim.bulk)
 
-        selected_regions = cfg.main_window.diagramScene.selection
-        max_selected_dim = 3
-        if not selected_regions.selected_polygons:
-            max_selected_dim -= 1
-            if not selected_regions.selected_lines:
-                max_selected_dim -= 1
-                if not selected_regions.selected_points:
-                    max_selected_dim -= 1
-        if cfg.diagram.regions.current_layer_id < 0:
-            max_selected_dim -= 1
 
-        self.region_dim.setCurrentIndex(max_selected_dim)
+        self.region_dim.setCurrentIndex(init_dim)
 
         d_region_name = QtWidgets.QLabel("Region Name:", self)
         self.region_name = QtWidgets.QLineEdit()
@@ -121,7 +112,7 @@ class AddRegionDlg(QtWidgets.QDialog):
         self.image.setPixmap(icon.get_app_icon("sign-check").pixmap(self.region_name.sizeHint().height()))
         self.image.setToolTip('Region name is unique, everything is fine.')
         self.have_default_name = True
-        self.set_default_name(max_selected_dim)
+        self.set_default_name(init_dim)
         self.region_name.textChanged.connect(self.reg_name_changed)
 
 
@@ -148,13 +139,10 @@ class AddRegionDlg(QtWidgets.QDialog):
         grid.addWidget(button_box, 2, 1)
         self.setLayout(grid)
 
-    @classmethod
+
     def is_unique_region_name(self, reg_name):
         """ Return False in the case of colision with an existing region name."""
-        for region in cfg.diagram.regions.regions.values():
-            if reg_name == region.name:
-                return False
-        return True
+        return reg_name not in self.region_names
 
     def reg_name_changed(self, reg_name):
         """ Called when Region Line Edit is changed."""
@@ -182,17 +170,10 @@ class AddRegionDlg(QtWidgets.QDialog):
     def set_default_name(self, dim):
         """ Set default name if it seems to be default name. """
         if self.have_default_name:
-            dim_to_regtype = [
-                self.REGION_DESCRIPTION_SHORT[RegionDim.point]+"_",
-                self.REGION_DESCRIPTION_SHORT[RegionDim.well]+"_",
-                self.REGION_DESCRIPTION_SHORT[RegionDim.fracture]+"_",
-                self.REGION_DESCRIPTION_SHORT[RegionDim.bulk]+"_"
-            ]
-            reg_id = 0
-            name = cfg.diagram.regions.regions[0].name
-            while not self.is_unique_region_name(name):
-                reg_id += 1
-                name = dim_to_regtype[dim] + str(reg_id)
+            for reg_id in range(10000):
+                name = "{}_{}".format(self.REGION_DESCRIPTION_SHORT[RegionDim(dim)], reg_id)
+                if self.is_unique_region_name(name):
+                    break
             self.region_name.setText(name)
             self.have_default_name = True
 
@@ -201,14 +182,15 @@ class AddRegionDlg(QtWidgets.QDialog):
         Accepts the form if region data is valid.
         :return: None
         """
-        error = None
-        for region in cfg.diagram.regions.regions.values():
-            if self.region_name.text() == region.name:
-                error = "Region name already exist"
-                break
-        if len(self.region_name.text())==0 or self.region_name.text().isspace():
+        new_name = self.region_name.text()
+        if not new_name.strip():
             error = "Region name is empty"
-        if error is not None:
+        elif new_name in self.region_names:
+            error = "Region name already exist"
+        else:
+            error = None
+
+        if error:
             err_dialog = GMErrorDialog(self)
             err_dialog.open_error_dialog(error)
         else:

@@ -15,7 +15,7 @@ from gm_base.geomop_dialogs import GMErrorDialog
 from gm_base.geomop_analysis import Analysis, InvalidAnalysis
 from LayerEditor.ui import data as le_data
 from LayerEditor.ui.helpers import CurrentView
-
+from LayerEditor.ui.panels import regions
 
 class _Config:
     """Class for Analyzis serialization"""
@@ -39,26 +39,22 @@ class _Config:
 
     def __init__(self, **kwargs):
         
-        def kw_or_def(key, default=None):
-            """Get keyword arg or default value."""
-            return kwargs[key] if key in kwargs else default
 
-        from os.path import expanduser
         self.observers = []
         """objects to be notified of changes"""
         self._analysis = None
         self._workspace = None
 
-        self._analysis = kw_or_def('_analysis')
-        self._workspace = kw_or_def('_workspace')
-        self.show_init_area = kw_or_def('show_init_area', True)
+        self._analysis = kwargs.get('_analysis', None)
+        self._workspace = kwargs.get('_workspace', None)
+        self.show_init_area = kwargs.get('show_init_area', True)
             
-        self.last_data_dir = kw_or_def('last_data_dir', expanduser("~"))
+        self.current_workdir = os.getcwd()
         """directory of the most recently opened data file"""
-        self.recent_files = kw_or_def('recent_files', [])
+        self.recent_files = kwargs.get('recent_files', [])
         """a list of recently opened files"""
 
-        self.shortcuts = kw_or_def('shortcuts',
+        self.shortcuts = kwargs.get('shortcuts',
                                    deepcopy(shortcuts_definition.DEFAULT_USER_SHORTCUTS))
         """user customizable keyboard shortcuts"""
 
@@ -115,16 +111,16 @@ class _Config:
         if self.workspace and self.analysis:
             return os.path.join(self.workspace, self.analysis)
         else:
-            return self.last_data_dir
+            return self.current_workdir
             
-    def update_last_data_dir(self, file_name):
+    def update_current_workdir(self, file_name):
         """Save dir from last used file"""
         analysis_directory = None
         directory = os.path.dirname(os.path.realpath(file_name))
         if self.workspace is not None and self.analysis is not None:
             analysis_dir = os.path.join(self.workspace, self.analysis)
         if analysis_directory is None or directory != analysis_dir:
-            self.last_data_dir = directory
+            self.current_workdir = directory
 
     @property
     def workspace(self):
@@ -193,9 +189,13 @@ class LEConfig:
     """
     #path = None
     """Current geometry data file path"""
-    geomop_root = ""
+    geomop_root = os.path.dirname(os.path.dirname(
+                  os.path.dirname(os.path.realpath(__file__))))
     """Path to the root directory of the GeoMop installation."""
-    
+    layer_heads = None
+    # Data model for Regions panel.
+
+
     @classmethod
     def reload_surfaces(cls, id=None):
         """Reload surface panel"""
@@ -289,16 +289,17 @@ class LEConfig:
         return cls.diagrams[dup.dup1_id].dcopy()
         
     @classmethod
-    def release_all(cls):
+    def reinit(cls):
         """Release all diagram data"""
-        le_data.Diagram.release_all(cls.history)
+        cls.layer_heads = regions.LayerHeads(cls)
+        le_data.Diagram.reinit(cls.layer_heads, cls.history)
     
     @classmethod
     def init(cls):
         """Init class with static method"""
         cls.history = le_data.GlobalHistory(cls)
         cls.layers = le_data.Layers(cls.history)
-        le_data.Diagram.release_all(cls.history)
+        cls.reinit()
         cls.le_serializer = le_data.LESerializer(cls)
         
     @staticmethod
@@ -331,6 +332,8 @@ class LEConfig:
     @classmethod
     def new_file(cls):
         """Open new empty file"""
+        if cls.main_window is None:
+            return
         cls.main_window.release_data(cls.diagram_id())
         cls.init()
         cls.le_serializer.set_new(cls)
@@ -344,7 +347,7 @@ class LEConfig:
             file = cls.curr_file
         cls.le_serializer.save(cls, file)
         cls.history.saved()
-        cls.config.update_last_data_dir(file)
+        cls.config.update_current_workdir(file)
         cls.config.add_recent_file(file)
         cls.curr_file = file
         try:
@@ -359,7 +362,7 @@ class LEConfig:
         """        
         cls.main_window.release_data(cls.diagram_id())
         cls.curr_file = file
-        cls.config.update_last_data_dir(file)
+        cls.config.update_current_workdir(file)
         if file is None:
             cls.curr_file_timestamp = None
         else:
@@ -411,7 +414,7 @@ class LEConfig:
         """
         try:
             cls.open_file(file_name)
-            cls.config.update_last_data_dir(file_name)
+            cls.config.update_current_workdir(file_name)
             cls.config.add_recent_file(file_name)
             return True
         except (RuntimeError, IOError) as err:
@@ -438,3 +441,5 @@ class LEConfig:
         if shortcut:
             return shortcuts.get_shortcut(shortcut)
         return None
+
+

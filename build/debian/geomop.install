@@ -7,3 +7,5 @@ scripts/geomop-me usr/bin
 scripts/geomop-me.desktop usr/share/applications
 scripts/geomop-le usr/bin
 scripts/geomop-le.desktop usr/share/applications
+scripts/geomop-jp usr/bin
+scripts/geomop-jp.desktop usr/share/applications

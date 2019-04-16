@@ -17,7 +17,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath
 
 from JobPanel.backend import service_base
 from JobPanel.backend.executor import Executable, ExecArgs
-from gm_base.config import GEOMOP_INTERNAL_DIR_NAME
+from gm_base.global_const import GEOMOP_INTERNAL_DIR_NAME
 
 
 """
@@ -70,8 +70,10 @@ class Job(service_base.ServiceBase):
     def _job_run(self):
         # find executable
         if self.job_executable.path == "":
-            executables = self.request_get_executables_from_installation()
-            if executables is None:
+            installation = self.request_get_installation_info()
+            if (installation is not None) and ("executables" in installation):
+                executables = installation["executables"]
+            else:
                 logging.error("Unable to load installation executables.")
                 self.error = True
                 return

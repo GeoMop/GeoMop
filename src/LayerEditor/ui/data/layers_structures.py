@@ -433,10 +433,10 @@ class Layers():
                       fracture_name=None, diag_top_id=None, diag_bot_id=None,
                       fracture_interface=FractureInterface.none, fracture_id=None):
         """add new interface"""
-        print("----")
-        print("iface: ", gl_interface, "splt: ", splited)
-        print("dg top: ",  diag_top_id, "dg bot: ", diag_bot_id)
-        print("fr_name: ", fracture_name, "fr type: ", fracture_interface, "fr id: ", fracture_id)
+        # print("----")
+        # print("iface: ", gl_interface, "splt: ", splited)
+        # print("dg top: ",  diag_top_id, "dg bot: ", diag_bot_id)
+        # print("fr_name: ", fracture_name, "fr type: ", fracture_interface, "fr id: ", fracture_id)
 
         iface = Interface(gl_interface.surface_id, splited, gl_interface.elevation, gl_interface.transform_z,
                         fracture_name, diag_top_id, diag_bot_id,fracture_interface, fracture_id)
@@ -1448,3 +1448,5 @@ class Layers():
                 if self.layers[i].rect.contains(p):
                     return i
         return None
+
+

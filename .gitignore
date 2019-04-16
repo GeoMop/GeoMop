@@ -1,3 +1,7 @@
+# various temporaries
+tools/conda/Miniconda3-latest-Linux-x86_64.sh
+
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

@@ -56,7 +56,7 @@ class JobPanel(object):
         self._app = QtWidgets.QApplication(args)
         
         #icon
-        self._app.setWindowIcon(icon.get_app_icon("jp-geomap"))
+        self._app.setWindowIcon(icon.get_app_icon("geomap"))
 
         # load data container
         self._data = DataContainer()
@@ -95,9 +95,10 @@ class JobPanel(object):
         """Run app and show UI"""
 
         # on win start Docker Machine
-        if sys.platform == "win32":
-            dlg = DockerMachineStartDialog()
-            dlg.exec()
+        # if sys.platform == "win32":
+        #     dlg = DockerMachineStartDialog()
+        #     if not dlg.exec():
+        #         sys.exit(1)
 
         # start frontend service
         self._frontend_service.run_before()

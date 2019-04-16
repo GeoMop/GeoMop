@@ -68,7 +68,7 @@ class _Config:
         """a list of format files"""
         self.display_autocompletion = kw_or_def('display_autocompletion', False)
         """whether to display autocompletion automatically"""
-        self.symbol_completion = kw_or_def('symbol_completion', False)
+        self.symbol_completion = kw_or_def('symbol_completion', True)
         """whether to automatically complete brackets and array symbols"""
         self.shortcuts = kw_or_def('shortcuts',
                                            deepcopy(shortcuts_definition.DEFAULT_USER_SHORTCUTS))

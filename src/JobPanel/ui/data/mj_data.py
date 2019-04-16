@@ -13,7 +13,7 @@ from JobPanel.communication import Installation
 from JobPanel.data.states import TaskStatus, JobsState, TASK_STATUS_PERMITTED_ACTIONS, MultijobActions
 from ..data.preset_data import APreset
 from gm_base.geomop_util import Serializable
-from gm_base.config import GEOMOP_INTERNAL_DIR_NAME
+from gm_base.global_const import GEOMOP_INTERNAL_DIR_NAME
 
 
 class MultiJobState:
