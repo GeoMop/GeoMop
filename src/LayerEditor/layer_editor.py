@@ -15,7 +15,6 @@ import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtCore as QtCore
 import gm_base.icon as icon
 from gm_base.geomop_util_qt import Autosave
-from LayerEditor.ui.dialogs.set_diagram import SetDiagramDlg
 from LayerEditor.ui.dialogs.make_mesh import MakeMeshDlg
 
 
@@ -169,7 +168,7 @@ class LayerEditor:
             cfg.open_file(in_file)
             self._update_document_name()
             self._restore_backup()
-            self.mainwindow.show_status_message("File '" + file[0] + "' is opened")
+            self.mainwindow.show_status_message("File {} is opened".format(in_file))
             return True
         return False
             

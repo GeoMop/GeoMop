@@ -8,6 +8,7 @@ psutil
 pyDes
 ruamel.yaml
 PyQt5
+PtQtWebEngine   # separate package since version 5.12 of PyQt5
 qscintilla
 plotly
 matplotlib
