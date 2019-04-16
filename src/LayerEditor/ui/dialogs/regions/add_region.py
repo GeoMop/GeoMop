@@ -183,7 +183,7 @@ class AddRegionDlg(QtWidgets.QDialog):
         :return: None
         """
         new_name = self.region_name.text()
-        if not new_name.strp():
+        if not new_name.strip():
             error = "Region name is empty"
         elif new_name in self.region_names:
             error = "Region name already exist"

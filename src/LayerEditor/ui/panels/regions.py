@@ -201,10 +201,10 @@ class Regions(QtWidgets.QToolBox):
         for layer_id, layer_name in names:
             self.layer_id_to_idx[layer_id] = i_tab
             if i_tab >= self.count():
-                tab_widget = RegionLayerTab(self.layer_heads, i_tab, layer_id, layer_name, self)
+                tab_widget = RegionLayerTab(self.layer_heads, i_tab, self)
                 self.tabs.append(tab_widget)
                 self.addItem(tab_widget, "")
-                self._update_tab_head(tab_widget)
+            self.tabs[i_tab].reinit(layer_id, layer_name)
             i_tab += 1
         while i_tab < self.count():
             self.removeItem(i_tab)
@@ -264,12 +264,10 @@ class RegionLayerTab(QtWidgets.QWidget):
     Single Tab of the Region panel. One tab for every layer in the current topology block.
     """
 
-    def __init__(self, layer_heads, i_tab, layer_id, layer_name, parent):
+    def __init__(self, layer_heads, i_tab, parent):
         """
-
-        :param regions:
-        :param region_id:
-        :param parent:
+        Constructor, just make widgets and set reference to parent and layer_heads.
+        Reinit must be called explicitely to fill the widget content.
         """
         super().__init__(parent)
         self._parent = parent
@@ -279,9 +277,9 @@ class RegionLayerTab(QtWidgets.QWidget):
         # Reference model for region panel
         self._i_tab = i_tab
         # Set index of tab in the toolbox (used for callback to set header).
-        self.layer_id = layer_id
+        self.layer_id = None
         # ID of the layer to which this Tab is related.
-        self._layer_name = layer_name
+        self._layer_name = None
         # Name of the layer.
         self._combo_id_to_idx = {0: 0}
         # auxiliary map from region ID to index in the combo box.
@@ -289,6 +287,11 @@ class RegionLayerTab(QtWidgets.QWidget):
         self.layer_heads.region_changed.connect(self._update_region_content)
         self.layer_heads.region_list_changed.connect(self._update_region_list)
         self._make_widgets()
+
+    def reinit(self, layer_id, layer_name):
+        self.layer_id = layer_id
+        self._layer_name = layer_name
+        self._update_region_list()
 
     @property
     def region_id(self):
@@ -309,7 +312,9 @@ class RegionLayerTab(QtWidgets.QWidget):
         return QtGui.QColor(self.region.color)
 
     def _make_widgets(self):
-        """Make grid of widget of the single region tab."""
+        """Make grid of widgets of the single region tab.
+           Do not fill the content.
+        """
         grid = QtWidgets.QGridLayout()
 
         self.wg_region_combo = QtWidgets.QComboBox()
@@ -388,7 +393,6 @@ class RegionLayerTab(QtWidgets.QWidget):
         grid.addItem(sp2, 7, 1)
 
         self.setLayout(grid)
-        self._update_region_list()
 
     def _update_region_list(self):
         """
@@ -512,7 +516,7 @@ class RegionLayerTab(QtWidgets.QWidget):
     def _not_used_checked(self):
         """
         Region not used property is changed
-        TODO: make as region type : [regular, boundary, not used]
+        TODO: possibly make as region type : [regular, boundary, not used]
         """
         self.layer_heads.regions.set_region_not_used(self.region_id, self.wg_notused.isChecked(),
                                                      True, "Set region usage")
