@@ -279,21 +279,6 @@ class LayerEditor:
         self.mainwindow.setWindowTitle(title)
 
 
-
-    # enable Ctrl+C from console to kill the application
-    signal.signal(signal.SIGINT, signal.SIG_DFL)
-
-    # launch the application
-    layer_editor = LayerEditor()
-    if not layer_editor.exit:
-        layer_editor.main()
-
-    layer_editor._app.quit()
-    del layer_editor._app
-    del layer_editor
-    sys.exit(0)
-
-
 if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
     layer_editor = LayerEditor(app, sys.argv[1:])

@@ -84,7 +84,7 @@ class Point():
 
     def set_region(self, region, layer_id=None):
         """Set point region to current region"""
-        return Diagram.regions.set_region(0, self.id, layer_id, region, True, "Set Region")
+        return Diagram.regions.set_region(0, self.id, region, layer_id, True, "Set Region")
         
     def set_default_region(self):
         """Set point region to default region"""

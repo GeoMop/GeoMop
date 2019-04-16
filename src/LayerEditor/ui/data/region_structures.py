@@ -207,7 +207,7 @@ class Regions():
     def _set_region(self, layer_id, dim, shape_id, region, to_history=False, label=None):
         """Shape region for current layer is set to current value"""
         layer_region = self.layer_region(dim)
-        old_reg_id = layer_region[layer_id][shape_id]
+        old_reg_id = layer_region[layer_id].get(shape_id, None)
         if old_reg_id != region.reg_id:
             layer_region[layer_id][shape_id] = region.reg_id
             if to_history:

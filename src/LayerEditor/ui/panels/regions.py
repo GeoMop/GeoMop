@@ -95,7 +95,7 @@ class LayerHeads(QtCore.QObject):
     @property
     def region_names(self):
         """ List of unique region names."""
-        return {reg.name for reg in self.lc.diagram.regions.regions.values()}
+        return {reg.name: reg for reg in self.lc.diagram.regions.regions.values()}
 
     @property
     def regions(self):
@@ -477,7 +477,8 @@ class RegionLayerTab(QtWidgets.QWidget):
         :return:
         """
         new_name = self.wg_name.text().strip()
-        if new_name in self.layer_heads.region_names:
+        reg = self.layer_heads.region_names.get(new_name, None)
+        if  reg and reg.reg_id != self.region.reg_id:
             error = "Region name already exist"
         elif not new_name:
             error = "Region name is empty"
