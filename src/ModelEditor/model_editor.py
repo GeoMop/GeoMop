@@ -272,7 +272,7 @@ def main():
     """ModelEditor application entry point."""
     parser = argparse.ArgumentParser(description='ModelEditor')
     parser.add_argument('--debug', action='store_true', help='Enable debug mode')
-    parser.add_argument('file', help='Yaml file', default=None,  nargs='?')
+    parser.add_argument('file', help='Flow123d input YAML file.', default=None,  nargs='?')
     args = parser.parse_args()
 
     if args.debug:

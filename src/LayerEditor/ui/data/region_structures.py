@@ -42,8 +42,13 @@ class Region():
         """Is boundary region"""
         self.not_used = not_used
         """is used"""
-        self.mesh_step = step
-        """mesh step"""
+
+        try:
+            self.mesh_step = float(step)
+        except TypeError:
+            self.mesh_step = 0.0
+        """mesh step, TODO: fix input format checker to not pass non float value."""
+
 
     def cmp_shape_dim(self, layer_id, dim):
         """Compare real shape dimension on set layer with region dimension and evaluate

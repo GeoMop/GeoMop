@@ -15,7 +15,6 @@ import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtCore as QtCore
 import gm_base.icon as icon
 from gm_base.geomop_util_qt import Autosave
-from LayerEditor.ui.dialogs.set_diagram import SetDiagramDlg
 from LayerEditor.ui.dialogs.make_mesh import MakeMeshDlg
 
 
@@ -49,7 +48,7 @@ class LayerEditor:
         # load config        
         cfg.init()
 
-        # set geomop root dir
+
         self.mainwindow = MainWindow(self)
         cfg.set_main(self.mainwindow)
         self.exit = False
@@ -86,11 +85,12 @@ class LayerEditor:
         """
         parser = argparse.ArgumentParser(description='LayerEditor')
         parser.add_argument('--debug', action='store_true', help='Enable debug mode')
+        parser.add_argument('file', help='Layers geometry JSON file.', default=None, nargs='?')
         args = parser.parse_args(args)
-
         if args.debug:
             cfg.config.__class__.DEBUG_MODE = True
             self.setup_logging()
+        self.filename = ar    
 
     def setup_logging(self):
         from gm_base.geomop_util.logging import log_unhandled_exceptions
@@ -138,35 +138,37 @@ class LayerEditor:
         return restored
 
     def new_file(self):
-        """new file menu action"""
+        """
+        New file action handler.
+        return close if no file is created nor openned.
+        """
         if not self.save_old_file():
             return
-        init_dlg = SetDiagramDlg()
-        ret = init_dlg.exec_()
-        if init_dlg.closed:
-            return
-        cfg.new_file()        
-        if ret!=QtWidgets.QDialog.Accepted:
-            if not self.open_file():
-                self.new_file()
-                self.mainwindow.show_status_message("New file is opened")
-        else:
-            self.mainwindow.refresh_all()
-            self.mainwindow.paint_new_data()
+
+        cfg.new_file()
+        cfg.diagram.area.set_area([(0, 0), (100, 0), (100, 100), (0, 100)])
+        self.mainwindow.refresh_all()
+        self.mainwindow.paint_new_data()
         self._update_document_name()
- 
-    def open_file(self):
-        """open file menu action"""
+        return True
+
+    def open_file(self, in_file=None):
+        """
+        open file menu action
+        handler for triggered signal.
+        """
+
         if not self.save_old_file():
             return False
-        file = QtWidgets.QFileDialog.getOpenFileName(
-            self.mainwindow, "Choose Json Geometry File",
-            cfg.config.data_dir, "Json Files (*.json)")
-        if file[0]:
-            cfg.open_file(file[0])
+        if in_file is None:
+            in_file, _ = QtWidgets.QFileDialog.getOpenFileName(
+                self.mainwindow, "Choose Json Geometry File",
+                cfg.config.data_dir, "Json Files (*.json)")
+        if in_file:
+            cfg.open_file(in_file)
             self._update_document_name()
             self._restore_backup()
-            self.mainwindow.show_status_message("File '" + file[0] + "' is opened")
+            self.mainwindow.show_status_message("File {} is opened".format(in_file))
             return True
         return False
             

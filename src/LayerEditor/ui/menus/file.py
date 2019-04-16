@@ -27,7 +27,8 @@ class MainFileMenu(QMenu):
         self._open_file_action = QAction('&Open File ...', self)
         self._open_file_action.setShortcut(cfg.get_shortcut('open_file').key_sequence)
         self._open_file_action.setStatusTip('Open layer data file')
-        self._open_file_action.triggered.connect(self._layer_editor.open_file)
+        self._open_file_action.triggered.connect(
+            lambda checked: self._layer_editor.open_file())
         self.addAction(self._open_file_action)
         
         self._save_file_action = QAction('&Save File', self)

@@ -292,23 +292,22 @@ class Area():
         
     def deserialize(self, points):
         """Set inicialization arrea from polygon coordinates"""
-        px, py = zip(*points)
-        self.set_area(px, py)
+        self.set_area(points)
         
-    def set_area(self, pxs, pys):
-        """Set initialization area"""
-        self.gtpolygon = QtGui.QPolygonF()        
-        self.xmin = pxs[0]
-        self.xmax = pxs[0]
-        self.ymin = -pys[0]
-        self.ymax = -pys[0]
-        for x, y in zip(pxs, pys):
+    def set_area(self, points):
+        """Set rectangular arrea containing given points."""
+        self.gtpolygon = QtGui.QPolygonF()
+        self.xmin = points[0][0]
+        self.xmax = points[0][0]
+        self.ymin = -points[0][1]
+        self.ymax = -points[0][1]
+        for x, y in points:
             self.gtpolygon.append(QtCore.QPointF(x, -y))
             self.xmin = min(self.xmin, x)
             self.xmax = max(self.xmax, x)
             self.ymin = min(self.ymin, -y)
             self.ymax = max(self.ymax, -y)
-        self.gtpolygon.append(QtCore.QPointF(pxs[0], -pys[0]))
+        self.gtpolygon.append(QtCore.QPointF(points[0][0], -points[0][1]))
         
         
 class Zoom():
