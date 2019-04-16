@@ -35,6 +35,10 @@ class Point(QtWidgets.QGraphicsEllipseItem):
             self.set_tmp()
         self.update_color()
 
+    @property
+    def shape_data(self):
+        return self.point_data
+
     def set_size(self):
         """Set point size according to actual zoom"""
         ps = self.POINT_SIZE
@@ -115,13 +119,13 @@ class Point(QtWidgets.QGraphicsEllipseItem):
         pos = QtCore.QPointF(self.point_data.x, self.point_data.y) + shift
         self.move_point(pos, new_state, ungrab)
         
-    def select_point(self):
+    def select(self):
         """set selected and repaint point"""
         if self.state==ItemStates.standart:
             self.state = ItemStates.selected
             self.update_color()
         
-    def deselect_point(self):
+    def deselect(self):
         """set unselected and repaint point"""
         if self.state==ItemStates.selected:
             self.state = ItemStates.standart

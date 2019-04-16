@@ -25,6 +25,10 @@ class Polygon(QtWidgets.QGraphicsPolygonItem):
         self.setZValue(self.MIN_ZVALUE+self.depth)
         self.update_brush()
 
+    @property
+    def shape_data(self):
+        return self.polygon_data
+
     def update_geometry(self):
         """Update geometry according to actual zoom"""
         self.update_brush()
@@ -60,13 +64,13 @@ class Polygon(QtWidgets.QGraphicsPolygonItem):
         self.setPolygon(self.polygon_data.qtpolygon)
 
 
-    def select_polygon(self):
+    def select(self):
         """set selected and repaint polygon"""
         if self.state == ItemStates.standart:
             self.state = ItemStates.selected
             self.update_brush()
 
-    def deselect_polygon(self):
+    def deselect(self):
         """set unselected and repaint polygon"""
         if self.state == ItemStates.selected:
             self.state = ItemStates.standart

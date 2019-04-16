@@ -6,99 +6,95 @@ class Selection():
     Selection operations
     """
     def __init__(self):
-        self.selected_points = []
-        """list of selected points"""
-        self.selected_lines = []
-        """list of selected lines"""
-        self.selected_polygons = []
-        """list of selected polygons"""
+        self.selected = {}
+        # Dict (dim, shape_id): shape
 
-    def select_point(self, point):
-        """set point as selected"""
-        if not point in self.selected_points:
-            self.selected_points.append(point)
-            point.object.select_point()
-        else:
-            self.selected_points.remove(point)
-            point.object.deselect_point()
+    def select(self, shape, select=None):
+        dim = shape.dim
+        id = shape.id
+        shape_id = (dim, id)
 
-    def select_line(self, line, with_points):
-        """set line as selected"""
-        if not line in self.selected_lines:
-            self.selected_lines.append(line)
-            line.object.select_line()
-            if with_points:
-                self._select_point_if_lines_selected(line.p1)
-                self._select_point_if_lines_selected(line.p2)
-        else:
-            self.selected_lines.remove(line)
-            line.object.deselect_line()
-            if with_points:
-                self._select_point_if_lines_selected(line.p1)
-                self._select_point_if_lines_selected(line.p2)
+        is_selected = shape_id in self.selected
+        if select is None:
+            select = not is_selected
 
-    def _select_point_if_lines_selected(self, point):
-        """select point if neighboring lines are selected"""
-        all = True
-        for line in point.lines:
-            if line not in self.selected_lines:
-                all = False
-                break
-        if all:
-            if point not in self.selected_points:
-                self.select_point(point)
-        else:
-            if point in self.selected_points:
-                self.select_point(point)
+        if select and not is_selected:
+            self.selected[shape_id] = shape
+            shape.object.select()
+        if not select and is_selected:
+            del self.selected[shape_id]
+            shape.object.deselect()
 
-    def select_polygon(self, polygon):
-        """set polygon as selected"""
-        if not polygon in self.selected_polygons:
-            self.selected_polygons.append(polygon)
-            polygon.object.select_polygon()
-        else:
-            self.selected_polygons.remove(polygon)
-            polygon.object.deselect_polygon()
+    # def select_point(self, point):
+    #     """set point as selected"""
+    #     self.select(point)
+
+
+    # def select_line_with_ends(self, line, with_points):
+    #     """set line as selected"""
+    #     self.select(line)
+    #
+    #     if not line in self.selected_lines:
+    #         self.selected_lines.append(line)
+    #         line.object.select_line()
+    #         if with_points:
+    #             self._select_point_if_lines_selected(line.p1)
+    #             self._select_point_if_lines_selected(line.p2)
+    #     else:
+    #         self.selected_lines.remove(line)
+    #         line.object.deselect_line()
+    #         if with_points:
+    #             self._select_point_if_lines_selected(line.p1)
+    #             self._select_point_if_lines_selected(line.p2)
+    #
+    # # def select_line(self, line):
+    # #     """ Select line with end points."""
+    #
+    # def _select_point_if_lines_selected(self, point):
+    #     """select point if neighboring lines are selected"""
+    #     all = True
+    #     for line in point.lines:
+    #         if line not in self.selected_lines:
+    #             all = False
+    #             break
+    #     if all:
+    #         if point not in self.selected_points:
+    #             self.select_point(point)
+    #     else:
+    #         if point in self.selected_points:
+    #             self.select_point(point)
+
+    # def select_polygon(self, polygon):
+    #     """set polygon as selected"""
+    #     self.select(polygon)
+    #     if not polygon in self.selected_polygons:
+    #         self.selected_polygons.append(polygon)
+    #         polygon.object.select_polygon()
+    #     else:
+    #         self.selected_polygons.remove(polygon)
+    #         polygon.object.deselect_polygon()
 
     def select_all(self):
         """select all items"""
-        for line in cfg.diagram.lines:
-            if line not in self.selected_lines:
-                self.select_line(line, False)
-        for point in cfg.diagram.points:
-            if point not in self.selected_points:
-                self.select_point(point)
-        for polygon in cfg.diagram.polygons:
-            if polygon not in self.selected_polygons:
-                self.select_polygon(polygon)
+        for shapes in [cfg.diagram.points, cfg.diagram.lines, cfg.diagram.polygons]:
+            for shape in shapes:
+                self.select(shape, select=True)
 
     def select_current_region(self):
         """select items which have set current region"""
-        regions = cfg.diagram.regions
-        region = regions.current_regions[regions.current_layer_id]
-        reg_ind = regions.regions.index(region)
-        for line in cfg.diagram.lines:
-            if line.get_region() == reg_ind:
-                self.select_line(line, False)
-        for point in cfg.diagram.points:
-            if point.get_region() == reg_ind:
-                self.select_point(point)
-        for polygon in cfg.diagram.polygons:
-            if polygon.get_region() == reg_ind:
-                self.select_polygon(polygon)
+        reg_id = cfg.layer_heads.selected_region_id
+
+        for shapes in [cfg.diagram.points, cfg.diagram.lines, cfg.diagram.polygons]:
+            for shape in shapes:
+                if shape.get_region() == reg_id:
+                    self.select(shape)
 
     def deselect_selected(self):
         """deselect all items"""
-        for line in self.selected_lines:
-           line.object.deselect_line()
-        for point in self.selected_points:
-            point.object.deselect_point()
-        for polygon in self.selected_polygons:
-            polygon.object.deselect_polygon()
-        self.selected_points = []
-        self.selected_lines = []
-        self.selected_polygons = []
-        
+        for shapes in [cfg.diagram.points, cfg.diagram.lines, cfg.diagram.polygons]:
+            for shape in shapes:
+                self.select(shape, select=False)
+
     def get_selected_regions(self, diagram):
         """ For all layers of set diagram return:
             - selected region, if selected shapes have same regions and dimensions
@@ -126,13 +122,11 @@ class Selection():
         """
         If exactly one shape is selected return all regions in block layers.
         """
-        for selected in [self.selected_points, self.selected_lines, self.selected_polygons]:
-            shape_regions = None
-            if  len(selected) == 1:
-                shape = selected[0]
-                shape_regions = shape.get_regions()
-            #
-        return shape_regions
+        if len(self.selected) == 1:
+            shape =  list(self.selected.values())[0]
+            return shape.get_regions()
+        else:
+            return None
 
     def delete_selected(self):
         """
@@ -186,27 +180,26 @@ class Selection():
 
     def set_current_region(self):
         """
-        set current region to selected shapes of appropriate dimension,
-        restricts selection to this shapes
+        Set region of selected shapes to current regions where dimension match.
+        Restrict selection to these shapes
         """
-        for point in self.selected_points.copy():
-            if point.set_current_region():
-                point.object.update_color()
+        selected_region = cfg.layer_heads.selected_region
+        layer_id = cfg.layer_heads.current_layer_id
+        for shape in list(self.selected.values()):
+            if selected_region.cmp_shape_dim(layer_id, shape.dim):
+                shape.set_region(selected_region)
+                shape.object.update_color()
             else:
-                self.select_point(point)
-        for line in self.selected_lines.copy():
-            if line.set_current_region():
-                line.object.update_color()
-            else:
-                self.select_line(line, False)
-        for polygon in self.selected_polygons.copy():
-            if polygon.set_current_region():
-                polygon.object.update_color()
-            else:
-                self.select_polygon(polygon)
+                # deselect
+                self.select(shape)
+
 
     def is_empty(self):
         """returns True if no shape selected"""
-        return len(self.selected_points) == 0 and \
-            len(self.selected_lines) == 0 and \
-            len(self.selected_polygons) == 0
+        return self.selected
+
+    def max_selected_dim(self):
+        if self.selected:
+            return max([ dim for dim, id in self.selected.keys()])
+        else:
+            return 0

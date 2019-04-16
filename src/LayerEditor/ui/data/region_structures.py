@@ -67,7 +67,9 @@ class Regions():
 
     DEFAULT_REGION = 0
 
-    def __init__(self, global_history):
+    def __init__(self, layer_heads, global_history):
+        self._layer_heads = layer_heads
+        # Reference to adaptor with currently selected regions
         self.regions = {}
         """List of regions"""
         self.layers = {}
@@ -83,16 +85,34 @@ class Regions():
         """Dictionary of indexes lists 3D shapes (polygons) (layers_id:[{polygon.id:region.id}])"""
         self._history = RegionHistory(global_history)
         """History class"""
-        self.current_layer_id = None
-        #"""Id of selected layer in region panel"""
-        self.current_topology_id = None
-        """Id of selected topology in region panel"""
-        self.current_regions = {}
-        """Map all layers in current topology, and its regions"""
         self.remap_reg_from = None
         """If this variable is set, remap in move topology shapes id from set diagram"""
         self.remap_reg_to = None
         """If this variable is set, remap in move topology shapes id to values in set diagram"""
+
+    @property
+    def current_topology_id(self):
+        """Id of selected topology in region panel"""
+        return self._layer_heads.current_topology_id
+
+    @property
+    def current_regions(self):
+        """Map all layers in current topology, and its regions"""
+        return self._layer_heads.selected_regions
+
+    @property
+    def current_layer_id(self):
+        """Id of selected layer in region panel"""
+        return self._layer_heads.current_layer_id
+
+    def layer_region(self, dim):
+        if dim==0:
+            layer_region = self.layer_region_0D
+        elif dim==1:
+            layer_region = self.layer_region_1D
+        else:
+            layer_region = self.layer_region_2D
+        return layer_region
 
     def reload_regions(self, cfg):
         """Call if data file changed"""
@@ -111,28 +131,33 @@ class Regions():
         """Set default region in set object."""
         if not topology_id in self.layers_topology:
             return
-        if dim==0:
-            layer_region = self.layer_region_0D
-        elif dim==1:
-            layer_region = self.layer_region_1D
-        else:
-            layer_region = self.layer_region_2D
+        layer_region = self.layer_region(dim)
         for layer_id in self.layers_topology[topology_id]:
             layer_region[layer_id][shape_id]=0
             if to_history:
                 self._history.change_shape_region(shape_id, layer_id, dim, None, label)
 
-    def add_regions(self, dim, shape_id, to_history=False, label=None):
+    def copy_regions(self, dim, shape_id, copy_id, to_history=False, label=None):
         """Shape region for all layers in current topology is added to
         current value"""
-        if len(self.current_regions)==0 :
+        layer_region = self.layer_region(dim)
+
+        for layer_id in self.layers_topology[self.current_topology_id]:
+            layer_region[layer_id][shape_id] = layer_region[layer_id][copy_id]
+            if to_history:
+                self._history.change_shape_region(shape_id, layer_id, dim, None, label)
+
+
+    def add_regions(self, dim, shape_id, to_history=False, label=None):
+        """
+        Set Shape region for all layers in current topology is added to
+        current value
+        """
+        if self.current_regions:
             return self._set_default_regions( dim, shape_id, self.current_topology_id, to_history, label)
-        if dim==0:
-            layer_region = self.layer_region_0D
-        elif dim==1:
-            layer_region = self.layer_region_1D
-        else:
-            layer_region = self.layer_region_2D
+        layer_region = self.layer_region(dim)
+
+
         for layer_id in self.layers_topology[self.current_topology_id]:
             if not self.current_regions[layer_id].cmp_shape_dim(layer_id, dim):
                 # default region
@@ -145,87 +170,50 @@ class Regions():
                 if to_history:
                     self._history.change_shape_region(shape_id, layer_id, dim, None, label)
 
-    def copy_regions(self, dim, shape_id, copy_id, to_history=False, label=None):
-        """Shape region for all layers in current topology is added to
-        current value"""
-        if dim==0:
-            layer_region = self.layer_region_0D
-        elif dim==1:
-            layer_region = self.layer_region_1D
-        else:
-            layer_region = self.layer_region_2D
-        for layer_id in self.layers_topology[self.current_topology_id]:
-            layer_region[layer_id][shape_id] = layer_region[layer_id][copy_id]
-            if to_history:
-                self._history.change_shape_region(shape_id, layer_id, dim, None, label)
-
-    def set_regions(self, dim, shape_id, to_history=False, label=None):
+    def set_regions_from_list(self, dim, shape_id, topology_id, region_list,
+                              to_history=False, label=None):
         """Shape region for all layers in current topology is set to
-        current value"""
-        ret = True
-        if dim==0:
-            layer_region = self.layer_region_0D
-        elif dim==1:
-            layer_region = self.layer_region_1D
-        else:
-            layer_region = self.layer_region_2D
-        for layer_id in self.layers_topology[self.current_topology_id]:
-            region = self.current_regions[layer_id]
-            old_region_id = layer_region[layer_id][shape_id]
-            if old_region_id!=[key for key, item in self.regions.items() if item == region][0]:
-                if region.cmp_shape_dim(layer_id, dim):
-                    layer_region[layer_id][shape_id] = [key for key, item in self.regions.items() if item == region][0]
-                    if to_history:
-                        self._history.change_shape_region(shape_id, layer_id, dim, old_region_id, label)
-                else:
-                    ret = False
-        return ret
-
-    def set_regions_from_list(self, dim, shape_id, topology_id, list, to_history=False, label=None):
-        """Shape region for all layers in current topology is set to
-        current value"""
+        current value
+        :param region_list: List of region to assign to the shapes [ region_id, ..].
+        """
         if not topology_id in self.layers_topology:
             return
-        if dim==0:
-            layer_region = self.layer_region_0D
-        elif dim==1:
-            layer_region = self.layer_region_1D
-        else:
-            layer_region = self.layer_region_2D
-        for i in range(0, len(self.layers_topology[topology_id])):
-            layer_id = self.layers_topology[topology_id][i]
-            layer_region[layer_id][shape_id]=list[i]
+        layer_region = self.layer_region(dim)
+
+        for layer_id, to_region in zip(self.layers_topology[topology_id], region_list):
+            layer_region[layer_id][shape_id] = to_region
             if to_history:
                 self._history.change_shape_region(shape_id, layer_id, dim, None, label)
 
-    def set_region(self, dim, shape_id, to_history=False, label=None):
+
+    # def set_regions(self, dim, shape_id, to_history=False, label=None):
+    #     """Shape region for all layers in current topology is set to
+    #     current value"""
+    #     for layer_id in self.layers_topology[self.current_topology_id]:
+    #         self._set_region(layer_id, dim, shape_id, to_history, label)
+
+    def set_region(self, dim, shape_id, region, layer_id=None, to_history=False, label=None):
         """Shape region for current layer is set to current value"""
-        if dim==0:
-            layer_region = self.layer_region_0D
-        elif dim==1:
-            layer_region = self.layer_region_1D
-        else:
-            layer_region = self.layer_region_2D
-        region = self.current_regions[self.current_layer_id]
-        old_region_id = layer_region[self.current_layer_id][shape_id]
-        if old_region_id!=[key for key, item in self.regions.items() if item == region][0]:
-            if region.cmp_shape_dim(self.current_layer_id, dim):
-                layer_region[self.current_layer_id][shape_id] = [key for key, item in self.regions.items() if item == region][0]
-                if to_history:
-                    self._history.change_shape_region(shape_id, self.current_layer_id, dim, old_region_id, label)
-            else:
-                return False
-        return True
+        if layer_id is None:
+            layer_id=self.current_layer_id
+        self._set_region(layer_id, dim, shape_id, region, to_history, label)
+
+
+    def _set_region(self, layer_id, dim, shape_id, region, to_history=False, label=None):
+        """Shape region for current layer is set to current value"""
+        layer_region = self.layer_region(dim)
+        old_reg_id = layer_region[layer_id][shape_id]
+        if old_reg_id != region.reg_id:
+            layer_region[layer_id][shape_id] = region.reg_id
+            if to_history:
+                self._history.change_shape_region(shape_id, layer_id, dim, old_reg_id, label)
+
 
     def set_default(self, dim, shape_id, to_history=False, label=None):
         """Shape region for current layer is set to default value.
         If region is already set to default return False"""
-        if dim==0:
-            layer_region = self.layer_region_0D
-        elif dim==1:
-            layer_region = self.layer_region_1D
-        else:
-            layer_region = self.layer_region_2D
+        layer_region = self.layer_region(dim)
+
         old_region_id = layer_region[self.current_layer_id][shape_id]
         if old_region_id==0:
             return False
@@ -237,12 +225,8 @@ class Regions():
     def del_regions(self, dim, shape_id, to_history=False, label=None):
         """Shape region for all layers in current topology is removed from
         current value"""
-        if dim==0:
-            layer_region = self.layer_region_0D
-        elif dim==1:
-            layer_region = self.layer_region_1D
-        else:
-            layer_region = self.layer_region_2D
+        layer_region = self.layer_region(dim)
+
         for layer_id in self.layers_topology[self.current_topology_id]:
             old_region_id = layer_region[layer_id][shape_id]
             del layer_region[layer_id][shape_id]
@@ -251,50 +235,36 @@ class Regions():
 
     def get_regions(self, dim, shape_id):
         """Get Shape regions for all layers in current topology"""
-        if dim==0:
-            layer_region = self.layer_region_0D
-        elif dim==1:
-            layer_region = self.layer_region_1D
-        else:
-            layer_region = self.layer_region_2D
+        layer_region = self.layer_region(dim)
+
         regions = []
         for layer_id in self.layers_topology[self.current_topology_id]:
-            regions.append(layer_region[layer_id][shape_id])
+            regions.append((layer_id, layer_region[layer_id][shape_id]))
         return regions
 
     def get_region(self, dim, shape_id):
         """Get Shape regions for all layers in current topology"""
-        if dim==0:
-            layer_region = self.layer_region_0D
-        elif dim==1:
-            layer_region = self.layer_region_1D
-        else:
-            layer_region = self.layer_region_2D
+        layer_region = self.layer_region(dim)
+
         return layer_region[self.current_layer_id][shape_id]
 
     def get_region_color(self, dim, shape_id):
         """Return current region color for set shape"""
-        if dim==0:
-            return self.regions[self.layer_region_0D[self.current_layer_id][shape_id]].color
-        elif dim==1:
-            return self.regions[self.layer_region_1D[self.current_layer_id][shape_id]].color
-        return self.regions[self.layer_region_2D[self.current_layer_id][shape_id]].color
+        layer_region = self.layer_region(dim)
+        return self.regions[layer_region[self.current_layer_id][shape_id]].color
 
     def get_region_id(self, dim, shape_id):
         """Return current region color for set shape"""
-        if dim==0:
-            return self.layer_region_0D[self.current_layer_id][shape_id]
-        elif dim==1:
-            return self.layer_region_1D[self.current_layer_id][shape_id]
-        return self.layer_region_2D[self.current_layer_id][shape_id]
+        layer_region = self.layer_region(dim)
+        return self.layer_region[self.current_layer_id][shape_id]
 
     def get_layers(self, topology_idx):
-        """Return dictionary layers (id:layer_name) with set topology"""
-        pom = {}
-        for id in self.layers_topology[topology_idx]:
-            pom[id] = self.layers[id]
-        ret = OrderedDict(sorted(pom.items(), key=lambda x: 2*x[0] if x[0]>=0 else -2*x[0]-3))
-        return ret
+        """
+        Prepare layer data for Regions panel.
+        return: OrderedDict{ layer_id: layer_name}"""
+        layers = [ (id, self.layers[id]) for id in self.layers_topology[topology_idx] ]
+        layers.sort(key=lambda x: 2*x[0] if x[0]>=0 else -2*x[0]-3)
+        return layers
 
     def _get_available_reg_id(self):
         """Return available id in region numbering (solves deletes, etc.)"""

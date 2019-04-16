@@ -15,7 +15,7 @@ import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtCore as QtCore
 import gm_base.icon as icon
 from gm_base.geomop_util_qt import Autosave
-
+from LayerEditor.ui.dialogs.set_diagram import SetDiagramDlg
 from LayerEditor.ui.dialogs.make_mesh import MakeMeshDlg
 
 
@@ -39,30 +39,92 @@ QLabel[status="error"] {
 class LayerEditor:
     """Analyzis editor main class"""
     
-    def __init__(self, app, input_file=None):
+    def __init__(self, app, args=None):
         self._app = app
-        # load config
+        self._cfg = cfg
+        self.qapp_setup()
+        if args:
+            self.parse_args(args)
+
+        # load config        
         cfg.init()
-        cfg.geomop_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+
+
         self.mainwindow = MainWindow(self)
         cfg.set_main(self.mainwindow)
+        self.exit = False
+
 
         save_fn = lambda c=cfg: cfg.le_serializer.save(c)
-        self.autosave = Autosave(cfg.config.CONFIG_DIR, lambda: cfg.curr_file, save_fn)
+        self.autosave = Autosave(cfg.config.current_workdir, lambda: cfg.curr_file, save_fn)
+        self._restore_backup()
 
-        # Try to restore Untitled.yaml.
-        if not self._restore_backup():
+        # show
+        self.mainwindow.show()
+        self.mainwindow.paint_new_data()
+        self._update_document_name()
+        self.autosave.start_autosave()
+        #self.mainwindow.diagramScene.regionsUpdateRequired.connect(self.autosave.on_content_change)
 
-            assert not cfg.changed()
-            if input_file is None:
-                self.exit = not self.new_file()
-            else:
-                self.open_file(input_file)
-                self.exit = False
 
-            # set default values
-            self.autosave.start_autosave()
+    def qapp_setup(self):
+        """
+        Modify setup of QApp object.
+        :return:
+        """
+        self._app.setStyleSheet(style_sheet)
+        self._app.setWindowIcon(icon.get_app_icon("le-geomap"))
+        QtCore.QLocale.setDefault(QtCore.QLocale(QtCore.QLocale.English, QtCore.QLocale.UnitedStates))
 
+        # enable Ctrl+C from console to kill the application
+        signal.signal(signal.SIGINT, signal.SIG_DFL)
+
+    def parse_args(self, args):
+        """
+        Parse cmd line args.
+        :return:
+        """
+        parser = argparse.ArgumentParser(description='LayerEditor')
+        parser.add_argument('--debug', action='store_true', help='Enable debug mode')
+        parser.add_argument('file', help='Layers geometry JSON file.', default=None, nargs='?')
+        args = parser.parse_args(args)
+        if args.debug:
+            cfg.config.__class__.DEBUG_MODE = True
+            self.setup_logging()
+        self.filename = ar    
+
+    def setup_logging(self):
+        from gm_base.geomop_util.logging import log_unhandled_exceptions
+
+        def on_unhandled_exception(type_, exception, tback):
+            """Unhandled exception callback."""
+            # pylint: disable=unused-argument
+            from gm_base.geomop_dialogs import GMErrorDialog
+            err_dialog = GMErrorDialog(layer_editor.mainwindow)
+            err_dialog.open_error_dialog("Unhandled Exception!", error=exception)
+            sys.exit(1)
+
+        #            from geomop_dialogs import GMErrorDialog
+        #            if layer_editor is not None:
+        #                err_dialog = None
+        #                # display message box with the exception
+        #                if layer_editor.mainwindow is not None:
+        #                    err_dialog = GMErrorDialog(layer_editor.mainwindow)
+        #
+        #                # try to reload editor to avoid inconsistent state
+        #                if callable(layer_editor.mainwindow.reload):
+        #                    try:
+        #                        layer_editor.mainwindow.reload()
+        #                    except:
+        #                        if err_dialog is not None:
+        #                            err_dialog.open_error_dialog("Application performed invalid operation!",
+        #                                                         error=exception)
+        #                            sys.exit(1)
+        #
+        #                if err_dialog is not None:
+        #                    err_dialog.open_error_dialog("Unhandled Exception!", error=exception)
+        #
+        log_unhandled_exceptions(cfg.config.__class__.CONTEXT_NAME, on_unhandled_exception)
 
     def _restore_backup(self):
         """recover file from backup file if it exists and if user wishes so"""
@@ -75,15 +137,6 @@ class LayerEditor:
             cfg.history.last_save_labels = -1
         self.autosave.autosave_timer.stop()
         return restored
-
-    def exec(self):
-        """
-        Show main window and start event loop.
-        """
-        if self.exit:
-            return
-        self.mainwindow.show()
-        self._app.exec()
 
     def new_file(self):
         """
@@ -116,7 +169,7 @@ class LayerEditor:
             cfg.open_file(in_file)
             self._update_document_name()
             self._restore_backup()
-            self.mainwindow.show_status_message("File '{}' is opened.".format(in_file))
+            self.mainwindow.show_status_message("File '" + file[0] + "' is opened")
             return True
         return False
             
@@ -211,7 +264,10 @@ class LayerEditor:
                 self.autosave.delete_backup()
         return True
 
-
+    def run(self):
+        """go"""
+        self._app.exec()
+        
     def _update_document_name(self):
         """Update document title (add file name)"""
         title = "GeoMop Layer Editor"
@@ -221,66 +277,13 @@ class LayerEditor:
             title += " - " + cfg.curr_file
         self.mainwindow.setWindowTitle(title)
 
-    def _update_document(self):
-        """
-        Update whole document after file open or new file.
-        :return:
-        """
 
-
-def make_application():
-    app = QtWidgets.QApplication(sys.argv)
-    app.setStyleSheet(style_sheet)
-    app.setWindowIcon(icon.get_app_icon("le-geomap"))
-    QtCore.QLocale.setDefault(QtCore.QLocale(QtCore.QLocale.English, QtCore.QLocale.UnitedStates))
-    return app
-
-def error_dialog():
-    """
-    Set error dialog for exception hook.
-    :return:
-    """
-    from gm_base.geomop_util.logging import log_unhandled_exceptions
-
-    def on_unhandled_exception(type_, exception, tback):
-        """Unhandled exception callback."""
-        # pylint: disable=unused-argument
-        from gm_base.geomop_dialogs import GMErrorDialog
-        err_dialog = GMErrorDialog(layer_editor.mainwindow)
-        err_dialog.open_error_dialog("Unhandled Exception!", error=exception)
-        sys.exit(1)
-
-    log_unhandled_exceptions(cfg.config.__class__.CONTEXT_NAME, on_unhandled_exception)
-
-
-def main():
-    """LayerEditor application entry point."""
-    parser = argparse.ArgumentParser(description='LayerEditor')
-    parser.add_argument('--debug', action='store_true', help='Enable debug mode')
-    parser.add_argument('file', help='Layers geometry JSON file.', default=None, nargs='?')
-    args = parser.parse_args()
-
-    app = make_application()
-
-    if args.debug:
-        cfg.config.__class__.DEBUG_MODE = True
-
-    # enable Ctrl+C from console to kill the application
-    signal.signal(signal.SIGINT, signal.SIG_DFL)
-
-    # launch the application
-    in_file = args.file
-    layer_editor = LayerEditor(app, in_file)
-    layer_editor.exec()
-
-    app.quit()
-    del app
-    del layer_editor
-    sys.exit(0)
 
 
 if __name__ == "__main__":
-    main()
+    app = QtWidgets.QApplication(sys.argv)
+    layer_editor = LayerEditor(app, sys.argv[1:])
+    if not layer_editor.exit:
+        layer_editor.run()
 
 
-X
