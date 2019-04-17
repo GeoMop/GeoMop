@@ -1,6 +1,7 @@
 from PyQt5 import QtWidgets, QtCore, QtGui
 from PyQt5.QtCore import QPoint
 
+from .g_input_action import GInputAction
 from src.common.analysis.actions import Tuple
 from .root_action import RootAction
 from .g_action import GAction
@@ -93,7 +94,7 @@ class Scene(QtWidgets.QGraphicsScene):
             for rank, slot in self.workflow._slots.items():
                 if slot.instance_name == item.data(GActionData.NAME):
                     action = slot
-            self.actions.append(GAction(item, action, self.root_item))
+            self.actions.append(GInputAction(item, action, self.root_item))
         else:
             self.actions.append(GAction(item, action, self.root_item))
 
