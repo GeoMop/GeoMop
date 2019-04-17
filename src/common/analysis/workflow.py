@@ -47,7 +47,7 @@ class _ActionBase:
 
     @property
     def action_name(self):
-        return self.__class__.name
+        return self.__class__.__name__
 
 
     def name(self, instance_name):

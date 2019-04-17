@@ -2,7 +2,7 @@ from PyQt5 import QtCore
 from .tree_model import TreeModel
 
 
-class ActionData:
+class GActionData:
     NAME = 0
     X = 1
     Y = 2
@@ -33,28 +33,28 @@ class GActionDataModel(TreeModel):
 
     def exists(self, action_name, parent=QtCore.QModelIndex()):
         for child in self.get_item(parent).children():
-            if child.data(ActionData.NAME) == action_name:
+            if child.data(GActionData.NAME) == action_name:
                 return True
-            if self.exists(action_name, self.index(child.child_number(),ActionData.NAME, parent)):
+            if self.exists(action_name, self.index(child.child_number(), GActionData.NAME, parent)):
                 return True
         return False
 
     def move(self, item, x, y):
         if x is not None:
-            index_x = self.index(item.child_number(), ActionData.X)
+            index_x = self.index(item.child_number(), GActionData.X)
             self.setData(index_x, x)
         if y is not None:
-            index_y = self.index(item.child_number(), ActionData.Y)
+            index_y = self.index(item.child_number(), GActionData.Y)
             self.setData(index_y, y)
 
     def name_changed(self, item, name):
-        index = self.index(item.child_number(), ActionData.NAME)
+        index = self.index(item.child_number(), GActionData.NAME)
         self.setData(index, name)
 
     def width_changed(self, item, width):
-        index = self.index(item.child_number(), ActionData.WIDTH)
+        index = self.index(item.child_number(), GActionData.WIDTH)
         self.setData(index, width)
 
     def height_changed(self, item, height):
-        index = self.index(item.child_number(), ActionData.HEIGHT)
+        index = self.index(item.child_number(), GActionData.HEIGHT)
         self.setData(index, height)

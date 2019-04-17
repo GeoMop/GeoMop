@@ -7,7 +7,7 @@ from .g_action import GAction
 from .g_connection import GConnection
 from .gport import OutputGPort
 from .action_for_subactions import GActionForSubactions
-from .g_action_data_model import GActionDataModel, ActionData
+from .g_action_data_model import GActionDataModel, GActionData
 import random
 import math
 import copy
@@ -88,11 +88,14 @@ class Scene(QtWidgets.QGraphicsScene):
             self.update()
 
     def draw_action(self, item):
-        action = self.workflow._actions.get(item.data(ActionData.NAME))
+        action = self.workflow._actions.get(item.data(GActionData.NAME))
         if action is None:
-            self.actions.append(GAction(item, self.root_item, 0))
+            for rank, slot in self.workflow._slots.items():
+                if slot.instance_name == item.data(GActionData.NAME):
+                    action = slot
+            self.actions.append(GAction(item, action, self.root_item))
         else:
-            self.actions.append(GAction(item, self.root_item, len(action._inputs)))
+            self.actions.append(GAction(item, action, self.root_item))
 
         for child in item.children():
             self.draw_action(child)
@@ -100,7 +103,7 @@ class Scene(QtWidgets.QGraphicsScene):
         self.update()
 
     def draw_slots(self, item):
-        n_ports = len(self.workflow.slots[item.data(ActionData.NAME)]._inputs)
+        n_ports = len(self.workflow.slots[item.data(GActionData.NAME)]._inputs)
         self.actions.append(GAction(item, self.root_item, n_ports))
 
         self.update()
@@ -136,7 +139,7 @@ class Scene(QtWidgets.QGraphicsScene):
             for item in actions_by_levels[level]:
                 max_height = max(max_height, item.height)
             for item in actions_by_levels[level]:
-                self.move(item.graphics_data_item, None, prev_y)
+                self.move(item.g_data_item, None, prev_y)
             items = sorted(actions_by_levels[level], key=lambda item:item.x())
             middle = math.floor(len(items)/2)
             prev_item = items[middle]
@@ -149,7 +152,7 @@ class Scene(QtWidgets.QGraphicsScene):
 
             for i in range(middle - 1, -1, -1):
                 if items[i].pos().x() + items[i].width > prev_item.pos().x():
-                    self.move(items[i].graphics_data_item, prev_item.pos().x() - items[i].width - 10, None)
+                    self.move(items[i].g_data_item, prev_item.pos().x() - items[i].width - 10, None)
                 prev_item = items[i]
 
             prev_y = prev_y + max_height + 50

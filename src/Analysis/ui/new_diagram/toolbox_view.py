@@ -11,8 +11,10 @@ class ToolboxView(QLabel):
     def __init__(self, item, parent):
         super(ToolboxView, self).__init__(parent)
         parent.addWidget(self)
-        self.item = item;
-        rect = item.childrenBoundingRect()
+        self.item = item
+        rect = item.boundingRect()
+        #rect.setTopLeft(rect.topLeft() + QPoint(-10,-10))
+        #rect.setBottomRight(rect.bottomRight() + QPoint(10, 10))
         self.pixmap = QPixmap(rect.size().toSize())
         self.pixmap.fill(Qt.transparent)
 

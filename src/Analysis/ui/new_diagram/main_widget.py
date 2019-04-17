@@ -7,6 +7,8 @@ import os, sys
 
 from PyQt5.QtWidgets import QToolBox, QSizePolicy, QVBoxLayout, QWidget, QTabWidget, QApplication
 
+from src.common.analysis.actions import Tuple
+from src.common.analysis.workflow import _Slot
 from .tab_widget import TabWidget
 from .toolbox_view import ToolboxView
 
@@ -48,18 +50,8 @@ class MainWidget(QtWidgets.QMainWindow):
 
         self.toolbox_layout = ActionCategory()
         self.toolbox_layout2 = ActionCategory()
-        self.item1 = ToolboxView(GInputAction(TreeItem(["Input", 0, 0, 50, 50])), self.toolbox_layout)
-        self.item2 = ToolboxView(OutputGAction(TreeItem(["Output", 0, 0, 50, 50])), self.toolbox_layout)
-        self.item3 = ToolboxView(GAction(TreeItem(["calibration", 0, 0, 50, 50])), self.toolbox_layout)
-        self.item4 = ToolboxView(GAction(TreeItem(["action", 0, 0, 50, 50])), self.toolbox_layout)
-        self.item5 = ToolboxView(GAction(TreeItem(["for loop", 0, 0, 50, 50])), self.toolbox_layout)
-        self.item6 = ToolboxView(GAction(TreeItem(["calibration", 0, 0, 50, 50])), self.toolbox_layout)
-        self.item11 = ToolboxView(GAction(TreeItem(["action", 0, 0, 50, 50])), self.toolbox_layout2)
-        self.item21 = ToolboxView(GAction(TreeItem(["for loop", 0, 0, 50, 50])), self.toolbox_layout2)
-        self.item31 = ToolboxView(GAction(TreeItem(["calibration", 0, 0, 50, 50])), self.toolbox_layout2)
-        self.item41 = ToolboxView(GAction(TreeItem(["action", 0, 0, 50, 50])), self.toolbox_layout2)
-        self.item51 = ToolboxView(GAction(TreeItem(["for loop", 0, 0, 50, 50])), self.toolbox_layout2)
-        self.item61 = ToolboxView(GAction(TreeItem(["calibration", 0, 0, 50, 50])), self.toolbox_layout2)
+        self.item1 = ToolboxView(GInputAction(TreeItem(["Tuple", 0, 0, 50, 50]), Tuple(1,2,3)), self.toolbox_layout)
+        self.item11 = ToolboxView(GAction(TreeItem(["Input", 0, 0, 50, 50]), _Slot(0)), self.toolbox_layout2)
 
         self.toolBox = QToolBox()
 
