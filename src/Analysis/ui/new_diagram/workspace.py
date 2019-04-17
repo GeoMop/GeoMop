@@ -6,9 +6,9 @@ Workspace where all user input is processed.
 import cProfile
 import time
 from PyQt5 import QtWidgets, QtCore, QtGui, QtOpenGL
-from PyQt5.QtCore import QDir, QPoint
+from PyQt5.QtCore import QDir, QPoint, QRect
 from PyQt5.QtGui import QDrag
-from PyQt5.QtWidgets import QFileDialog
+from PyQt5.QtWidgets import QFileDialog, QApplication
 
 from .action_editor_menu import ActionEditorMenu
 from .g_action import GAction
@@ -23,23 +23,22 @@ class Workspace(QtWidgets.QGraphicsView):
         """Initializes class."""
         super(Workspace, self).__init__(parent)
         self.workflow = workflow
-        self.scene = Scene(workflow)
+
+        self.scene = Scene(workflow, self)
         self.setScene(self.scene)
         self.setRenderHint(QtGui.QPainter.Antialiasing, True)
-        self.last_mouse_event_pos = QtCore.QPoint()
+
+        # for deciding if context menu should appear
         self.viewport_moved = False
 
         self.edit_menu = self.parent().edit_menu
-        #self.edit_menu.add_while.triggered.connect(self.scene.add_while_loop)
 
-        #self.setMouseTracking(True)
         self.setAcceptDrops(True)
 
         self.setDragMode(self.RubberBandDrag)
-        self.setSceneRect(QtCore.QRectF(QtCore.QPoint(-10000000, -10000000), QtCore.QPoint(10000000, 10000000)))
         self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
-        self.setViewportUpdateMode(self.MinimalViewportUpdate)
+        self.setViewportUpdateMode(self.FullViewportUpdate)
 
         # settings for zooming the workspace
         self.zoom = 1.0
@@ -47,6 +46,7 @@ class Workspace(QtWidgets.QGraphicsView):
         self.max_zoom = pow(self.zoom_factor, 10)
         self.min_zoom = pow(1/self.zoom_factor, 20)
 
+        # timer for updating scene
         timer = QtCore.QTimer(self)
         timer.timeout.connect(self.scene.update_scene)
         timer.start(16.6)
@@ -56,33 +56,23 @@ class Workspace(QtWidgets.QGraphicsView):
         self.prof = cProfile.Profile()
         self.prof.enable()
 
-        self.initialize_workspace_from_workflow(workflow)
-
-    def initialize_workspace_from_workflow(self, workflow):
-        for action_name in workflow._actions:
-            self.scene.add_action(QPoint(0.0,0.0), action_name)
-            action = workflow._actions[action_name]
-
-        for slot_name, slot in workflow._slots. items():
-            self.scene.add_action(QPoint(0.0, 0.0), slot.instance_name)
-
-        self.scene.update_scene()
-        self.scene.order_diagram()
-        if (len(self.scene.actions) > 0):
-            self.ensureVisible(self.scene.itemsBoundingRect())
-
+        self.last_mouse_event_pos = QPoint(0, 0)
+        self.mouse_press_event_pos = QPoint(0, 0)
 
     def mousePressEvent(self, press_event):
+        """Store information about position where this event occurred."""
         super(Workspace, self).mousePressEvent(press_event)
         self.last_mouse_event_pos = press_event.pos()
+        self.mouse_press_event_pos = press_event.pos()
 
     def dragEnterEvent(self, drag_enter):
+        """Accept drag event if it carries action."""
         if drag_enter.mimeData().hasText():
             if drag_enter.mimeData().text() == "action":
                 drag_enter.acceptProposedAction()
 
-
     def dropEvent(self, drop_event):
+        """Create new action from dropped information"""
         self.scene.new_action_pos = self.mapToScene(drop_event.pos()) - drop_event.source().get_pos_correction()
         self.scene.add_action()
         drop_event.acceptProposedAction()
@@ -91,12 +81,15 @@ class Workspace(QtWidgets.QGraphicsView):
         move_event.acceptProposedAction()
 
     def mouseMoveEvent(self, move_event):
-        """If new connection is being crated, move the loose end to mouse position."""
+        """ If new connection is being crated, move the loose end to mouse position.
+            If user drags with right button pressed, move visible rectangle. """
         super(Workspace, self).mouseMoveEvent(move_event)
         if self.scene.new_connection is not None:
             self.scene.new_connection.set_port2_pos(self.mapToScene(move_event.pos()))
             self.scene.update()
-        if move_event.buttons() & QtCore.Qt.RightButton:
+
+        dist = (self.mouse_press_event_pos - move_event.pos()).manhattanLength()
+        if move_event.buttons() & QtCore.Qt.RightButton and dist >= QApplication.startDragDistance():
             self.setCursor(QtCore.Qt.ClosedHandCursor)
             self.viewport_moved = True
             self.horizontalScrollBar().setValue(self.horizontalScrollBar().value() -
@@ -120,7 +113,7 @@ class Workspace(QtWidgets.QGraphicsView):
         '''
 
     def contextMenuEvent(self, event):
-        """Open context menu on right mouse button click."""
+        """Open context menu on right mouse button click if no dragging occurred."""
         super(Workspace, self).contextMenuEvent(event)
         if not self.viewport_moved:
             self.scene.new_action_pos = self.mapToScene(event.pos())
@@ -130,6 +123,7 @@ class Workspace(QtWidgets.QGraphicsView):
             self.viewport_moved = False
 
     def show_fps(self):
+        """Debug tool"""
         print("Fps: " + str(self.fps_count))
         print("Avarage frame time: " + str(self.frame_time / (self.fps_count if self.fps_count else 1)))
         self.frame_time = 0
@@ -157,6 +151,9 @@ class Workspace(QtWidgets.QGraphicsView):
                 self.zoom = self.zoom / self.zoom_factor
 
     def paintEvent(self, event):
+        if self.center_on_content:
+            self.center_on_content = False
+            self.centerOn(self.scene.itemsBoundingRect().center())
         start = time.time()
 
         super(Workspace, self).paintEvent(event)

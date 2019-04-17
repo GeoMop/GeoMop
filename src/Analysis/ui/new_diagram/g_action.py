@@ -6,10 +6,10 @@ Action representing a task in pipeline.
 
 from PyQt5 import QtWidgets, QtCore, QtGui
 from PyQt5.QtCore import Qt, QRectF
-from .port import Port, InputPort, OutputPort
+from .gport import GPort, InputGPort, OutputGPort
 from .editable_text import EditableLabel
 from .rect_resize_handles import RectResizeHandles
-from .graphics_data_model import ActionData
+from .g_action_data_model import ActionData
 
 
 class GAction(QtWidgets.QGraphicsPathItem):
@@ -38,7 +38,7 @@ class GAction(QtWidgets.QGraphicsPathItem):
         self.setFlag(self.ItemSendsGeometryChanges)
         self.setZValue(0.0)
         self.type_name = QtWidgets.QGraphicsSimpleTextItem("Action Type", self)
-        self.type_name.setPos(QtCore.QPoint(self.resize_handle_width, Port.SIZE / 2))
+        self.type_name.setPos(QtCore.QPoint(self.resize_handle_width, GPort.SIZE / 2))
         self.type_name.setBrush(QtCore.Qt.white)
         self._name = EditableLabel(graphics_data_item.data(ActionData.NAME), self)
 
@@ -86,8 +86,8 @@ class GAction(QtWidgets.QGraphicsPathItem):
 
     @height.setter
     def height(self, value):
-        self._height = max(value, self._name.boundingRect().height() + Port.SIZE +
-                           self.type_name.boundingRect().height() + Port.SIZE)
+        self._height = max(value, self._name.boundingRect().height() + GPort.SIZE +
+                           self.type_name.boundingRect().height() + GPort.SIZE)
         self.position_ports()
         self.update_gfx()
         self.resize_handles.update_handles()
@@ -143,9 +143,9 @@ class GAction(QtWidgets.QGraphicsPathItem):
 
     def inner_area(self):
         """Returns rectangle of the inner area of action."""
-        return QRectF(self.resize_handle_width, Port.SIZE / 2 + self.type_name.boundingRect().height() + 4,
+        return QRectF(self.resize_handle_width, GPort.SIZE / 2 + self.type_name.boundingRect().height() + 4,
                       self.width - 2 * self.resize_handle_width,
-                      self.height - Port.SIZE - self.type_name.boundingRect().height()-4)
+                      self.height - GPort.SIZE - self.type_name.boundingRect().height() - 4)
 
     def moveBy(self, dx, dy):
         super(GAction, self).moveBy(dx, dy)
@@ -158,7 +158,9 @@ class GAction(QtWidgets.QGraphicsPathItem):
 
     def mouseReleaseEvent(self, release_event):
         super(GAction, self).mouseReleaseEvent(release_event)
-        if release_event.buttonDownScenePos(Qt.LeftButton) != release_event.pos():
+        temp = release_event.buttonDownScenePos(Qt.LeftButton)
+        temp2 = release_event.pos()
+        if release_event.buttonDownScenePos(Qt.LeftButton) != self.mapToScene(release_event.pos()):
             for item in self.scene().selectedItems():
                 if self.scene().is_action(item):
                     self.scene().move(item.graphics_data_item, item.x(), item.y())
@@ -173,6 +175,7 @@ class GAction(QtWidgets.QGraphicsPathItem):
     def itemChange(self, change_type, value):
         """Update all connections which are attached to this action."""
         if change_type == self.ItemPositionHasChanged:
+
             for port in self.ports():
                 for conn in port.connections:
                     conn.update_gfx()
@@ -201,9 +204,9 @@ class GAction(QtWidgets.QGraphicsPathItem):
         :param is_input: Decides if the new port will be input or output.
         """
         if is_input:
-            self.in_ports.append(InputPort(len(self.in_ports), QtCore.QPoint(0, 0), name, self))
+            self.in_ports.append(InputGPort(len(self.in_ports), QtCore.QPoint(0, 0), name, self))
         else:
-            self.out_ports.append(OutputPort(len(self.out_ports), QtCore.QPoint(0, 0), name, self))
+            self.out_ports.append(OutputGPort(len(self.out_ports), QtCore.QPoint(0, 0), name, self))
 
         self.width = self.width
 
@@ -211,15 +214,15 @@ class GAction(QtWidgets.QGraphicsPathItem):
         if len(self.in_ports):
             space = self.width / (len(self.in_ports))
             for i in range(len(self.in_ports)):
-                self.in_ports[i].setPos(QtCore.QPoint((i + 0.5) * space - Port.RADIUS, -Port.RADIUS))
+                self.in_ports[i].setPos(QtCore.QPoint((i + 0.5) * space - GPort.RADIUS, -GPort.RADIUS))
 
         if len(self.out_ports):
             space = self.width / (len(self.out_ports))
             for i in range(len(self.out_ports)):
-                self.out_ports[i].setPos(QtCore.QPoint((i + 0.5) * space - Port.RADIUS, self.height - Port.RADIUS))
+                self.out_ports[i].setPos(QtCore.QPoint((i + 0.5) * space - GPort.RADIUS, self.height - GPort.RADIUS))
 
     def width_of_ports(self):
-        return max(len(self.in_ports) * Port.SIZE, len(self.out_ports) * Port.SIZE)
+        return max(len(self.in_ports) * GPort.SIZE, len(self.out_ports) * GPort.SIZE)
 
     def ports(self):
         """Returns input and output ports."""

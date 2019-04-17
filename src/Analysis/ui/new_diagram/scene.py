@@ -1,10 +1,13 @@
 from PyQt5 import QtWidgets, QtCore, QtGui
+from PyQt5.QtCore import QPoint
+
+from src.common.analysis.actions import Tuple
 from .root_action import RootAction
 from .g_action import GAction
 from .g_connection import GConnection
-from .port import OutputPort
+from .gport import OutputGPort
 from .action_for_subactions import GActionForSubactions
-from .graphics_data_model import ActionDataModel, ConnectionDataModel, ActionData
+from .g_action_data_model import GActionDataModel, ActionData
 import random
 import math
 import copy
@@ -16,12 +19,10 @@ class ActionTypes:
 
 
 class Scene(QtWidgets.QGraphicsScene):
-    def __init__(self, workflow):
-        super(Scene, self).__init__()
+    def __init__(self, workflow, parent=None):
+        super(Scene, self).__init__(parent)
         self.workflow = workflow
-        self.actions_for_subactions = []
         self.actions = []
-        self.connections = []
         self.new_connection = None
 
         self.root_item = RootAction()
@@ -29,15 +30,30 @@ class Scene(QtWidgets.QGraphicsScene):
 
         self.new_action_pos = QtCore.QPoint()
 
-        self.action_model = ActionDataModel()
-        self.connection_model = ConnectionDataModel()
+        self.action_model = GActionDataModel()
         self.action_model.dataChanged.connect(self.data_changed)
-        self.connection_model.dataChanged.connect(self.data_changed)
         self.update_model = True
+
+        self.setSceneRect(QtCore.QRectF(QtCore.QPoint(-10000000, -10000000), QtCore.QPoint(10000000, 10000000)))
+
+        self.initialize_workspace_from_workflow(workflow)
+
+    def initialize_workspace_from_workflow(self, workflow):
+        for action_name in workflow._actions:
+            self.add_action(QPoint(0.0,0.0), action_name)
+            action = workflow._actions[action_name]
+
+        for slot_name, slot in workflow._slots.items():
+            self.add_action(QPoint(0.0, 0.0), slot.instance_name)
+
+        self.update_scene()
+        self.order_diagram()
+        self.update_scene()
+        self.parent().center_on_content = True
 
     @staticmethod
     def is_action(obj):
-        """Return True if given object obj is an action."""
+        """Return True if given object obj is an g_action."""
         if issubclass(type(obj), GAction):
             return True
         else:
@@ -50,7 +66,6 @@ class Scene(QtWidgets.QGraphicsScene):
         if self.update_model:
             self.update_model = False
             self.clear()
-            self.connections.clear()
             self.actions.clear()
             self.root_item = RootAction()
             self.addItem(self.root_item)
@@ -65,13 +80,12 @@ class Scene(QtWidgets.QGraphicsScene):
                 for other_action in action._inputs:
                     port1 = self.get_action(other_action.instance_name).out_ports[0]
                     port2 = self.get_action(action_name).in_ports[i]
-                    self.connections.append(GConnection(port1, port2))
-                    port1.connections.append(self.connections[-1])
-                    port2.connections.append(self.connections[-1])
-                    self.addItem(self.connections[-1])
-                    self.update()
+                    port1.connections.append(GConnection(port1, port2))
+                    port2.connections.append(port1.connections[-1])
+                    self.addItem(port1.connections[-1])
                     i += 1
 
+            self.update()
 
     def draw_action(self, item):
         action = self.workflow._actions.get(item.data(ActionData.NAME))
@@ -89,18 +103,6 @@ class Scene(QtWidgets.QGraphicsScene):
         n_ports = len(self.workflow.slots[item.data(ActionData.NAME)]._inputs)
         self.actions.append(GAction(item, self.root_item, n_ports))
 
-        for child in item.children():
-            self.draw_action(child)
-
-        self.update()
-
-    def draw_connection(self, conn_data):
-        port1 = self.get_action(conn_data.data(0)).get_port(False, conn_data.data(1))
-        port2 = self.get_action(conn_data.data(2)).get_port(True, conn_data.data(3))
-        self.connections.append(GConnection(conn_data, port1, port2))
-        port1.connections.append(self.connections[-1])
-        port2.connections.append(self.connections[-1])
-        self.addItem(self.connections[-1])
         self.update()
 
     def order_diagram(self):
@@ -194,7 +196,7 @@ class Scene(QtWidgets.QGraphicsScene):
                 self.add_connection(action.out_ports[random.randint(0, len(action.out_ports) - 1)])
             else:
                 self.new_action_pos = QtCore.QPoint(random.randint(-800, 800), random.randint(-800, 800))
-                self.add_action()
+                self.add_action(QtCore.QPoint(random.randint(-800, 800), random.randint(-800, 800)))
                 self.update_scene()
 
     def mouseReleaseEvent(self, release_event):
@@ -203,7 +205,6 @@ class Scene(QtWidgets.QGraphicsScene):
     def action_name_changed(self, action_data, new_name):
         if self.action_model.exists(new_name):
             return False
-        self.connection_model.action_name_changed(action_data, new_name)
         self.action_model.name_changed(action_data,new_name)
         return True
 
@@ -260,8 +261,8 @@ class Scene(QtWidgets.QGraphicsScene):
     def add_connection(self, port):
         """Create new connection from/to specified port and add it to workspace."""
         if self.new_connection is None:
-            isinstance(port, OutputPort)
-            if isinstance(port, OutputPort):
+            isinstance(port, OutputGPort)
+            if isinstance(port, OutputGPort):
                 self.set_enable_ports(False, False)
             else:
                 self.set_enable_ports(True, False)
@@ -270,7 +271,7 @@ class Scene(QtWidgets.QGraphicsScene):
             self.addItem(self.new_connection)
             self.new_connection.setFlag(QtWidgets.QGraphicsPathItem.ItemIsSelectable, False)
         else:
-            if isinstance(port, OutputPort):
+            if isinstance(port, OutputGPort):
                 self.set_enable_ports(True, True)
             else:
                 self.set_enable_ports(False, True)

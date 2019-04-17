@@ -8,7 +8,7 @@ from PyQt5 import QtWidgets, QtCore, QtGui
 # todo: If it will be clicked with new connection, new port is created and connection is connected to the new port
 
 
-class Port(QtWidgets.QGraphicsPathItem):
+class GPort(QtWidgets.QGraphicsPathItem):
     """Base class for ports."""
     RADIUS = 6
     BORDER = 2
@@ -19,7 +19,7 @@ class Port(QtWidgets.QGraphicsPathItem):
         :param pos: Position of this action inside parent action.
         :param parent: This port will be part of parent action.
         """
-        super(Port, self).__init__(parent)
+        super(GPort, self).__init__(parent)
         self.name = name
         if pos is not None:
             self.setPos(pos)
@@ -65,10 +65,10 @@ class Port(QtWidgets.QGraphicsPathItem):
         if change_type == QtWidgets.QGraphicsItem.ItemPositionHasChanged:
             for conn in self.connections:
                 conn.update_gfx()
-        return super(Port, self).itemChange(change_type, value)
+        return super(GPort, self).itemChange(change_type, value)
 
     def setEnabled(self, bool):
-        super(Port, self).setEnabled(bool)
+        super(GPort, self).setEnabled(bool)
         self.setPen(QtCore.Qt.black if bool else QtCore.Qt.gray)
         self.setBrush(QtCore.Qt.white if bool else QtCore.Qt.gray)
 
@@ -82,21 +82,21 @@ class Port(QtWidgets.QGraphicsPathItem):
         return self.mapToScene(QtCore.QPoint(self.RADIUS, self.RADIUS))
 
 
-class InputPort(Port):
+class InputGPort(GPort):
     """Class for input data."""
     def __init__(self, index, pos, name="", parent=None):
         """Initializes class.
         :param pos: Position of this action inside parent action.
         :param parent: This port will be part of parent action.
         """
-        super(InputPort, self).__init__(index, pos, name, parent)
+        super(InputGPort, self).__init__(index, pos, name, parent)
 
 
-class OutputPort(Port):
+class OutputGPort(GPort):
     """Class for output data."""
     def __init__(self, index, pos, name="", parent=None):
         """Initializes class.
         :param pos: Position of this action inside parent action.
         :param parent: This port will be part of parent action.
         """
-        super(OutputPort, self).__init__(index, pos, name, parent)
+        super(OutputGPort, self).__init__(index, pos, name, parent)

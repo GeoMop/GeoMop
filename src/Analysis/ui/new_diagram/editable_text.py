@@ -1,11 +1,11 @@
 from PyQt5 import QtWidgets, QtCore, QtGui
-from .port import Port
+from .gport import GPort
 
 
 class EditableLabel(QtWidgets.QGraphicsTextItem):
     def __init__(self, text, parent):
         super(EditableLabel, self).__init__(text, parent)
-        self.setPos(QtCore.QPoint(parent.resize_handle_width, Port.SIZE / 2 + parent.type_name.boundingRect().height()))
+        self.setPos(QtCore.QPoint(parent.resize_handle_width, GPort.SIZE / 2 + parent.type_name.boundingRect().height()))
         self.setDefaultTextColor(QtCore.Qt.black)
         self._editing = False
         self.start_text = ""

@@ -10,9 +10,9 @@ class ActionData:
     HEIGHT = 4
 
 
-class ActionDataModel(TreeModel):
+class GActionDataModel(TreeModel):
     def __init__(self, data="", parent=None):
-        super(ActionDataModel, self).__init__(['object_name', 'x', 'y', 'width', 'height'], data, parent)
+        super(GActionDataModel, self).__init__(['object_name', 'x', 'y', 'width', 'height'], data, parent)
         self._max_id = 0
 
     def add_item(self, x, y, width_hint, height_hint, action_name=None):
@@ -58,37 +58,3 @@ class ActionDataModel(TreeModel):
     def height_changed(self, item, height):
         index = self.index(item.child_number(), ActionData.HEIGHT)
         self.setData(index, height)
-
-
-class ConnectionData:
-    ID1 = 0
-    PORT1 = 1
-    ID2 = 2
-    PORT2 = 3
-
-
-class ConnectionDataModel(TreeModel):
-    def __init__(self, data="", parent=None):
-        super(ConnectionDataModel, self).__init__(['id1', 'port1', 'id2', 'port2'], data, parent)
-
-    def add_item(self, id1, port1, id2, port2):
-        data = [id1, port1, id2, port2]
-        self.insertRows(self.rowCount(), 1)
-        item = self.get_item().child(self.rowCount() - 1)
-        for column in range(self.column_count()):
-            index = self.index(self.rowCount() - 1, column)
-            self.setData(index, data[column])
-
-    def action_name_changed(self, action_data, new_name, parent=QtCore.QModelIndex()):
-        prev_name = action_data.data(ActionData.NAME)
-        for child in self.get_item(parent).children():
-            if child.data(ConnectionData.ID1) == prev_name:
-                child.set_data(ConnectionData.ID1, new_name)
-            if child.data(ConnectionData.ID2) == prev_name:
-                child.set_data(ConnectionData.ID2, new_name)
-            parent_index = self.index(child.child_number(), ConnectionData.ID1)
-            self.action_name_changed(action_data, new_name, parent_index)
-
-
-
-

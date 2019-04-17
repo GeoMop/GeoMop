@@ -4,7 +4,7 @@ Special action which can contain subactions for repeating processes.
 @contact: tomas.blazek@tul.cz
 """
 from .g_action import GAction
-from .port import Port
+from .gport import GPort
 from PyQt5 import QtGui, QtCore, QtWidgets
 
 

@@ -5,7 +5,7 @@ Main window.
 """
 import os, sys
 
-from PyQt5.QtWidgets import QToolBox, QSizePolicy, QVBoxLayout, QWidget, QTabWidget
+from PyQt5.QtWidgets import QToolBox, QSizePolicy, QVBoxLayout, QWidget, QTabWidget, QApplication
 
 from .tab_widget import TabWidget
 from .toolbox_view import ToolboxView
@@ -78,11 +78,12 @@ class MainWidget(QtWidgets.QMainWindow):
 
         self.resize(1000, 500)
         self.tab_widget = TabWidget(self.edit_menu)
+        self.setCentralWidget(self.tab_widget)
         self.tab_widget.setTabsClosable(True)
         self.tab_widget.setTabShape(1)
         self.tab_widget.addTab(self.w, "first_file.file")
         self.tab_widget.addTab(self.w2, "second_file.file")
-        self.setCentralWidget(self.tab_widget)
+
 
     def eventFilter(self, QObject, QEvent):
         return True

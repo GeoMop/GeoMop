@@ -5,7 +5,7 @@ Representation of connection between two ports.
 """
 
 from PyQt5 import QtWidgets, QtCore, QtGui
-from .port import Port, OutputPort
+from .gport import GPort, OutputGPort
 
 
 class GConnection(QtWidgets.QGraphicsPathItem):
@@ -19,7 +19,7 @@ class GConnection(QtWidgets.QGraphicsPathItem):
         super(GConnection, self).__init__(parent)
         self.connection_set = False if port2 is None else True
         self.port1 = port1  # either first port when creating connection or always OutputPort if connection is set
-        self.port2 = port2 if self.connection_set else Port(-1, self.port1.get_connection_point())  # usually InputPort
+        self.port2 = port2 if self.connection_set else GPort(-1, self.port1.get_connection_point())  # usually InputPort
         # drawing options
         self.full_pen = QtGui.QPen(QtCore.Qt.black, 2)
         self.dash_pen = QtGui.QPen(QtCore.Qt.black, 2, QtCore.Qt.DashLine)
@@ -69,6 +69,9 @@ class GConnection(QtWidgets.QGraphicsPathItem):
         self.prepareGeometryChange()
         self.setPath(self.update_path())
 
+    def boundingRect(self):
+        return self._shape.boundingRect()
+
     def update_path(self):
         path = QtGui.QPainterPath()
         p1 = self.port1.get_connection_point()
@@ -112,7 +115,7 @@ class GConnection(QtWidgets.QGraphicsPathItem):
         """Set port2 to finish creation of connection."""
         if not self.connection_set:
             self.connection_set = True
-            if type(port) is OutputPort:
+            if type(port) is OutputGPort:
                 self.port2 = self.port1
                 self.port1 = port
             else:
