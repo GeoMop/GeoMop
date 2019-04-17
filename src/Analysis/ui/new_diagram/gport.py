@@ -33,6 +33,8 @@ class GPort(QtWidgets.QGraphicsPathItem):
         self.setZValue(1.0)
         self.setFlag(self.ItemSendsGeometryChanges)
 
+        self.setToolTip("Type")
+
         self.index = index
 
     @property

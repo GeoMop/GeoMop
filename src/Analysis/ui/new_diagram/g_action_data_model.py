@@ -30,6 +30,7 @@ class GActionDataModel(TreeModel):
         for column in range(self.column_count()):
             index = self.index(self.rowCount() - 1, column)
             self.setData(index, data[column])
+        return action_name
 
     def exists(self, action_name, parent=QtCore.QModelIndex()):
         for child in self.get_item(parent).children():

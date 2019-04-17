@@ -50,14 +50,14 @@ class MainWidget(QtWidgets.QMainWindow):
 
         self.toolbox_layout = ActionCategory()
         self.toolbox_layout2 = ActionCategory()
-        self.item1 = ToolboxView(GInputAction(TreeItem(["Tuple", 0, 0, 50, 50]), Tuple(1,2,3)), self.toolbox_layout)
+        self.item1 = ToolboxView(GInputAction(TreeItem(["Tuple", 0, 0, 50, 50]), Tuple()), self.toolbox_layout)
         self.item11 = ToolboxView(GAction(TreeItem(["Input", 0, 0, 50, 50]), _Slot(0)), self.toolbox_layout2)
 
         self.toolBox = QToolBox()
 
 
-        self.toolBox.addItem(self.toolbox_layout, "First Category")
-        self.toolBox.addItem(self.toolbox_layout2, "Second Category")
+        self.toolBox.addItem(self.toolbox_layout, "Data manipulation")
+        self.toolBox.addItem(self.toolbox_layout2, "Input/Output")
 
         self.dock2.setWidget(self.toolBox)
         self.addDockWidget(QtCore.Qt.LeftDockWidgetArea, self.dock2)

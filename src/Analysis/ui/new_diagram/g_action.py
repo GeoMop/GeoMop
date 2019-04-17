@@ -5,8 +5,8 @@ Graphical object representing an action in pipeline.
 """
 
 from PyQt5 import QtWidgets, QtCore, QtGui
-from PyQt5.QtCore import Qt, QRectF, QRect
-from PyQt5.QtWidgets import QGraphicsSimpleTextItem
+from PyQt5.QtCore import Qt, QRectF, QRect, QPoint
+from PyQt5.QtWidgets import QGraphicsSimpleTextItem, QToolTip
 
 from .gport import GPort, InputGPort, OutputGPort
 from .editable_text import EditableLabel
@@ -50,11 +50,12 @@ class GAction(QtWidgets.QGraphicsPathItem):
 
         self._name = EditableLabel(g_data_item.data(GActionData.NAME), self)
 
-        self._add_ports(len(w_data_item._inputs))
-
         self.setCacheMode(self.DeviceCoordinateCache)
 
         self.g_data_item = g_data_item
+        self.w_data_item = w_data_item
+
+        self._add_ports(len(w_data_item._inputs))
 
         self.level = 0
         self.height = self.height
@@ -122,9 +123,10 @@ class GAction(QtWidgets.QGraphicsPathItem):
         self.width = self.width
 
     def name_has_changed(self):
-        if not self.scene().action_name_changed(self.graphics_data_item, self.name) or self.name == "":
+        if not self.scene().action_name_changed(self.g_data_item, self.name) or self.name == "":
             return False
         self.width = self.width
+        self.w_data_item.name(self.name)
         self.scene().update()
         return True
 
@@ -146,7 +148,9 @@ class GAction(QtWidgets.QGraphicsPathItem):
 
         self.add_g_port(False, "Output Port")
 
-
+        if self.w_data_item.n_parameters < 0:
+            self.add_g_port(True, "Input Port" + str(n_ports))
+            self.in_ports[-1].appending_port = True
 
     def inner_area(self):
         """Returns rectangle of the inner area of GAction."""
@@ -171,9 +175,6 @@ class GAction(QtWidgets.QGraphicsPathItem):
             for item in self.scene().selectedItems():
                 if self.scene().is_action(item):
                     self.scene().move(item.g_data_item, item.x(), item.y())
-
-    def mouseMoveEvent(self, move_event):
-        super(GAction, self).mouseMoveEvent(move_event)
 
     def mouseDoubleClickEvent(self, event):
         if self._name.contains(self.mapToItem(self._name, event.pos())):

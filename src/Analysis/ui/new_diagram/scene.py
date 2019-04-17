@@ -40,11 +40,11 @@ class Scene(QtWidgets.QGraphicsScene):
 
     def initialize_workspace_from_workflow(self, workflow):
         for action_name in workflow._actions:
-            self.add_action(QPoint(0.0,0.0), action_name)
+            self._add_action(QPoint(0.0, 0.0), action_name)
             action = workflow._actions[action_name]
 
         for slot_name, slot in workflow._slots.items():
-            self.add_action(QPoint(0.0, 0.0), slot.instance_name)
+            self._add_action(QPoint(0.0, 0.0), slot.instance_name)
 
         self.update_scene()
         self.order_diagram()
@@ -102,12 +102,6 @@ class Scene(QtWidgets.QGraphicsScene):
 
         self.update()
 
-    def draw_slots(self, item):
-        n_ports = len(self.workflow.slots[item.data(GActionData.NAME)]._inputs)
-        self.actions.append(GAction(item, self.root_item, n_ports))
-
-        self.update()
-
     def order_diagram(self):
         #todo: optimize by assigning levels when scanning from bottom actions
         queue = []
@@ -145,7 +139,7 @@ class Scene(QtWidgets.QGraphicsScene):
             prev_item = items[middle]
             for i in range(middle + 1, len(items)):
                 if items[i].pos().x() < prev_item.pos().x() + prev_item.width:
-                    self.move(items[i].graphics_data_item, prev_item.pos().x() + prev_item.width + 10, None)
+                    self.move(items[i].g_data_item, prev_item.pos().x() + prev_item.width + 10, None)
                 prev_item = items[i]
 
             prev_item = items[middle]
@@ -211,25 +205,6 @@ class Scene(QtWidgets.QGraphicsScene):
         self.action_model.name_changed(action_data,new_name)
         return True
 
-    # Modifying functions
-
-    def move(self, action, new_x, new_y):
-        self.action_model.move(action, new_x, new_y)
-        self.update_model = False
-        self.update()
-
-    def add_action(self, new_action_pos, name=None):
-        """Create new action and add it to workspace."""
-        [parent, pos] = self.find_top_afs(new_action_pos)
-        self.action_model.add_item(pos.x(), pos.y(), 50, 50, name)
-        self.update_model = True
-
-    '''
-    def add_while_loop(self):
-        [parent, pos] = self.find_top_afs(self.new_action_pos)
-        self.actions.append(ActionForSubactions(parent, pos))
-    '''
-
     def is_graph_acyclic(self):
         leaf_nodes = []
         processed_nodes = []
@@ -261,53 +236,82 @@ class Scene(QtWidgets.QGraphicsScene):
         else:
             return False
 
+    # Modifying functions
+
+    def move(self, action, new_x, new_y):
+        self.action_model.move(action, new_x, new_y)
+        self.update_model = False
+        self.update()
+
+    def _add_action(self, new_action_pos, name=None):
+        """Create new action and add it to workspace."""
+        [parent, pos] = self.find_top_afs(new_action_pos)
+        self.action_model.add_item(pos.x(), pos.y(), 50, 50, name)
+        self.update_model = True
+
+    def add_action(self, new_action_pos):
+        action = Tuple()
+        name = self.action_model.add_item(new_action_pos.x(), new_action_pos.y(), 50, 50, action.action_name)
+        action.name(name)
+        self.workflow._actions[name] = action
+
+
+    '''
+    def add_while_loop(self):
+        [parent, pos] = self.find_top_afs(self.new_action_pos)
+        self.actions.append(ActionForSubactions(parent, pos))
+    '''
+
     def add_connection(self, port):
         """Create new connection from/to specified port and add it to workspace."""
         if self.new_connection is None:
             isinstance(port, OutputGPort)
             if isinstance(port, OutputGPort):
-                self.set_enable_ports(False, False)
+                self.enable_ports(False, False)
             else:
-                self.set_enable_ports(True, False)
+                self.enable_ports(True, False)
             self.views()[0].setDragMode(QtWidgets.QGraphicsView.NoDrag)
             self.new_connection = GConnection(port)
             self.addItem(self.new_connection)
             self.new_connection.setFlag(QtWidgets.QGraphicsPathItem.ItemIsSelectable, False)
         else:
             if isinstance(port, OutputGPort):
-                self.set_enable_ports(True, True)
+                self.enable_ports(True, True)
             else:
-                self.set_enable_ports(False, True)
+                self.enable_ports(False, True)
+
             self.views()[0].setDragMode(QtWidgets.QGraphicsView.RubberBandDrag)
             self.new_connection.set_port2(port)
-            self.new_connection.port1.connections.append(self.new_connection)
-            self.new_connection.port2.connections.append(self.new_connection)
+
+            port1 = self.new_connection.port1
+            port2 = self.new_connection.port2
+            port1.connections.append(self.new_connection)
+            port2.connections.append(self.new_connection)
             if self.is_graph_acyclic():
-                port1 = self.new_connection.port1
-                port2 = self.new_connection.port2
-                self.connection_model.add_item(port1.parentItem().name, port1.index, port2.parentItem().name, port2.index)
+                action1 = port1.parentItem().w_data_item
+                action2 = port2.parentItem().w_data_item
+                action1.output_actions.append(action2)
+                action2._inputs.append(action1)
                 self.new_connection.setFlag(QtWidgets.QGraphicsPathItem.ItemIsSelectable, True)
                 self.new_connection = None
                 self.update_model = True
+                """
                 if port1.appending_port:
-
                     port1.appending_port = False
-                    #port1.parentItem().
 
                 if port2.appending_port:
                     port2.appending_port = False
+                """
             else:
                 msg = "Pipeline cannot be cyclic!"
                 msg = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Warning,
                                             "Cyclic diagram", msg,
                                             QtWidgets.QMessageBox.Ok)
                 msg.exec_()
-                self.removeItem(self.new_connection)
-                del self.new_connection.port1.connections[-1]
-                del self.new_connection.port2.connections[-1]
+                self.delete_connection(self.new_connection)
                 self.new_connection = None
 
-    def set_enable_ports(self, in_ports, enable):
+    def enable_ports(self, in_ports, enable):
         for action in self.actions:
             for port in action.in_ports if in_ports else action.out_ports:
                 port.setEnabled(enable)
@@ -315,13 +319,17 @@ class Scene(QtWidgets.QGraphicsScene):
     def delete_items(self):
         """Delete all selected items from workspace."""
         while self.selectedItems():
-            """
-            item = self.scene.selectedItems()[0]
+
+            item = self.selectedItems()[0]
             if self.is_action(item):
                 for port in item.ports():
-                    for conn in port.connections:
-                        self.delete_connection(conn)
-            """
+                    while port.connections:
+                        self.delete_connection(port.connections[0])
+
+                self.delete_action(item)
+            else:
+                self.delete_connection(item)
+                """
             item = self.selectedItems()[0]
             if self.is_action(item):
                 conn_to_delete = []
@@ -335,24 +343,29 @@ class Scene(QtWidgets.QGraphicsScene):
                         self.delete_connection(conn)
                     except:
                         print("Tried to delete connection again... probably...")
+                
                 self.delete_action(item)
             else:
                 self.delete_connection(item)
+                """
 
         self.update_model = True
         self.update()
 
     def delete_action(self, action):
         """Delete specified action from workspace."""
-        self.action_model.removeRow(action.graphics_data_item.child_number())
+        self.action_model.removeRow(action.g_data_item.child_number())
         self.actions.remove(action)
         self.removeItem(action)
+        self.workflow._actions.pop(action.name, None)
 
     def delete_connection(self, conn):
-        self.connection_model.removeRow(conn.graphics_data_item.child_number())
+        action1 = conn.port1.parentItem().w_data_item
+        action2 = conn.port2.parentItem().w_data_item
+        action1.output_actions.remove(action2)
+        action2._inputs.remove(action1)
         conn.port1.connections.remove(conn)
         conn.port2.connections.remove(conn)
-        self.connections.remove(conn)
         self.removeItem(conn)
 
     def save_item(self, save_file, item, level=0):

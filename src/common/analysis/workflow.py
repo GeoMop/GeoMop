@@ -68,7 +68,7 @@ class _ActionBase:
     def set_inputs(self, inputs):
         if self.n_parameters > -1:
             assert len(inputs) == self.n_parameters
-        self._inputs = inputs
+        self._inputs = list(inputs)
 
 
     def _code(self, inputs, config=None):

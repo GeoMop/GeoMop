@@ -74,7 +74,7 @@ class Workspace(QtWidgets.QGraphicsView):
     def dropEvent(self, drop_event):
         """Create new action from dropped information"""
         self.scene.new_action_pos = self.mapToScene(drop_event.pos()) - drop_event.source().get_pos_correction()
-        self.scene.add_action()
+        self.scene._add_action()
         drop_event.acceptProposedAction()
 
     def dragMoveEvent(self, move_event):

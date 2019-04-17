@@ -29,6 +29,7 @@ class GConnection(QtWidgets.QGraphicsPathItem):
         self.setFlag(self.ItemIsSelectable)
         self._shape = QtGui.QPainterPath()
         self.update_gfx()
+        self.setToolTip("conn_type")
 
     def is_connected(self, port):
         """Returns True if this connection is attached to specified port."""
