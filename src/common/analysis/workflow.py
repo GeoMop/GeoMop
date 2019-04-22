@@ -21,7 +21,7 @@ class _ActionBase:
     """
     Single node of the DAG of a single Workflow.
     """
-    def __init__(self, inputs=[], config=None, name=None):
+    def __init__(self, inputs=[]):
         #assert hasattr(self, "__action_parameters")
         #self.__parameter_dict = { for i, (name, type) in self.__action_parameters}
         self.set_inputs(inputs)
@@ -29,12 +29,7 @@ class _ActionBase:
             Temporary solution. TODO: After Types are at least partially implemented we can use a Class instead of the 
             list in order to have named parameters, or even allow passing more parameters directly.
         """
-        self.config = config
-        """ Action configuration as a data tree. 
-            
-            Not clear if we need to know it explicitely on abstract level, 
-        but probably yes because of action hashing mechanisms."""
-        self.instance_name = name
+        self.instance_name = None
         """ Unique ID within the workspace. Checked and updated during the workspace construction."""
         self.output_actions = []
         """ Actions connected to the output. Set during the workflow construction."""
@@ -45,9 +40,14 @@ class _ActionBase:
         return self.__n_parameters
 
 
-    @property
-    def action_name(self):
-        return self.__class__.name
+
+    @classmethod
+    def action_name(cls):
+        """
+        Action name (not the instance name).
+        :return:
+        """
+        return cls.__name__
 
 
     def name(self, instance_name):
@@ -68,10 +68,10 @@ class _ActionBase:
     def set_inputs(self, inputs):
         if self.n_parameters > -1:
             assert len(inputs) == self.n_parameters
-        self._inputs = inputs
+        self._inputs = list(inputs)
 
 
-    def _code(self, inputs, config=None):
+    def _code(self):
         """
         Return a representation of the action instance.
         This is generic representation code that calls the constructor.
@@ -82,13 +82,10 @@ class _ActionBase:
         :param config: String used for configuration, call serialization of the configuration by default.
         :return: string (code to instantiate the action)
         """
-        input_params = ", ".join([ "{}={}".format(param, inputs[param]) for param in self.input_type.keys()])
-        if config is None:
-            config = types.serialize_code(self.config)
-        if config is None:
-            return "{}({})".format(self.action_name, input_params)
-        else:
-            return "{}( {}, config={})".format(self.action_name, input_params, config)
+        inputs = self._inputs
+        inputs = ["{}".format(param.instance_name) for param in inputs]
+        input_params = ", ".join(inputs)
+        return "{} = {}({})".format(self.instance_name, self.action_name(), input_params)
 
     def evaluate(self, inputs):
         """
@@ -119,16 +116,19 @@ class _Slot(_ActionBase):
         Auxiliary action to connect to a named input slot of the workflow.
         :param slot_name:
         """
-        super().__init__(name=slot_name)
+        super().__init__()
+        self.name(slot_name)
         self.rank = i_slot
         """ Slot rank. """
         self.type = None
         """ Slot type. None - slot not used. """
 
+
     def is_used(self):
         return bool(self.output_actions)
 
-
+    def _code(self):
+        return None
 
 
 
@@ -147,24 +147,31 @@ class _WorkflowBase(_ActionBase):
     def _dfs(cls, root_action, previsit=None, postvisit=None, edge_visit=None):
         """
         Generic DFS for the action DAG.
+        Not clear how to make non-recursive DFS with correct previsit and postvisit.
         :param root_action:
         :return:
         """
         action_ids = set()
-        action_stack = [root_action]
+        action_stack = [(root_action, 0)]
         while action_stack:
-            action = action_stack.pop(-1)
-            if previsit:
-                previsit(action)
-            for input_action in action._inputs:
+            action, i_input = action_stack.pop(-1)
+            if i_input < len(action._inputs):
+                action_stack.append((action, i_input + 1))
+                input_action = action._inputs[i_input]
                 assert isinstance(input_action, _ActionBase)
                 if edge_visit:
                     edge_visit(input_action, action)
-                action_id = id(input_action)
+                    action_id = id(input_action)
                 if action_id not in action_ids:
-                    action_stack.append(input_action)
-            if postvisit:
-                postvisit(action)
+                    action_ids.add(action_id)
+                    if previsit:
+                        previsit(action)
+                    action_stack.append((input_action, 0))
+            else:
+                if postvisit:
+                    postvisit(action)
+
+
 
 
     @classmethod
@@ -182,12 +189,13 @@ class _WorkflowBase(_ActionBase):
         cls._result = result
         cls._slots = { slot.rank: slot for slot in slots }
         cls._actions = {}
+        cls._topology_sort = []
         instance_names = {}
 
-        def construct_previsit(action):
+        def construct_postvisit(action):
             # get instance name proposal
             if action.instance_name is None:
-                name_base = action.action_name
+                name_base = action.action_name()
                 instance_names.setdefault(name_base, 1)
             else:
                 name_base = action.instance_name
@@ -203,13 +211,12 @@ class _WorkflowBase(_ActionBase):
             # handle slots
             if isinstance(action, _Slot):
                 assert action is cls._slots[action.rank]
-            else:
-                cls._actions[action.instance_name] = action
+            cls._actions[action.instance_name] = action
+            cls._topology_sort.append(action.instance_name)
 
         cls._dfs(result,
-                 previsit=construct_previsit,
-                 edge_visit=lambda previous, action: previous.output_actions.append(action)
-                 )
+                 postvisit=construct_postvisit,
+                 edge_visit=lambda previous, action: previous.output_actions.append(action))
 
 
 
@@ -221,7 +228,7 @@ class _WorkflowBase(_ActionBase):
     def evaluate(self, input):
         pass
 
-    def _code(self, inputs, config=None):
+    def _code(self):
         """ Representation of the workflow class instance within an outer workflow."""
 
         pass
@@ -231,7 +238,7 @@ class _WorkflowBase(_ActionBase):
         """
         :return: List of used actions (including workflows) and converters.
         """
-        return [v.action_name for v in cls._actions.values()]
+        return [v.action_name() for v in cls._actions.values()]
 
     @classmethod
     def code(cls):
@@ -239,7 +246,17 @@ class _WorkflowBase(_ActionBase):
         Represent workflow by its source.
         :return: list of lines containing representation of the workflow as a decorated function.
         """
+        params = [cls._slots[islot].instance_name for islot in range(len(cls._slots))]
+        head = "def {}({}):".format(cls.action_name(), ", ".join(params))
+        body = [head]
 
+        for iname in cls._topology_sort:
+            action = cls._actions[iname]
+            code = action._code()
+            if code:
+                body.append("    " + code)
+        body.append("    return {}".format(cls._topology_sort[-1]))
+        return "\n".join(body)
 
 
 class Analysis:

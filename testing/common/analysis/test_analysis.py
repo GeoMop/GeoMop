@@ -11,4 +11,13 @@ def test_generic_representation():
         e = actions.Tuple(c, d)
         return e
 
-    print(test_workflow.code())
+    ref =\
+    """def test_workflow(a, b):
+    c = Tuple(a)
+    Tuple_1 = Tuple(a, b)
+    Tuple_2 = Tuple(c, Tuple_1)
+    return Tuple_2"""
+    assert ref == test_workflow.code()
+
+# TODO: deal with correct module (action.Tuple)
+# TODO: have test cases as input files, check agains input code
