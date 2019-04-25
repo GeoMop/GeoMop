@@ -6,7 +6,7 @@ from src.common.analysis.actions import Tuple
 from .root_action import RootAction
 from .g_action import GAction
 from .g_connection import GConnection
-from .gport import OutputGPort
+from .gport import GOutputPort
 from .action_for_subactions import GActionForSubactions
 from .g_action_data_model import GActionDataModel, GActionData
 import random
@@ -266,8 +266,8 @@ class Scene(QtWidgets.QGraphicsScene):
     def add_connection(self, port):
         """Create new connection from/to specified port and add it to workspace."""
         if self.new_connection is None:
-            isinstance(port, OutputGPort)
-            if isinstance(port, OutputGPort):
+            isinstance(port, GOutputPort)
+            if isinstance(port, GOutputPort):
                 self.enable_ports(False, False)
             else:
                 self.enable_ports(True, False)
@@ -276,7 +276,7 @@ class Scene(QtWidgets.QGraphicsScene):
             self.addItem(self.new_connection)
             self.new_connection.setFlag(QtWidgets.QGraphicsPathItem.ItemIsSelectable, False)
         else:
-            if isinstance(port, OutputGPort):
+            if isinstance(port, GOutputPort):
                 self.enable_ports(True, True)
             else:
                 self.enable_ports(False, True)

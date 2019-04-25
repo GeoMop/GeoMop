@@ -8,7 +8,7 @@ from PyQt5 import QtWidgets, QtCore, QtGui
 from PyQt5.QtCore import Qt, QRectF, QRect, QPoint
 from PyQt5.QtWidgets import QGraphicsSimpleTextItem, QToolTip
 
-from .gport import GPort, InputGPort, OutputGPort
+from .gport import GPort, GInputPort, GOutputPort
 from .editable_text import EditableLabel
 from .rect_resize_handles import RectResizeHandles
 from .g_action_data_model import GActionData
@@ -212,9 +212,9 @@ class GAction(QtWidgets.QGraphicsPathItem):
         :param is_input: Decides if the new port will be input or output.
         """
         if is_input:
-            self.in_ports.append(InputGPort(len(self.in_ports), QtCore.QPoint(0, 0), name, self))
+            self.in_ports.append(GInputPort(len(self.in_ports), QtCore.QPoint(0, 0), name, self))
         else:
-            self.out_ports.append(OutputGPort(len(self.out_ports), QtCore.QPoint(0, 0), name, self))
+            self.out_ports.append(GOutputPort(len(self.out_ports), QtCore.QPoint(0, 0), name, self))
 
         self.width = self.width
 

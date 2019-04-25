@@ -6,6 +6,7 @@ Representation of ports to which a connection can be attached.
 from PyQt5 import QtWidgets, QtCore, QtGui
 # todo: Add port which will have plus inside and when clicked will create new port.
 # todo: If it will be clicked with new connection, new port is created and connection is connected to the new port
+from PyQt5.QtCore import QPoint
 
 
 class GPort(QtWidgets.QGraphicsPathItem):
@@ -14,7 +15,7 @@ class GPort(QtWidgets.QGraphicsPathItem):
     BORDER = 2
     SIZE = RADIUS * 2 + BORDER * 2
 
-    def __init__(self, index, pos, name="", parent=None):
+    def __init__(self, index, pos=QPoint(0,0), name="", parent=None):
         """Initializes class.
         :param pos: Position of this action inside parent action.
         :param parent: This port will be part of parent action.
@@ -84,21 +85,21 @@ class GPort(QtWidgets.QGraphicsPathItem):
         return self.mapToScene(QtCore.QPoint(self.RADIUS, self.RADIUS))
 
 
-class InputGPort(GPort):
+class GInputPort(GPort):
     """Class for input data."""
-    def __init__(self, index, pos, name="", parent=None):
+    def __init__(self, index, pos=QPoint(0,0), name="", parent=None):
         """Initializes class.
         :param pos: Position of this action inside parent action.
         :param parent: This port will be part of parent action.
         """
-        super(InputGPort, self).__init__(index, pos, name, parent)
+        super(GInputPort, self).__init__(index, pos, name, parent)
 
 
-class OutputGPort(GPort):
+class GOutputPort(GPort):
     """Class for output data."""
-    def __init__(self, index, pos, name="", parent=None):
+    def __init__(self, index, pos=QPoint(0,0), name="", parent=None):
         """Initializes class.
         :param pos: Position of this action inside parent action.
         :param parent: This port will be part of parent action.
         """
-        super(OutputGPort, self).__init__(index, pos, name, parent)
+        super(GOutputPort, self).__init__(index, pos, name, parent)

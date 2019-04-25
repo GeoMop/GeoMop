@@ -5,7 +5,7 @@ Representation of connection between two ports.
 """
 
 from PyQt5 import QtWidgets, QtCore, QtGui
-from .gport import GPort, OutputGPort
+from .gport import GPort, GOutputPort
 
 
 class GConnection(QtWidgets.QGraphicsPathItem):
@@ -25,7 +25,6 @@ class GConnection(QtWidgets.QGraphicsPathItem):
         self.dash_pen = QtGui.QPen(QtCore.Qt.black, 2, QtCore.Qt.DashLine)
         self.setPen(self.full_pen)
         self.setZValue(10.0)
-        self.setCacheMode(self.DeviceCoordinateCache)
         self.setFlag(self.ItemIsSelectable)
         self._shape = QtGui.QPainterPath()
         self.update_gfx()
@@ -116,7 +115,7 @@ class GConnection(QtWidgets.QGraphicsPathItem):
         """Set port2 to finish creation of connection."""
         if not self.connection_set:
             self.connection_set = True
-            if type(port) is OutputGPort:
+            if type(port) is GOutputPort:
                 self.port2 = self.port1
                 self.port1 = port
             else:
