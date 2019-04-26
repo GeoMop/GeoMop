@@ -1,6 +1,8 @@
 from PyQt5 import QtWidgets, QtCore, QtGui
 from PyQt5.QtCore import QPoint
+from PyQt5.QtWidgets import QGraphicsProxyWidget
 
+from .composite_type_view import CompositeTypeView
 from .g_input_action import GInputAction
 from src.common.analysis.actions import Tuple
 from .root_action import RootAction

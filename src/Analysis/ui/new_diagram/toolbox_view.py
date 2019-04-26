@@ -6,6 +6,8 @@ from PyQt5.QtWidgets import QGraphicsItem, QGraphicsView, QGraphicsScene, QGraph
 from PyQt5.QtWidgets import QGraphicsSceneMouseEvent
 from PyQt5.QtCore import Qt
 
+from .g_action_background import ActionStatus
+
 
 class ToolboxView(QLabel):
     def __init__(self, item, parent):

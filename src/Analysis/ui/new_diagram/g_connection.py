@@ -5,6 +5,10 @@ Representation of connection between two ports.
 """
 
 from PyQt5 import QtWidgets, QtCore, QtGui
+from PyQt5.QtCore import QEvent
+from PyQt5.QtGui import QHelpEvent
+from PyQt5.QtWidgets import QToolTip
+
 from .gport import GPort, GOutputPort
 
 

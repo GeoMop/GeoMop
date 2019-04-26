@@ -7,6 +7,7 @@ import os, sys
 
 from PyQt5.QtWidgets import QToolBox, QSizePolicy, QVBoxLayout, QWidget, QTabWidget, QApplication
 
+from .composite_type_view import CompositeTypeView
 from src.common.analysis.actions import Tuple
 from src.common.analysis.workflow import _Slot
 from .tab_widget import TabWidget
@@ -44,6 +45,8 @@ class MainWidget(QtWidgets.QMainWindow):
         self.dock.setAllowedAreas(QtCore.Qt.LeftDockWidgetArea | QtCore.Qt.RightDockWidgetArea)
         self.dock2 = QtWidgets.QDockWidget("Toolbox", self)
         self.dock2.setAllowedAreas(QtCore.Qt.LeftDockWidgetArea | QtCore.Qt.RightDockWidgetArea)
+        self.dock3 = QtWidgets.QDockWidget("Data/Config", self)
+        self.dock3.setAllowedAreas(QtCore.Qt.LeftDockWidgetArea | QtCore.Qt.RightDockWidgetArea)
 
         self.w = Workspace(test_workflow, self)
         self.w2 = Workspace(test_workflow, self)
@@ -67,6 +70,10 @@ class MainWidget(QtWidgets.QMainWindow):
 
         self.dock.setWidget(self.view)
         self.addDockWidget(QtCore.Qt.RightDockWidgetArea, self.dock)
+
+        self.data_view = CompositeTypeView()
+        self.dock3.setWidget(self.data_view)
+        self.addDockWidget(QtCore.Qt.RightDockWidgetArea, self.dock3)
 
         self.resize(1000, 500)
         self.tab_widget = TabWidget(self.edit_menu)

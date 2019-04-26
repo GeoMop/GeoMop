@@ -66,7 +66,7 @@ class GAction(QtWidgets.QGraphicsPathItem):
         self.height = self.height
         self.width = self.width
 
-        self._progress = 0
+        self.progress = 0
 
         self.status = ActionStatus.ERROR
 
@@ -80,6 +80,8 @@ class GAction(QtWidgets.QGraphicsPathItem):
     @status.setter
     def status(self, status):
         self.background.status = status
+        self.setBrush(self.background.COLOR_PALETTE[self.status])
+        self.update()
 
     @property
     def progress(self):
@@ -87,6 +89,7 @@ class GAction(QtWidgets.QGraphicsPathItem):
 
     @progress.setter
     def progress(self, percent):
+        self.background.update_gfx()
         self.background.progress = percent
 
     @property
@@ -221,10 +224,14 @@ class GAction(QtWidgets.QGraphicsPathItem):
 
     def paint(self, paint, item, widget=None):
         """Update model of this GAction if necessary."""
-        self.setBrush(self.background.COLOR_PALETTE[self.status])
+        #self.setBrush(self.background.COLOR_PALETTE[self.status])
         super(GAction, self).paint(paint, item, widget)
 
     def paint_pixmap(self):
+        progress = self.progress
+        status = self.status
+        self.progress = 0
+        self.status = ActionStatus.IDLE
         rect = self.boundingRect()
         pixmap = QPixmap(rect.size().toSize())
         pixmap.fill(Qt.transparent)
@@ -249,6 +256,8 @@ class GAction(QtWidgets.QGraphicsPathItem):
                 painter.restore()
 
         painter.end()
+        self.progress = progress
+        self.status = status
         return pixmap
 
     def update_gfx(self):
