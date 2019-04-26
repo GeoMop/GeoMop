@@ -6,8 +6,10 @@ Graphical object representing an action in pipeline.
 
 from PyQt5 import QtWidgets, QtCore, QtGui
 from PyQt5.QtCore import Qt, QRectF, QRect, QPoint
-from PyQt5.QtWidgets import QGraphicsSimpleTextItem, QToolTip
+from PyQt5.QtGui import QPixmap, QPainter
+from PyQt5.QtWidgets import QGraphicsSimpleTextItem, QToolTip, QStyleOptionGraphicsItem, QGraphicsItem
 
+from .g_action_background import GActionBackground, ActionStatus
 from .gport import GPort, GInputPort, GOutputPort
 from .editable_text import EditableLabel
 from .rect_resize_handles import RectResizeHandles
@@ -50,6 +52,9 @@ class GAction(QtWidgets.QGraphicsPathItem):
 
         self._name = EditableLabel(g_data_item.data(GActionData.NAME), self)
 
+        self.background = GActionBackground(self)
+        self.background.setZValue(1.0)
+
         self.setCacheMode(self.DeviceCoordinateCache)
 
         self.g_data_item = g_data_item
@@ -61,8 +66,28 @@ class GAction(QtWidgets.QGraphicsPathItem):
         self.height = self.height
         self.width = self.width
 
+        self._progress = 0
+
+        self.status = ActionStatus.ERROR
+
     def __repr__(self):
         return self.name + "\t" + str(self.level)
+
+    @property
+    def status(self):
+        return self.background.status
+
+    @status.setter
+    def status(self, status):
+        self.background.status = status
+
+    @property
+    def progress(self):
+        return self.background.progress
+
+    @progress.setter
+    def progress(self, percent):
+        self.background.progress = percent
 
     @property
     def name(self):
@@ -196,7 +221,35 @@ class GAction(QtWidgets.QGraphicsPathItem):
 
     def paint(self, paint, item, widget=None):
         """Update model of this GAction if necessary."""
+        self.setBrush(self.background.COLOR_PALETTE[self.status])
         super(GAction, self).paint(paint, item, widget)
+
+    def paint_pixmap(self):
+        rect = self.boundingRect()
+        pixmap = QPixmap(rect.size().toSize())
+        pixmap.fill(Qt.transparent)
+
+        painter = QPainter(pixmap)
+        painter.setRenderHint(QPainter.Antialiasing, True)
+        painter.translate(-rect.topLeft())
+
+        for child in self.childItems():
+            if child.flags() & QGraphicsItem.ItemStacksBehindParent:
+                painter.save()
+                painter.translate(child.mapToParent(self.pos()))
+                child.paint(painter, QStyleOptionGraphicsItem(), None)
+                painter.restore()
+
+        self.paint(painter, QStyleOptionGraphicsItem())
+        for child in self.childItems():
+            if not child.flags() & QGraphicsItem.ItemStacksBehindParent:
+                painter.save()
+                painter.translate(child.mapToParent(self.pos()))
+                child.paint(painter, QStyleOptionGraphicsItem(), None)
+                painter.restore()
+
+        painter.end()
+        return pixmap
 
     def update_gfx(self):
         """Updates model of the GAction."""
@@ -206,6 +259,7 @@ class GAction(QtWidgets.QGraphicsPathItem):
         p.addRoundedRect(self.inner_area(), 4, 4)
         self.setPath(p)
         self.update()
+        self.background.update_gfx()
 
     def add_g_port(self, is_input, name=""):
         """Adds a port to this GAction.

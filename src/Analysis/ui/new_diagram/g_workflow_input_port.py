@@ -1,6 +1,6 @@
 from PyQt5 import QtGui, QtCore
-from PyQt5.QtCore import QPoint
-from PyQt5.QtGui import QConicalGradient, QLinearGradient
+from PyQt5.QtCore import QPoint, Qt
+from PyQt5.QtGui import QLinearGradient
 
 from .gport import GPort
 
@@ -31,4 +31,5 @@ class GWorkflowInputPort(GPort):
 
     def paint(self, painter, style, widget=None):
         super(GWorkflowInputPort, self).paint(painter, style, widget)
+
 

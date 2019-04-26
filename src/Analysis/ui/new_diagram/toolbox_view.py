@@ -12,23 +12,7 @@ class ToolboxView(QLabel):
         super(ToolboxView, self).__init__(parent)
         parent.addWidget(self)
         self.item = item
-        rect = item.boundingRect()
-        #rect.setTopLeft(rect.topLeft() + QPoint(-10,-10))
-        #rect.setBottomRight(rect.bottomRight() + QPoint(10, 10))
-        self.pixmap = QPixmap(rect.size().toSize())
-        self.pixmap.fill(Qt.transparent)
-
-        painter = QPainter(self.pixmap)
-        painter.setRenderHint(QPainter.Antialiasing, True)
-        painter.translate(-rect.topLeft())
-        item.paint(painter, QStyleOptionGraphicsItem())
-        for child in item.childItems():
-            painter.save()
-            painter.translate(child.mapToParent(item.pos()))
-            child.paint(painter,QStyleOptionGraphicsItem(), None)
-            painter.restore()
-
-        painter.end()
+        self.pixmap = item.paint_pixmap()
 
         self.selected = False
         self.setPixmap(self.pixmap)
