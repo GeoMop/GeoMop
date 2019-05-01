@@ -3,6 +3,28 @@ import os
 import pytest
 
 
+class A:
+    pass
+class B(A):
+    pass
+class C(A):
+    pass
+class D(B):
+    pass
+class E(B):
+    pass
+
+
+def test_closest_common_ancestor():
+    cca = analysis.action_base.closest_common_ancestor
+    assert cca(D, E) is B
+    assert cca(C, D) is A
+    assert cca(A, B) is A
+    assert cca(A, int) is object
+
+
+
+
 @pytest.mark.parametrize("src_file", ["analysis.in.py"])
 def test_representation(src_file):
     module = analysis.base._Module.create_from_file(src_file)
@@ -25,3 +47,5 @@ def test_representation(src_file):
     with open(ref_out, "r") as f:
         ref_code = f.read()
     assert code == ref_code
+
+
