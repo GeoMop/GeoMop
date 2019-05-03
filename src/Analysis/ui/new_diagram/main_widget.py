@@ -41,7 +41,7 @@ class MainWidget(QtWidgets.QMainWindow):
         self.edit_menu = ActionEditorMenu(self)
         self.menu.addMenu(self.edit_menu)
 
-        self.dock = QtWidgets.QDockWidget("Diagram", self)
+        self.dock = QtWidgets.QDockWidget("Graphical data", self)
         self.dock.setAllowedAreas(QtCore.Qt.LeftDockWidgetArea | QtCore.Qt.RightDockWidgetArea)
         self.dock2 = QtWidgets.QDockWidget("Toolbox", self)
         self.dock2.setAllowedAreas(QtCore.Qt.LeftDockWidgetArea | QtCore.Qt.RightDockWidgetArea)
@@ -72,6 +72,7 @@ class MainWidget(QtWidgets.QMainWindow):
         self.addDockWidget(QtCore.Qt.RightDockWidgetArea, self.dock)
 
         self.data_view = CompositeTypeView()
+        temp = self.data_view.model()
         self.dock3.setWidget(self.data_view)
         self.addDockWidget(QtCore.Qt.RightDockWidgetArea, self.dock3)
 

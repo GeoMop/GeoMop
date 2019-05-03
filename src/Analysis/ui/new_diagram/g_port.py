@@ -72,7 +72,6 @@ class GPort(QtWidgets.QGraphicsPathItem):
 
     def setEnabled(self, bool):
         super(GPort, self).setEnabled(bool)
-        self.setPen(QtCore.Qt.black if bool else QtCore.Qt.gray)
         self.setBrush(QtCore.Qt.white if bool else QtCore.Qt.gray)
 
     def mousePressEvent(self, event):

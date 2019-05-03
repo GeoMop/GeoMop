@@ -10,7 +10,7 @@ from PyQt5.QtGui import QPixmap, QPainter
 from PyQt5.QtWidgets import QGraphicsSimpleTextItem, QToolTip, QStyleOptionGraphicsItem, QGraphicsItem
 
 from .g_action_background import GActionBackground, ActionStatus
-from .gport import GPort, GInputPort, GOutputPort
+from .g_port import GPort, GInputPort, GOutputPort
 from .editable_text import EditableLabel
 from .rect_resize_handles import RectResizeHandles
 from .g_action_data_model import GActionData

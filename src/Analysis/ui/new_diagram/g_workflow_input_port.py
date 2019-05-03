@@ -2,7 +2,7 @@ from PyQt5 import QtGui, QtCore
 from PyQt5.QtCore import QPoint, Qt
 from PyQt5.QtGui import QLinearGradient
 
-from .gport import GPort
+from .g_port import GPort
 
 
 class GWorkflowInputPort(GPort):
@@ -12,11 +12,12 @@ class GWorkflowInputPort(GPort):
         gradient.setColorAt(1.0, QtCore.Qt.black)
         gradient.setColorAt(0.0, QtCore.Qt.transparent)
         self.setPen(QtGui.QPen(gradient, 1.2, QtCore.Qt.DashLine))
+        self.setBrush(Qt.gray)
         self.setEnabled(False)
         self.setPath(self.draw_port_path())
 
     def setEnabled(self, bool):
-        super(GPort, self).setEnabled(bool)
+        super(GWorkflowInputPort, self).setEnabled(False)
 
     def draw_port_path(self):
         self.prepareGeometryChange()

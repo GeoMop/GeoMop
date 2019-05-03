@@ -9,7 +9,7 @@ from PyQt5.QtCore import QEvent
 from PyQt5.QtGui import QHelpEvent
 from PyQt5.QtWidgets import QToolTip
 
-from .gport import GPort, GOutputPort
+from .g_port import GPort, GOutputPort
 
 
 class GConnection(QtWidgets.QGraphicsPathItem):

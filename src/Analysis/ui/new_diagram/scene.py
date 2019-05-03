@@ -1,5 +1,5 @@
 from PyQt5 import QtWidgets, QtCore, QtGui
-from PyQt5.QtCore import QPoint
+from PyQt5.QtCore import QPoint, Qt
 from PyQt5.QtWidgets import QGraphicsProxyWidget
 
 from .composite_type_view import CompositeTypeView
@@ -8,7 +8,7 @@ from src.common.analysis.actions import Tuple
 from .root_action import RootAction
 from .g_action import GAction
 from .g_connection import GConnection
-from .gport import GOutputPort
+from .g_port import GOutputPort
 from .action_for_subactions import GActionForSubactions
 from .g_action_data_model import GActionDataModel, GActionData
 import random
@@ -218,23 +218,25 @@ class Scene(QtWidgets.QGraphicsScene):
             else:
                 leaf_nodes.append(node)
 
-        for node in leaf_nodes:
+        while leaf_nodes:
+            node = leaf_nodes.pop()
             processed_nodes.append(node)
             acyclic_nodes.append(node)
 
-            prev_actions = set(node.previous_actions())
-            while prev_actions:
-                curr = prev_actions.pop()
-                if curr in acyclic_nodes:
-                    continue
+            prev_actions = node.previous_actions()
+            i = 0
+            while len(prev_actions) > i:
+                curr = prev_actions[i]
+                if curr in processed_nodes:
+                    return False
                 else:
-                    acyclic_nodes.append(curr)
-                    if curr in processed_nodes:
-                        return False
-                    else:
-                        processed_nodes.append(curr)
-                        prev_actions = prev_actions.union(set(curr.previous_actions()))
-        if len(acyclic_nodes) == len(self.actions):
+                    processed_nodes.append(curr)
+                    for act in curr.previous_actions():
+                        if act not in prev_actions:
+                            prev_actions.append(act)
+                i += 1
+
+        if len(processed_nodes) == len(self.actions):
             return True
         else:
             return False
@@ -256,7 +258,7 @@ class Scene(QtWidgets.QGraphicsScene):
         action = Tuple()
         name = self.action_model.add_item(new_action_pos.x(), new_action_pos.y(), 50, 50, action.action_name)
         action.name(name)
-        self.workflow._actions[name] = action
+        self.workflow._slots[name] = action
 
 
     '''
@@ -290,11 +292,11 @@ class Scene(QtWidgets.QGraphicsScene):
             port2 = self.new_connection.port2
             port1.connections.append(self.new_connection)
             port2.connections.append(self.new_connection)
+            action1 = port1.parentItem().w_data_item
+            action2 = port2.parentItem().w_data_item
+            action1.output_actions.append(action2)
+            action2._inputs.append(action1)
             if self.is_graph_acyclic():
-                action1 = port1.parentItem().w_data_item
-                action2 = port2.parentItem().w_data_item
-                action1.output_actions.append(action2)
-                action2._inputs.append(action1)
                 self.new_connection.setFlag(QtWidgets.QGraphicsPathItem.ItemIsSelectable, True)
                 self.new_connection = None
                 self.update_model = True
@@ -318,6 +320,18 @@ class Scene(QtWidgets.QGraphicsScene):
         for action in self.actions:
             for port in action.in_ports if in_ports else action.out_ports:
                 port.setEnabled(enable)
+
+            for port in action.in_ports:
+                if port.connections:
+                    port.setEnabled(enable)
+
+    def keyPressEvent(self, key_event):
+        if key_event.key() == Qt.Key_Escape:
+            self.removeItem(self.new_connection)
+            self.new_connection = None
+            self.enable_ports(True, True)
+            self.enable_ports(False, True)
+
 
     def delete_items(self):
         """Delete all selected items from workspace."""
