@@ -23,6 +23,7 @@ from .action_category import ActionCategory
 from .g_input_action import GInputAction
 from .output_action import OutputGAction
 from src.common.analysis import actions
+from .workflow_interface import WorkflowInterface
 from src.common.analysis import workflow as wf
 
 
@@ -48,8 +49,8 @@ class MainWidget(QtWidgets.QMainWindow):
         self.dock3 = QtWidgets.QDockWidget("Data/Config", self)
         self.dock3.setAllowedAreas(QtCore.Qt.LeftDockWidgetArea | QtCore.Qt.RightDockWidgetArea)
 
-        self.w = Workspace(test_workflow, self)
-        self.w2 = Workspace(test_workflow, self)
+        self.w = Workspace(WorkflowInterface(test_workflow), self)
+        self.w2 = Workspace(WorkflowInterface(test_workflow), self)
 
         self.toolbox_layout = ActionCategory()
         self.toolbox_layout2 = ActionCategory()
