@@ -1,4 +1,4 @@
-from common.analysis import base
+from common.analysis import module
 import attr
 
 

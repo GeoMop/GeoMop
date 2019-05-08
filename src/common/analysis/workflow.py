@@ -1,5 +1,13 @@
-from common.analysis import action_base as base
+
 import inspect
+import indexed
+import attr
+from common.analysis import dummy, types
+from common.analysis import action_base as base
+
+"""
+"""
+
 
 class _Slot(base._ActionBase):
     def __init__(self, i_slot, slot_name=None):
@@ -8,7 +16,7 @@ class _Slot(base._ActionBase):
         :param slot_name:
         """
         super().__init__()
-        self.name(slot_name)
+        self.instance_name = slot_name
         self.rank = i_slot
         """ Slot rank. """
         self.type = None
@@ -22,17 +30,30 @@ class _Slot(base._ActionBase):
         return None
 
 
+class DFS:
+    def __init__(self, previsit=None, postvisit=None, edge_visit=None):
+        self.previsit = previsit or self.previsit
+        self.postvisit = postvisit or self.postvisit
+        self.edge_visit = edge_visit or self.edge_visit
 
-class _WorkflowBase(base._ActionBase):
-    """
-    Every workflow is a class derived from this base.
-    """
+    @staticmethod
+    def previsit(action):
+        pass
 
-    @classmethod
-    def _dfs(cls, root_action, previsit=None, postvisit=None, edge_visit=None):
+    @staticmethod
+    def postvisit(action):
+        pass
+
+    @staticmethod
+    def edge_visti(previous, action, i_input):
+        pass
+
+    def run(self, root_action):
         """
         Generic DFS for the action DAG.
-        Not clear how to make non-recursive DFS with correct previsit and postvisit.
+        :param previsit: previsit(action)
+        :param postvisit: postvisit(action)
+        :param edge_visit: edge_visit(outcomming_action, incomming_action, incomming_input_index)
         :param root_action:
         :return:
         """
@@ -43,20 +64,22 @@ class _WorkflowBase(base._ActionBase):
             if i_input < len(action.arguments):
                 action_stack.append((action, i_input + 1))
                 input_action = action.arguments[i_input].value
-                assert isinstance(input_action, base._ActionBase)
-                if edge_visit:
-                    edge_visit(input_action, action)
-                    action_id = id(input_action)
+                assert isinstance(input_action, base._ActionBase), (input_action.__class__, action, i_input)
+
+                self.edge_visit(input_action, action, i_input)
+                action_id = id(input_action)
                 if action_id not in action_ids:
                     action_ids.add(action_id)
-                    if previsit:
-                        previsit(action)
+                    self.previsit(action)
                     action_stack.append((input_action, 0))
             else:
-                if postvisit:
-                    postvisit(action)
+                self.postvisit(action)
 
 
+class _WorkflowBase(base._ActionBase):
+    """
+    Every workflow is a class derived from this base.
+    """
 
 
     @classmethod
@@ -73,7 +96,6 @@ class _WorkflowBase(base._ActionBase):
         """
         result = base._wrap_action(result)
         cls._result = result
-        cls._slots = { slot.rank: slot for slot in slots }
         cls._actions = {}
         cls._topology_sort = []
         instance_names = {}
@@ -100,11 +122,16 @@ class _WorkflowBase(base._ActionBase):
             cls._actions[action.instance_name] = action
             cls._topology_sort.append(action.instance_name)
 
-        cls._dfs(result,
-                 postvisit=construct_postvisit,
-                 edge_visit=lambda previous, action: previous.output_actions.append(action))
+        def edge_visit(previous, action, i_arg):
+            return previous.output_actions.append((action, i_arg))
 
-
+        DFS(postvisit=construct_postvisit, edge_visit=edge_visit).run(result)
+        cls.parameters = indexed.IndexedOrderedDict()
+        for i_param, slot in enumerate(cls._slots):
+            slot_expected_types = [a.arguments[i_arg].parameter.type  for a, i_arg in slot.output_actions]
+            common_type = None #types.closest_common_ancestor(slot_expected_types)
+            p = base.ActionParameter(i_param, slot.instance_name, common_type)
+            cls.parameters[slot.instance_name] = p
 
 
     def __init__(self, *args, **kwargs):
@@ -113,10 +140,10 @@ class _WorkflowBase(base._ActionBase):
     def evaluate(self, input):
         pass
 
-    def _code(self):
-        """ Representation of the workflow class instance within an outer workflow."""
-
-        pass
+    #def _code(self):
+    #    """ Representation of the workflow class instance within an outer workflow."""
+    #
+    #    pass
 
     @classmethod
     def dependencies(cls):
@@ -131,7 +158,8 @@ class _WorkflowBase(base._ActionBase):
         Represent workflow by its source.
         :return: list of lines containing representation of the workflow as a decorated function.
         """
-        params = [cls._slots[islot].instance_name for islot in range(len(cls._slots))]
+        params = [base._VAR_]
+        params.extend([cls._slots[islot].instance_name for islot in range(len(cls._slots))])
         head = "def {}({}):".format(cls.action_name(), ", ".join(params))
         body = ["@wf.workflow", head]
 
@@ -146,20 +174,21 @@ class _WorkflowBase(base._ActionBase):
 
 
 class _Variables:
+    """
+    Helper class to store local variables of the workflow and use
+    their names as instance names for the assigned actions, i.e.
+    variables.x = action_y(...)
+    will set the instance name of 'action_y' to 'x'. This allows to
+    use 'x' as the variable name in subsequent code generation. Otherwise
+    a Python variable name is not accessible at runtime.
+    """
     def __setattr__(self, key, value):
         value = base._wrap_action(value)
-        value = value.name(key)
+        value = value.set_name(key)
         self.__dict__[key] = value
 
 
-
 def workflow(func):
-    """
-    Decorator to create a workflow class from the function.
-    Create a derived Workflow class from a function that accepts the inputs returns an output action.
-    :param func:
-    :return:
-    """
     workflow_name = func.__name__
     workflow_signature = inspect.signature(func)
     parameters = workflow_signature.parameters
@@ -170,19 +199,70 @@ def workflow(func):
         param_names = param_names[1:]
 
     slots = [_Slot(i, name) for i, name in enumerate(param_names) ]
-    func_args.extend(slots)
+    dummies = [dummy.Dummy(slot) for slot in slots]
+    func_args.extend(dummies)
     output_action = func(*func_args)
     attributes = dict(
         _result=None,   # Result subaction.
-        _vars = vars,   # Temporary variables.
-        _slots = {},    # Input slots of the workflow DAG.
-        _actions = {},  # Dict:  unique action instance name -> action instance
-        _is_analysis = False    # Marks the main workflow of the module
+        _vars = vars,   # Temporary variables. TODO: possibly not necessary to store
+        _slots = slots,
+        _actions = {},  # Dict:  unique action instance name -> action instance.
+                        # TODO: possibly better to save topologically sorted list of actions, e.g. in OrderedDict
+        _topology_sort = []
         )
     new_workflow_class = type(workflow_name, (_WorkflowBase,), attributes)
     new_workflow_class._construct(output_action, slots)
-    return new_workflow_class
+    return dummy.public_action(new_workflow_class)
 
 
 
 
+
+
+def analysis(func):
+    """
+    Decorator for the main analysis workflow of the module.
+    """
+    w = workflow(func)
+    assert len(w.action_class._slots) == 0
+    w.is_analysis = True
+    return w
+
+
+class ClassActionBase(base._ActionBase):
+    def __init__(self):
+        super().__init__()
+        self._module = ""
+
+    @classmethod
+    def _evaluate(cls, **kwargs):
+        return cls._data_class(**kwargs)
+
+    @classmethod
+    def code(cls):
+        lines = ['@wf.Class']
+        lines.append('class {}:'.format(cls.action_name()))
+        for attribute in cls._data_class.__attrs_attrs__:
+            type_str = attribute.type.__name__ if attribute.type else "Any"
+            if attribute.default == attr.NOTHING:
+                default = ""
+            else:
+                default = "={}".format(attribute.default)
+            lines.append("  {}:{}{}".format(attribute.name, type_str, default))
+
+        return "\n".join(lines)
+
+
+def Class(data_class):
+    """
+    Decorator to add dunder methods using attr.
+    Moreover dot access returns the converter.Get action instead of the value itself.
+    This is necessary to catch it in the workflow decorator.
+    """
+    data_class = attr.s(data_class, auto_attribs=True)
+    attributes = dict(
+        _data_class = data_class
+        )
+    dataclass_action = type(data_class.__name__, (ClassActionBase,), attributes)
+    dataclass_action._extract_input_type(func=data_class.__init__, skip_self=True)
+    return dummy.public_action(dataclass_action)

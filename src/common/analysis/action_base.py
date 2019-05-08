@@ -3,7 +3,6 @@ import indexed
 import enum
 import attr
 import pytypes
-import itertools
 from numpy import array
 from typing import *
 from collections import defaultdict
@@ -22,35 +21,22 @@ class ExcUnknownArgument(Exception):
 
 
 
-
-
-def closest_common_ancestor(a, b):
-    cls_list = [a, b]
-    mros = [reversed(inspect.getmro(cls)) for cls in cls_list]
-    ancestor = None
-    for ancestors in itertools.zip_longest(*mros):
-        if len(set(ancestors)) == 1:
-            ancestor = ancestors[0]
-        else: break
-    return ancestor
-
-
-
-
+_VAR_="self"
 
 
 class ActionInputStatus(enum.IntEnum):
-    missing = -1  # missing value
-    error=-1    # type error
-    none=0      # not checked yet
-    seems_ok=1  # correct input, type not fully specified
-    ok=2        # correct input
+    missing     = -3     # missing value
+    error_value = -2     # error input passed
+    error_type  = -1     # type error
+    none        = 0      # not checked yet
+    seems_ok    = 1      # correct input, type not fully specified
+    ok          = 2      # correct input
 
 @attr.s(auto_attribs=True)
 class ActionParameter:
     idx: int
     name: str
-    type: Any =  None
+    type: Any = None
     default: Any = None
 
     def get_default(self) -> Tuple[bool, Any]:
@@ -58,9 +44,6 @@ class ActionParameter:
             return True, self.default
         else:
             return False, self.default
-
-def is_underscored(s:Any) -> bool:
-    return type(s) is str and s[0] == '_'
 
 
 @attr.s(auto_attribs=True)
@@ -72,35 +55,50 @@ class ActionArgument:
 
 
 class _ActionBase:
-    parameters : indexed.IndexedOrderedDict = []
+    parameters = indexed.IndexedOrderedDict()
     # Parameter specification list, class attribute, no parameters by default.
     output_type = None
     # Output type of the action, class attribute.
     # Both _parameters and _outputtype can be extracted from type annotations of the evaluate method using the _extract_input_type.
+    _module = "wf"
 
     @classmethod
-    def _extract_input_type(cls):
+    def _extract_input_type(cls, func=None, skip_self=False):
         """
         Extract input and output types of the action from its evaluate method.
         Only support fixed numbeer of parameters named or positional.
         set: cls._input_type, cls._output_type
         """
-        signature = inspect.signature(cls.evaluate)
-        cls.parameters = indexed.IndexedOrderedDict()
-        for i, param in enumerate(signature.parameters.values()):
-            if param.name == 'self':
+        if func is None:
+            func = cls._evaluate
+        signature = inspect.signature(func)
+        parameters = indexed.IndexedOrderedDict()
+
+        for param in signature.parameters.values():
+            idx = len(parameters)
+            if skip_self and idx==0 and param.name == 'self':
                 continue
             assert param.kind  == param.POSITIONAL_ONLY or param.kind ==  param.POSITIONAL_OR_KEYWORD
             annotation = param.annotation if param.annotation != param.empty else None
             default = param.default if param.default != param.empty else None
-            p = ActionParameter(i, param.name, annotation, default)
-            cls.parameters[param.name]=p
+
+            p = ActionParameter(idx, param.name, annotation, default)
+            parameters[param.name]=p
+        cls.parameters = parameters
         cls.output_type = signature.return_annotation
+
+
+    @classmethod
+    def create(cls, *args, **kwargs):
+        c = cls()
+        c.set_inputs(input_list=args, input_dict=kwargs)
+        return c
+
 
     """
     Single node of the DAG of a single Workflow.
     """
-    def __init__(self, *args, **kwargs):
+    def __init__(self):
         """
         Catch all arguments, separate private params beginning with underscores.
         Extract parameters according to input_type(), store input actions in proper order into
@@ -112,17 +110,12 @@ class _ActionBase:
         self.instance_name = None
         """ Unique ID within the workspace. Checked and updated during the workspace construction."""
         self._proper_instance_name = False
-        """ Indicates the instance name provided by user."""
+        """ Indicates the instance name provided by user. Not generic name."""
         self.output_actions = []
         """ Actions connected to the output. Set during the workflow construction."""
-        self.arguments = []
+        self.arguments = [ActionArgument(param, None, False, ActionInputStatus.missing) for param in self.parameters]
         """ Inputs connected to the action parameters."""
 
-        inputs = [(None, arg) for arg in args]
-        inputs.extend(kwargs.items())
-        remaining_args = self._reinit(inputs)
-        if remaining_args:
-            raise ExcUnknownArgument(remaining_args)
 
     @classmethod
     def action_name(cls) -> str:
@@ -132,77 +125,82 @@ class _ActionBase:
         """
         return cls.__name__
 
+    @classmethod
+    def set_module(cls, module_name):
+        if module_name != '__main__':
+            cls._module = module_name
 
-    def name(self, instance_name: str) -> '_ActionBase':
+    def set_name(self, instance_name: str):
         """
-        Attribute setter. Usage:
-        my_instance = SomeAction(inputs).name("instance_name")
-
-        should be almost equivalent to:
-
-        var.instance_name = SomeAction(inputs)
-
-        :param instance_name:
-        :return:
+        Set name of the action instance. Used for code representation
+        to name the variable.
         """
         self.instance_name = instance_name
         self._proper_instance_name = True
         return self
 
-    ParmeterItem = Tuple[Union[None, str], Any]
-    RemainingArgs = Dict[Union[int, str], Any]
-    def _reinit(self, inputs: Sequence[ParmeterItem]) -> RemainingArgs:
-        """
-        Reset action inputs and private arguments (underscore prefix).
-        inputs: [ (arg_name, input) ]
 
-        arg_name may be None in the case of positional arguments
-        or valid parameter name.
+
+    InputDict = Dict[str, '_ActionBase']
+    InputList = List['_ActionBase']
+    RemainingArgs = Dict[Union[int, str], '_ActionBase']
+
+    def set_inputs(self, input_dict: InputDict={}, input_list: InputList = []) -> RemainingArgs:
+        """
+        Set inputs of an explicit action with fixed number of named parameters.
+        input_dict: { parameter_name: input }
+        input_list: [ input ]  used only in List and Tuple actions.
+        ... see their set_inputs method.
         """
 
-        # extract privte args, make dict of other args: name -> input
-        self.private_args = {}
-        input_args = {}
-        for i, (name, input) in enumerate(inputs):
-            if is_underscored(name):
-                self.private_args[name] = input
+        # Process positional parameters. DEPRECATED.
+        for i, input in enumerate(input_list):
+            if i < len(self.parameters):
+                name = self.parameters.values()[i].name
             else:
-                if name is None:
-                    if i < len(self.parameters):
-                        name = self.parameters[i].name
-                    else:
-                        name = i
-                input_args[name] = input
+                name = i
+            input_dict[name] = input
 
         # fill and validate argument list
-        self.arguments = []
-        for param in self.parameters:
-            is_default = False
-            value = input_args.get(param.name, None)
+        for param in self.parameters.values():
+            old_arg = self.arguments[param.idx]
+            value = input_dict.get(param.name, old_arg.value)
 
+            is_default = False
             if value is None:
                 is_default, value = param.get_default()
             else:
-                del input_args[param.name]
+                input_dict.pop(param.name, None)    # safe remove
+
             if value is None:
-                self.arguments.append(ActionArgument(None, False, ActionInputStatus.missing))
+                self.arguments[param.idx] = ActionArgument(param, None, False, ActionInputStatus.missing)
                 continue
 
-            # check value
+
             try:
                 value = _wrap_action(value)
             except ExcActionExpected:
-                self.arguments.append(ActionArgument(None, is_default, ActionInputStatus.error_value))
+                self.arguments[param.idx] = ActionArgument(param, None, is_default, ActionInputStatus.error_value)
                 continue
 
             if not pytypes.is_subtype(value.output_type, param.type):
-                self.arguments.append(ActionArgument(None, is_default, ActionInputStatus.error_type))
-                continue
-            self.arguments.append(ActionArgument(None, is_default, ActionInputStatus.seems_ok))
+               self.arguments[param.idx] = ActionArgument(param, value, is_default, ActionInputStatus.error_type)
+               continue
+
+            self.arguments[param.idx] = ActionArgument(param, value, is_default, ActionInputStatus.seems_ok)
 
         # remaining arguments
-        return input_args
+        return input_dict
 
+
+    def set_metadata(self, metadata: InputDict={}):
+        pass
+
+    def get_code_instance_name(self):
+        if self._proper_instance_name:
+            return "{}.{}".format(_VAR_, self.instance_name)
+        else:
+            return self.instance_name
 
     def _code(self):
         """
@@ -217,21 +215,25 @@ class _ActionBase:
         """
         inputs=[]
         for arg in self.arguments:
-            param, value, is_default, status = arg
-            idx, name, type, default = param
-            assert name
-            assert isinstance(value, _ActionBase)
-            inputs.append("{}={}".format(name, value.instance_name))
+            assert isinstance(arg.value, _ActionBase)
+            input_instance = arg.value.get_code_instance_name()
+            inputs.append("{}={}".format(arg.parameter.name, input_instance))
 
         input_string = ", ".join(inputs)
-        if self._proper_instance_name:
-            name = ".name(\"{}\")".format(self.instance_name)
+        module_str = self._module
+        if module_str:
+            action_name = "{}.{}".format(module_str, self.action_name())
         else:
-            name = ""
-        code_line =  "{} = wf.{}({}){}".format(self.instance_name, self.action_name(), input_string, name)
+            action_name = self.action_name()
+        code_line =  "{} = {}({})".format(self.get_code_instance_name(), action_name, input_string)
         return code_line
 
     def evaluate(self, inputs):
+        inputs = {arg.param.name: input for arg, input in zip(self.arguments, inputs)}
+        return self._evaluate(**inputs)
+
+    @staticmethod
+    def _evaluate():
         """
         Pure virtual method.
         If the validate method is defined it is used for type compatibility validation otherwise
@@ -248,8 +250,6 @@ class _ActionBase:
         return self.evaluate(inputs)
 
 
-    def __getattribute__ (self, key):
-
 
 
 def action(func):
@@ -260,10 +260,10 @@ def action(func):
     """
     action_name = func.__name__
     attributes = {
-        "evaluate" : func,
+        "_evaluate": func,
     }
     action_class = type(action_name, (_ActionBase,), attributes)
-    action_class._extract_input_type()
+    action_class._extract_input_type(func=func)
     return action_class
 
 
@@ -280,14 +280,20 @@ def _wrap_action(value):
     :return:
     """
     import common.analysis.converter as converter
+    import common.analysis.dummy as dummy
+
+    if isinstance(value, dummy.Dummy):
+        value = value._action
+
     base_types = [bool, int, float, complex, str, array]
     if isinstance(value, _ActionBase):
         return value
     elif type(value) in base_types:
-        return converter._Value(value)
+        return converter.Value(value)
     elif type(value) is tuple:
-        return converter.Tuple(*value)
+        #TODO: Warning
+        return converter.List(*value)
     elif type(value) is list:
         return converter.List(*value)
     else:
-        raise ExcActionExpected()
+        raise ExcActionExpected("Have value: {}".format(str(value)))

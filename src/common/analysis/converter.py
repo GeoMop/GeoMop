@@ -1,9 +1,18 @@
-from common.analysis import action_base as base
+
 import indexed
 from typing import *
+from common.analysis import types
+from common.analysis import action_base as base
+
+"""
+Mechanism for parsing the Python code into the DAG of action for
+a single workflow. Contains actions that are not meant to be 
+used directly.
+"""
 
 
-class _Value(base._ActionBase):
+
+class Value(base._ActionBase):
     def __init__(self, value):
         super().__init__()
         self.value = value
@@ -12,24 +21,45 @@ class _Value(base._ActionBase):
         return self.value
 
     def _code(self):
-        return str(self.value)
+        value = self.value
+        if type(value) is str:
+            value = "'{}'".format(value)
+        else:
+            value = str(value)
+
+        code_line = "{} = {}".format(self.get_code_instance_name(), value)
+        return code_line
+
+
+
+
 
 class _ListBase(base._ActionBase):
-    parameters: indexed.IndexedOrderedDict = []
+
     # We assume that parameters are used only in reinit, which do not use it
     # in this case. After reinit one should use only self.arguments.
 
     def __init__(self, *inputs):
-        super().__init__(*inputs)
-    # TODO: reinit with variable number of arguments---
+        self.parameters = []
+        super().__init__()
+        self.set_inputs(input_list=list(inputs))
 
+    InputDict = Dict[str, base._ActionBase]
+    InputList = List[base._ActionBase]
+    RemainingArgs = Dict[Union[int, str], base._ActionBase]
 
-    def _reinit(self, inputs: Sequence[base._ActionBase.ParmeterItem]) -> base._ActionBase.RemainingArgs:
+    def set_inputs(self, input_dict: InputDict={}, input_list: InputList = []) -> RemainingArgs:
+        """
+        Set inputs of an action with variable number of parameters (Tuple, List).
+        Unlike _ActionBase.set_inputs, the arguments list is completely overwritten.
+        :param input_dict: must be empty
+        :param input_list:
+        """
+        assert len(input_dict) == 0
         self.arguments = []
         common_type = None
-        parameter = base.ActionParameter(None,"", None, None)
-        for name, arg in inputs:
-            assert name is None
+        parameter = base.ActionParameter(idx=None, name="", type=Any, default=None)
+        for arg in input_list:
             value = base._wrap_action(arg)
             value_type = value.output_type
             if common_type is None:
@@ -38,33 +68,31 @@ class _ListBase(base._ActionBase):
                 common_type = base.closest_common_ancestor(common_type, value_type)
             arg = base.ActionArgument(parameter, value, False, base.ActionInputStatus.none)
             self.arguments.append(arg)
+        #parameter.type = common_type
+        #self.output_type = type.Tuple(common_type)
         return {}
 
-    def _code_with_backets(self, format: str):
+    def _code_with_brackets(self, format: str):
         inputs=[]
         for arg in self.arguments:
-            param, value, is_default, status = arg
-            assert isinstance(value, base._ActionBase)
-            inputs.append(value.instance_name)
+            assert isinstance(arg.value, base._ActionBase)
+            inputs.append(arg.value.get_code_instance_name())
 
         input_string = ", ".join(inputs)
         rhs = format.format(input_string)
-        if self._proper_instance_name:
-            code_line = "self.{} = {}".format(self.instance_name, rhs)
-        else:
-            code_line = "{} = {}".format(self.instance_name, rhs)
+        code_line = "{} = {}".format(self.get_code_instance_name(), rhs)
         return code_line
 
 
 
-class Tuple(_ListBase):
-    #__action_parameters = [('input', 'Any')]
-    """ Merge any number of parameters into tuple."""
-    def _code(self):
-        return self._code_with_brackets(format = "({})")
-
-    def evaluate(self, inputs):
-        return tuple(inputs)
+# class Tuple(_ListBase):
+#     #__action_parameters = [('input', 'Any')]
+#     """ Merge any number of parameters into tuple."""
+#     def _code(self):
+#         return self._code_with_brackets(format = "({})")
+#
+#     def evaluate(self, inputs):
+#         return tuple(inputs)
 
 
 class List(_ListBase):
@@ -75,22 +103,40 @@ class List(_ListBase):
         return list(inputs)
 
 
+
+
+class GetAttribute(base._ActionBase):
+
+
+    def _code(self):
+        data_class = self.arguments[0].value
+        assert isinstance(data_class, base._ActionBase)
+        attr_name = self.arguments[1].value
+        assert isinstance(attr_name, Value)
+        attr_name = attr_name.evaluate([])
+        return "{} = {}.{}".format(self.get_code_instance_name(), data_class.get_code_instance_name(), attr_name)
+
+    @staticmethod
+    def _evaluate(data_class: Any, attr_name: str):
+        return data_class.get_attribute(attr_name)
+
+GetAttribute._extract_input_type()
+
+
+
 @base.action
-def Get(self, data_class, attr_name: str):
-    data_class, attr_name = inputs
-    return data_class.get_attribute(attr_name)
+def GetItem(data_list, idx: str):
+    return data_list[idx]
 
 
-class Class(base._ActionBase):
-    def __init__(self, data_class, **kwargs):
-        self.data_class = data_class
-        super().__init__(**kwargs)
-
-    def evaluate(self, inputs):
-        inputs = {name:input for name, input in zip(self.arg_names, inputs)}
-        self.data_class(**inputs)
-
-
+# class ClassBase(base._ActionBase):
+#     _data_class = None  # Attr data class, must be set in childs.
+#
+#     def evaluate(self, inputs):
+#         inputs = {name: input for name, input in zip(self.arg_names, inputs)}
+#         self._data_class(**inputs)
+#
+#
 
     # name = kwargs.get("_name", None)
     # parameters = {k:v for k, v in kwargs.items() if k[0] != "_"}

@@ -1,4 +1,5 @@
 import common.analysis as analysis
+from common.analysis import types
 import os
 import pytest
 
@@ -16,7 +17,7 @@ class E(B):
 
 
 def test_closest_common_ancestor():
-    cca = analysis.action_base.closest_common_ancestor
+    cca = analysis.types.closest_common_ancestor
     assert cca(D, E) is B
     assert cca(C, D) is A
     assert cca(A, B) is A
@@ -25,15 +26,15 @@ def test_closest_common_ancestor():
 
 
 
-@pytest.mark.parametrize("src_file", ["analysis.in.py"])
+@pytest.mark.parametrize("src_file", ["analysis_in.py"])
 def test_representation(src_file):
-    module = analysis.base._Module.create_from_file(src_file)
+    module = analysis.module._Module.create_from_file(src_file)
     code = module.code()
     round_module_name = "round."+module.name
     with open(round_module_name +".py", "w") as f:
         f.write(code)
 
-    round_module = analysis.base._Module.create_from_source(round_module_name, code)
+    round_module = analysis.module._Module.create_from_source(round_module_name, code)
     round_code = round_module.code()
     assert code == round_code
 
@@ -41,8 +42,8 @@ def test_representation(src_file):
         f.write(round_code)
     base, ext = os.path.splitext(src_file)
     assert ext == ".py"
-    base, _in = os.path.splitext(base)
-    assert _in == ".in"
+    base, _in = base.split('_')
+    assert _in == "in"
     ref_out = "{}.ref.py".format(base)
     with open(ref_out, "r") as f:
         ref_code = f.read()

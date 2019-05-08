@@ -7,9 +7,10 @@ Functions:
 
 """
 
-import attr
-from common.analysis import converter
 
+from common.analysis import action_base
+from common.analysis import converter
+from common.analysis import dummy
 
 # class Type:
 #     pass
@@ -21,13 +22,3 @@ from common.analysis import converter
 
 
 
-def Class(data_class):
-    """
-    Decorator to add dunder methods using attr.
-    Moreover dot access returns the converter.Get action instead of the value itself.
-    This is necessary to catch it in the workflow decorator.
-    """
-    data_class = attr.s(data_class)
-    data_class.get_attribute = data_class.__getattribute__
-    data_class.__getattribute__ = lambda self, name: converter.Get(self, name)
-    return data_class
