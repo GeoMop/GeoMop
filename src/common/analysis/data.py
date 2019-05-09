@@ -1,11 +1,3 @@
-"""
-Functions:
-
-- Make action input specification from its parameter annotation.
-- Inspect type specification (from GUI).
-- Validate data against type.
-
-"""
 
 
 from common.analysis import action_base

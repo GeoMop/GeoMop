@@ -129,18 +129,4 @@ def GetItem(data_list, idx: str):
     return data_list[idx]
 
 
-# class ClassBase(base._ActionBase):
-#     _data_class = None  # Attr data class, must be set in childs.
-#
-#     def evaluate(self, inputs):
-#         inputs = {name: input for name, input in zip(self.arg_names, inputs)}
-#         self._data_class(**inputs)
-#
-#
-
-    # name = kwargs.get("_name", None)
-    # parameters = {k:v for k, v in kwargs.items() if k[0] != "_"}
-    # data_class = attr.make_class(name, parameters.keys())
-    # data_instance = data_class(**parameters)
-    # return data_instance
 
