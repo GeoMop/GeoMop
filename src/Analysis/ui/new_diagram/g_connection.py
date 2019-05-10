@@ -66,6 +66,7 @@ class GConnection(QtWidgets.QGraphicsPathItem):
     def paint(self, painter, style, widget=None):
         """If connection is selected, draw it as dash line."""
         style.state &= ~QtWidgets.QStyle.State_Selected     # remove selection box
+
         super(GConnection, self).paint(painter, style, widget)
 
     def update_gfx(self):

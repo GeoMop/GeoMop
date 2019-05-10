@@ -5,6 +5,7 @@ from PyQt5.QtWidgets import QTreeWidget, QTreeWidgetItem
 class CompositeTypeView(QTreeWidget):
     def __init__(self, parent = None):
         super(CompositeTypeView, self).__init__(parent)
+        self.setHeaderHidden(True)
         self.data = { 'key1': 'value1',
                       'key2': 'value2',
                       'key3': [1,2,3, { 1: 3, 7 : 9}],

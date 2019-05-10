@@ -16,7 +16,7 @@ if __name__ == "__main__":
     w = MainWidget()
     w.resize(1000, 720)
     w.move(300, 50)
-    w.setWindowTitle('Simple')
+    w.setWindowTitle('Analysis')
     w.show()
 
     sys.exit(app.exec_())

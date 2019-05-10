@@ -93,6 +93,10 @@ class GInputPort(GPort):
         """
         super(GInputPort, self).__init__(index, pos, name, parent)
 
+    def mousePressEvent(self, event):
+        if not self.connections:
+            super(GOutputPort, self).mousePressEvent(event)
+
 
 class GOutputPort(GPort):
     """Class for output data."""

@@ -1,6 +1,6 @@
-from src.common.analysis import workflow
+from . import base
 
-class Tuple(workflow._ActionBase):
+class tuple(base._ActionBase):
     #__action_parameters = [('input', 'Any')]
     """ Merge any number of parameters into tuple."""
     def __init__(self, *inputs):

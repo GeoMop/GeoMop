@@ -41,12 +41,8 @@ class GAction(QtWidgets.QGraphicsPathItem):
         self.setZValue(0.0)
 
         self.resize_handle_width = 6
-        ''' Add resize handles to GAction, disabled for the time being.
-        self.handles = []
-        self.resize_handles = RectResizeHandles(self, self.resize_handle_width, self.resize_handle_width * 2)
-        '''
 
-        self.type_name = QGraphicsSimpleTextItem(w_data_item.action_name, self)
+        self.type_name = QGraphicsSimpleTextItem(w_data_item.action_name(), self)
         self.type_name.setPos(QtCore.QPoint(self.resize_handle_width, GPort.SIZE / 2))
         self.type_name.setBrush(QtCore.Qt.white)
 
@@ -111,7 +107,7 @@ class GAction(QtWidgets.QGraphicsPathItem):
                           self.type_name.boundingRect().width() + 2 * self.resize_handle_width)
         self.position_ports()
         self.update_gfx()
-        #self.resize_handles.update_handles()
+        # self.resize_handles.update_handles()
 
     @property
     def height(self):
@@ -159,10 +155,10 @@ class GAction(QtWidgets.QGraphicsPathItem):
         return True
 
     def width_has_changed(self):
-        self.scene().g_action_model.width_changed(self.graphics_data_item, self.width)
+        self.scene().action_model.width_changed(self.g_data_item, self.width)
 
     def height_has_changed(self):
-        self.scene().g_action_model.height_changed(self.graphics_data_item, self.height)
+        self.scene().action_model.height_changed(self.g_data_item, self.height)
 
     def get_port(self, input, index):
         if input:
@@ -188,7 +184,7 @@ class GAction(QtWidgets.QGraphicsPathItem):
 
     def moveBy(self, dx, dy):
         super(GAction, self).moveBy(dx, dy)
-        self.scene().move(self.graphics_data_item, self.x() + dx, self.y() + dy)
+        self.scene().move(self.g_data_item, self.x() + dx, self.y() + dy)
 
     def mousePressEvent(self, press_event):
         super(GAction, self).mousePressEvent(press_event)

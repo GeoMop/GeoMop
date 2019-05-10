@@ -3,6 +3,7 @@ Special action which can contain subactions for repeating processes.
 @author: Tomáš Blažek
 @contact: tomas.blazek@tul.cz
 """
+from .rect_resize_handles import RectResizeHandles
 from .g_action import GAction
 from .g_port import GPort
 from PyQt5 import QtGui, QtCore, QtWidgets
@@ -19,5 +20,16 @@ class GActionForSubactions(GAction):
         self.name = "While loop"
         self.width = 200
         self.height = 200
-        
+        # Add resize handles to GActio.
+        self.resize_handle_width = 6
+        self.resize_handles = RectResizeHandles(self, self.resize_handle_width, self.resize_handle_width * 2)
 
+    @GAction.width.setter
+    def width(self, value):
+        super(GActionForSubactions, self).width(value)
+        self.resize_handles.update_handles()
+
+    @GAction.height.setter
+    def height(self, value):
+        super(GActionForSubactions, self).height(value)
+        self.resize_handles.update_handles()

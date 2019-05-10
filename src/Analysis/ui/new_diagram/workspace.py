@@ -68,13 +68,14 @@ class Workspace(QtWidgets.QGraphicsView):
     def dragEnterEvent(self, drag_enter):
         """Accept drag event if it carries action."""
         if drag_enter.mimeData().hasText():
-            if drag_enter.mimeData().text() == "action":
+            if drag_enter.mimeData().text() in ["_Slot", "tuple"]:
                 drag_enter.acceptProposedAction()
 
     def dropEvent(self, drop_event):
         """Create new action from dropped information"""
         self.scene.new_action_pos = self.mapToScene(drop_event.pos()) - drop_event.source().get_pos_correction()
-        self.scene.add_action(self.mapToScene(drop_event.pos()) - drop_event.source().get_pos_correction())
+        self.scene.add_action(self.mapToScene(drop_event.pos()) - drop_event.source().get_pos_correction(),
+                              drop_event.mimeData().text())
         drop_event.acceptProposedAction()
 
     def dragMoveEvent(self, move_event):
