@@ -2,14 +2,18 @@ import os
 import sys
 
 from PyQt5 import QtGui, QtWidgets
-from PyQt5.QtWidgets import QTabWidget
+from PyQt5.QtCore import QObject
+from PyQt5.QtWidgets import QTabWidget, QWidget
+
+from .workflow_interface import WorkflowInterface
+from .workspace import Workspace
 from src.common.analysis import base as wf
 
 from .action_editor_menu import ActionEditorMenu
 
 
 class TabWidget(QTabWidget):
-    def __init__(self, edit_menu, parent=None):
+    def __init__(self, main_widget, edit_menu, parent=None):
         super(TabWidget, self).__init__(parent)
         self.setTabsClosable(True)
         self.setTabShape(1)
@@ -19,13 +23,29 @@ class TabWidget(QTabWidget):
         self.edit_menu.delete.triggered.connect(self.delete_items)
         self.edit_menu.add_random.triggered.connect(self.add_random_items)
         self.edit_menu.order.triggered.connect(self.order_diagram)
+        self.currentChanged.connect(self.current_changed)
 
-    def open_file(self):
-        filename = QtWidgets.QFileDialog.getOpenFileName(self.parent(), "Select Module",
-                                              os.getcwd())
-        self.module = wf._Module.create_from_file(filename[0])
+        self.main_widget = main_widget
+
+    def _add_tab(self, model_filename, module):
+        w = Workspace(module, self)
+        self.addTab(w, model_filename)
+
+    def open_module(self, filename=None):
+        if not isinstance(filename, str):
+            filename = QtWidgets.QFileDialog.getOpenFileName(self.parent(), "Select Module", os.getcwd())[0]
+
+        module = wf._Module.create_from_file(filename)
+        self._add_tab(os.path.basename(filename), module)
+
+    def current_changed(self, index):
+        curr_module = self.currentWidget().module_view
+        curr_module.show()
+        self.main_widget.module_dock.setWidget(curr_module)
+
 
     def on_close_tab(self, index):
+        print(self.currentIndex())
         self.removeTab(index)
 
     def add_action(self):

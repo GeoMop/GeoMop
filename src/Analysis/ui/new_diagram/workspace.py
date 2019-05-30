@@ -10,6 +10,8 @@ from PyQt5.QtCore import QDir, QPoint, QRect
 from PyQt5.QtGui import QDrag
 from PyQt5.QtWidgets import QFileDialog, QApplication
 
+from .workflow_interface import WorkflowInterface
+from .module_view import ModuleView
 from .action_editor_menu import ActionEditorMenu
 from .g_action import GAction
 from .g_connection import GConnection
@@ -19,12 +21,13 @@ from .scene import Scene
 
 class Workspace(QtWidgets.QGraphicsView):
     """Graphics scene which handles user input and shows user the results."""
-    def __init__(self, workflow, parent=None):
+    def __init__(self, module, parent=None):
         """Initializes class."""
         super(Workspace, self).__init__(parent)
-        self.workflow = workflow
 
-        self.scene = Scene(workflow, self)
+        self.module_view = ModuleView(module)
+
+        self.scene = Scene(WorkflowInterface(self.module_view.currentWF), self)
         self.setScene(self.scene)
         self.setRenderHint(QtGui.QPainter.Antialiasing, True)
 
@@ -58,6 +61,8 @@ class Workspace(QtWidgets.QGraphicsView):
 
         self.last_mouse_event_pos = QPoint(0, 0)
         self.mouse_press_event_pos = QPoint(0, 0)
+
+
 
     def mousePressEvent(self, press_event):
         """Store information about position where this event occurred."""

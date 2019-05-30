@@ -33,29 +33,13 @@ class MainWidget(QtWidgets.QMainWindow):
     def __init__(self, parent=None):
         self.module = wf._Module.create_from_file("test_module.py")
 
-
         super(MainWidget, self).__init__(parent)
-        self.menu_bar = self.menuBar()
-        self.file_menu = FileMenu()
-        self.menu_bar.addMenu(self.file_menu)
-        self.edit_menu = ActionEditorMenu(self)
-        self.menu_bar.addMenu(self.edit_menu)
+        self._init_menu()
+        self._init_docks()
 
-        self.dock = QtWidgets.QDockWidget("Module", self)
-        self.dock.setAllowedAreas(QtCore.Qt.LeftDockWidgetArea | QtCore.Qt.RightDockWidgetArea)
-        self.dock2 = QtWidgets.QDockWidget("Toolbox", self)
-        self.dock2.setAllowedAreas(QtCore.Qt.LeftDockWidgetArea | QtCore.Qt.RightDockWidgetArea)
-        self.dock3 = QtWidgets.QDockWidget("Data/Config", self)
-        self.dock3.setAllowedAreas(QtCore.Qt.LeftDockWidgetArea | QtCore.Qt.RightDockWidgetArea)
-
-        self.view = ModuleView(self.module)
-        self.dock.setWidget(self.view)
-        self.addDockWidget(QtCore.Qt.RightDockWidgetArea, self.dock)
-
-        self.w = Workspace(WorkflowInterface(self.view.currentWF), self)
-        self.w2 = Workspace(WorkflowInterface(self.view.currentWF), self)
-
-
+        self.tab_widget = TabWidget(self, self.edit_menu)
+        self.setCentralWidget(self.tab_widget)
+        self.tab_widget.open_module("test_module.py")
 
         self.toolbox_layout = ActionCategory()
         self.toolbox_layout2 = ActionCategory()
@@ -69,24 +53,36 @@ class MainWidget(QtWidgets.QMainWindow):
         self.toolBox.addItem(self.toolbox_layout2, "Data manipulation")
 
         self.dock2.setWidget(self.toolBox)
-        self.addDockWidget(QtCore.Qt.LeftDockWidgetArea, self.dock2)
 
 
         self.data_view = CompositeTypeView()
         temp = self.data_view.model()
         self.dock3.setWidget(self.data_view)
-        self.addDockWidget(QtCore.Qt.RightDockWidgetArea, self.dock3)
 
         self.resize(1000, 500)
-        self.tab_widget = TabWidget(self.edit_menu)
-        self.setCentralWidget(self.tab_widget)
-        self.tab_widget.setTabsClosable(True)
-        self.tab_widget.setTabShape(1)
-        self.tab_widget.addTab(self.w, "test_module.py")
-        self.tab_widget.addTab(self.w2, "other_files...")
 
-        self.file_menu.open.triggered.connect(self.tab_widget.open_file)
+        self.file_menu.open.triggered.connect(self.tab_widget.open_module)
 
+    def _init_menu(self):
+        self.menu_bar = self.menuBar()
+        self.file_menu = FileMenu()
+        self.menu_bar.addMenu(self.file_menu)
+        self.edit_menu = ActionEditorMenu(self)
+        self.menu_bar.addMenu(self.edit_menu)
+
+    def _init_docks(self):
+        self.module_dock = QtWidgets.QDockWidget("Module", self)
+        self.module_dock.setAllowedAreas(QtCore.Qt.LeftDockWidgetArea | QtCore.Qt.RightDockWidgetArea)
+        self.addDockWidget(QtCore.Qt.RightDockWidgetArea, self.module_dock)
+
+        self.dock2 = QtWidgets.QDockWidget("Toolbox", self)
+        self.dock2.setAllowedAreas(QtCore.Qt.LeftDockWidgetArea | QtCore.Qt.RightDockWidgetArea)
+        self.addDockWidget(QtCore.Qt.RightDockWidgetArea, self.dock2)
+
+        self.dock3 = QtWidgets.QDockWidget("Data/Config", self)
+        self.dock3.setAllowedAreas(QtCore.Qt.LeftDockWidgetArea | QtCore.Qt.RightDockWidgetArea)
+        self.addDockWidget(QtCore.Qt.RightDockWidgetArea, self.dock3)
 
     def eventFilter(self, QObject, QEvent):
         return True
+

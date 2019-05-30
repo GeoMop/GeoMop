@@ -4,10 +4,10 @@ from PyQt5.QtWidgets import QTreeWidget, QTreeWidgetItem
 class ModuleView(QTreeWidget):
     def __init__(self, module,  parent=None):
         super(ModuleView, self).__init__(parent)
-        self.module = module
+        self._module = module
         self._currentWF = None
         self.setHeaderHidden(True)
-        self.root_item = QTreeWidgetItem(self,[self.module.name])
+        self.root_item = QTreeWidgetItem(self,[self._module.name])
         self.doubleClicked.connect(self._doubleClicked)
         for name, wf in module.definitions.items():
             if self._currentWF is None:
@@ -23,10 +23,17 @@ class ModuleView(QTreeWidget):
                 result_parent = QTreeWidgetItem(workflow, ["Output"])
                 QTreeWidgetItem(result_parent, [wf._result.instance_name])
 
+    @property
+    def module(self):
+        return self._module
+
+    @module.setter
+    def module(self, module):
+        self._module = module
 
     @property
     def currentWF(self):
-        return self._currentWF
+            return self._currentWF
 
     def _doubleClicked(self, model_index):
         temp =model_index.data()
