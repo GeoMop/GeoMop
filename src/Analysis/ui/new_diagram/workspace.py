@@ -26,8 +26,9 @@ class Workspace(QtWidgets.QGraphicsView):
         super(Workspace, self).__init__(parent)
 
         self.module_view = ModuleView(module)
+        self.module_view.on_wf_changed.connect(self._on_wf_changed)
+        self.scene = Scene(WorkflowInterface(self.module_view.current_wf), self)
 
-        self.scene = Scene(WorkflowInterface(self.module_view.currentWF), self)
         self.setScene(self.scene)
         self.setRenderHint(QtGui.QPainter.Antialiasing, True)
 
@@ -62,7 +63,9 @@ class Workspace(QtWidgets.QGraphicsView):
         self.last_mouse_event_pos = QPoint(0, 0)
         self.mouse_press_event_pos = QPoint(0, 0)
 
-
+    def _on_wf_changed(self):
+        self.scene = Scene(WorkflowInterface(self.module_view.current_wf), self)
+        self.setScene(self.scene)
 
     def mousePressEvent(self, press_event):
         """Store information about position where this event occurred."""

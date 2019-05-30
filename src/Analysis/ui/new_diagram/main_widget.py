@@ -77,7 +77,7 @@ class MainWidget(QtWidgets.QMainWindow):
 
         self.dock2 = QtWidgets.QDockWidget("Toolbox", self)
         self.dock2.setAllowedAreas(QtCore.Qt.LeftDockWidgetArea | QtCore.Qt.RightDockWidgetArea)
-        self.addDockWidget(QtCore.Qt.RightDockWidgetArea, self.dock2)
+        self.addDockWidget(QtCore.Qt.LeftDockWidgetArea, self.dock2)
 
         self.dock3 = QtWidgets.QDockWidget("Data/Config", self)
         self.dock3.setAllowedAreas(QtCore.Qt.LeftDockWidgetArea | QtCore.Qt.RightDockWidgetArea)
