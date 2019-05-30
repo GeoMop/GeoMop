@@ -9,13 +9,7 @@ import typing
 from common.analysis import action_base
 from common.analysis import dummy
 
-"""
-Minimalistic implementation of the analysis data layer for the GUI.
 
-TODO:
-- ActionBase  with connections, representation and basic evaluation support
--
-"""
 
 
 

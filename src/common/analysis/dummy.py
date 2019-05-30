@@ -34,8 +34,7 @@ class ActionWrapper:
         Return action wrapped into the Dummy.
         """
         regular_inputs, private_args = separate_underscored_keys(kwargs)
-        action = self.action_class()
-        remaining_args = action.set_inputs(input_list=args, input_dict=regular_inputs)
+        action, remaining_args = self.action_class.create(*args, **regular_inputs)
         # TODO: check that inputs are connected.
         if remaining_args:
             raise base.ExcUnknownArgument(remaining_args)
@@ -83,7 +82,8 @@ class Dummy:
         # TODO: check that type is dataclass
         assert not is_underscored(key)
         #action = object.__getattribute__(self, '__action').
-        action = converter.GetAttribute.create(self._action, key)
+        action, remaining_args = converter.GetAttribute.create(self._action, key)
+        assert not remaining_args
         return Dummy.wrap(action)
 
     def __getitem__(self, idx: int):

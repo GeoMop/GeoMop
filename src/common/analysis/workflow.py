@@ -189,6 +189,9 @@ class _Variables:
 
 
 def workflow(func):
+    """
+    Decorator to crate a Workflow class from a function.
+    """
     workflow_name = func.__name__
     workflow_signature = inspect.signature(func)
     parameters = workflow_signature.parameters
@@ -230,6 +233,9 @@ def analysis(func):
 
 
 class ClassActionBase(base._ActionBase):
+    """
+    Dataclass action
+    """
     def __init__(self):
         super().__init__()
         self._module = ""

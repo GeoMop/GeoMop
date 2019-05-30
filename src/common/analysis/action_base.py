@@ -26,7 +26,7 @@ _VAR_="self"
 
 class ActionInputStatus(enum.IntEnum):
     missing     = -3     # missing value
-    error_value = -2     # error input passed
+    error_value = -2     # error input passed, can not be wrapped into an action
     error_type  = -1     # type error
     none        = 0      # not checked yet
     seems_ok    = 1      # correct input, type not fully specified
@@ -90,9 +90,15 @@ class _ActionBase:
 
     @classmethod
     def create(cls, *args, **kwargs):
+        """
+        Create an action instance with given arguments.
+        :param args:
+        :param kwargs:
+        :return:
+        """
         c = cls()
-        c.set_inputs(input_list=args, input_dict=kwargs)
-        return c
+        remaining_args = c.set_inputs(input_list=args, input_dict=kwargs)
+        return c, remaining_args
 
 
     """
