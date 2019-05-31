@@ -1,19 +1,9 @@
 import os
 import sys
 import imp
-import inspect
 import traceback
-import importlib
-import typing
 
-from common.analysis import action_base
-from common.analysis import dummy
-
-
-
-
-
-
+from common.analysis.code import dummy
 
 
 class InterpreterError(Exception): pass

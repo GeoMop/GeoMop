@@ -1,57 +1,12 @@
 from typing import *
 from common.analysis import action_base as base
-from common.analysis import converter
+from common.analysis import action_instance as instance
+from common.analysis.converter import GetAttribute, GetItem
+from common.analysis.action_instance import  ActionInstance
 
 
 def is_underscored(s:Any) -> bool:
     return type(s) is str and s[0] == '_'
-
-
-def separate_underscored_keys(arg_dict: Dict[str, Any]):
-    underscored = {}
-    regular = {}
-    for key, value in arg_dict.items():
-        if is_underscored(key):
-            underscored[key] = value
-        else:
-            regular[key] = value
-    return (regular, underscored)
-
-
-
-class ActionWrapper:
-    def __init__(self, action_class):
-        assert issubclass(action_class, base._ActionBase)
-        self.action_class = action_class
-        self.is_analysis = False
-
-    def __call__(self, *args, **kwargs):
-        """
-        Catch all arguments.
-        Separate private params beginning with underscores.
-        (Undummy action inputs, wrap non-action inputs)
-        Create under laying action, connect to inputs.
-        Return action wrapped into the Dummy.
-        """
-        regular_inputs, private_args = separate_underscored_keys(kwargs)
-        action, remaining_args = self.action_class.create(*args, **regular_inputs)
-        # TODO: check that inputs are connected.
-        if remaining_args:
-            raise base.ExcUnknownArgument(remaining_args)
-        action.set_metadata(private_args)
-        return Dummy.wrap(action)
-
-
-
-def public_action(action_class):
-    """
-    Decorator makes a wrapper function for an action that should be used explicitelty in workspace.
-    A wrapper is called instead of the action constructor in order to:
-    1. preprocess arguments
-    2. return constructed action wrapped into the Dummy object.
-    """
-    return ActionWrapper(action_class)
-
 
 
 class Dummy:
@@ -69,8 +24,8 @@ class Dummy:
             return Dummy(action)
 
 
-    def __init__(self, action: base._ActionBase):
-        assert isinstance(action, base._ActionBase)
+    def __init__(self, action: instance.ActionInstance) -> None:
+        assert isinstance(action, instance.ActionInstance)
         self._action = action
         """Dummy pretend the data object of the action.output_type."""
 
@@ -82,12 +37,12 @@ class Dummy:
         # TODO: check that type is dataclass
         assert not is_underscored(key)
         #action = object.__getattribute__(self, '__action').
-        action, remaining_args = converter.GetAttribute.create(self._action, key)
+        action, remaining_args = GetAttribute.create(self._action, key)
         assert not remaining_args
         return Dummy.wrap(action)
 
     def __getitem__(self, idx: int):
-        action = converter.GetItem.create(self._action, idx)
+        action = GetItem.create(self._action, idx)
         return Dummy.wrap(action)
 
     # Binary
@@ -160,6 +115,8 @@ class Dummy:
     # != object.__ne__(self, other)
     # >= object.__ge__(self, other)
     # > object.__gt__(self, other)
+
+
 
 
 
