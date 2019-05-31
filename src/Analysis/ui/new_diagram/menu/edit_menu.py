@@ -6,10 +6,10 @@ Definition of menu.
 from PyQt5 import QtWidgets, QtCore, QtGui
 
 
-class ActionEditorMenu(QtWidgets.QMenu):
+class EditMenu(QtWidgets.QMenu):
     """Definition of menu containing editing options."""
     def __init__(self, parent=None):
-        super(ActionEditorMenu, self).__init__(parent)
+        super(EditMenu, self).__init__(parent)
         self.setTitle("Edit")
         self.new_action = QtWidgets.QAction("New action")
         self.addAction(self.new_action)
@@ -21,8 +21,5 @@ class ActionEditorMenu(QtWidgets.QMenu):
         self.add_random = QtWidgets.QAction("Add random action (for test purposes)")
         self.addAction(self.add_random)
 
-        self.add_while = QtWidgets.QAction("Add while loop")
-        self.addAction(self.add_while)
-
-        self.order = QtWidgets.QAction("Arrange diagram")
-        self.addAction(self.order)
+        self.order_diagram = QtWidgets.QAction("Arrange diagram")
+        self.addAction(self.order_diagram)

@@ -1,15 +1,10 @@
 import os
-import sys
 
-from PyQt5 import QtGui, QtWidgets
-from PyQt5.QtCore import QObject
-from PyQt5.QtWidgets import QTabWidget, QWidget
+from PyQt5 import QtWidgets
+from PyQt5.QtWidgets import QTabWidget
 
-from .workflow_interface import WorkflowInterface
 from .workspace import Workspace
 from src.common.analysis import base as wf
-
-from .action_editor_menu import ActionEditorMenu
 
 
 class TabWidget(QTabWidget):
@@ -22,7 +17,7 @@ class TabWidget(QTabWidget):
         self.edit_menu.new_action.triggered.connect(self.add_action)
         self.edit_menu.delete.triggered.connect(self.delete_items)
         self.edit_menu.add_random.triggered.connect(self.add_random_items)
-        self.edit_menu.order.triggered.connect(self.order_diagram)
+        self.edit_menu.order_diagram.triggered.connect(self.order_diagram)
         self.currentChanged.connect(self.current_changed)
 
         self.main_widget = main_widget

@@ -5,10 +5,10 @@ Main window.
 """
 import os, sys
 
-from PyQt5.QtWidgets import QToolBox, QSizePolicy, QVBoxLayout, QWidget, QTabWidget, QApplication, QMenuBar
+from PyQt5.QtCore import Qt
+from PyQt5.QtWidgets import QToolBox
 
-from .file_menu import FileMenu
-from .module_view import ModuleView
+from .menu.file_menu import FileMenu
 from .composite_type_view import CompositeTypeView
 from src.common.analysis.actions import tuple
 from src.common.analysis.base import _Slot
@@ -16,73 +16,66 @@ from .tab_widget import TabWidget
 from .toolbox_view import ToolboxView
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
-from PyQt5 import QtWidgets, QtCore, QtGui
-from .workspace import Workspace
-from .action_editor_menu import ActionEditorMenu
+from PyQt5 import QtWidgets, QtCore
+from .menu.edit_menu import EditMenu
 from .g_action import GAction
 from .tree_item import TreeItem
 from .action_category import ActionCategory
 from .g_input_action import GInputAction
-from .output_action import OutputGAction
-from src.common.analysis import actions
-from .workflow_interface import WorkflowInterface
-from src.common.analysis import base as wf
 
 
 class MainWidget(QtWidgets.QMainWindow):
     def __init__(self, parent=None):
-        self.module = wf._Module.create_from_file("test_module.py")
-
         super(MainWidget, self).__init__(parent)
         self._init_menu()
         self._init_docks()
 
         self.tab_widget = TabWidget(self, self.edit_menu)
         self.setCentralWidget(self.tab_widget)
-        self.tab_widget.open_module("test_module.py")
 
-        self.toolbox_layout = ActionCategory()
-        self.toolbox_layout2 = ActionCategory()
-        self.item1 = ToolboxView(GInputAction(TreeItem(["Input", 0, 0, 50, 50]), _Slot(0)), self.toolbox_layout)
-        self.item11 = ToolboxView(GAction(TreeItem(["Tuple", 0, 0, 50, 50]), tuple()), self.toolbox_layout2)
+        self.tab_widget.open_module("test_module.py")   # for testing purposes
 
-        self.toolBox = QToolBox()
-
-
-        self.toolBox.addItem(self.toolbox_layout, "Input/Output")
-        self.toolBox.addItem(self.toolbox_layout2, "Data manipulation")
-
-        self.dock2.setWidget(self.toolBox)
-
+        self._init_toolbox()
 
         self.data_view = CompositeTypeView()
-        temp = self.data_view.model()
-        self.dock3.setWidget(self.data_view)
+        self.data_view.model()
+        self.data_dock.setWidget(self.data_view)
 
         self.resize(1000, 500)
 
         self.file_menu.open.triggered.connect(self.tab_widget.open_module)
 
     def _init_menu(self):
+        """Initializes menus"""
         self.menu_bar = self.menuBar()
         self.file_menu = FileMenu()
         self.menu_bar.addMenu(self.file_menu)
-        self.edit_menu = ActionEditorMenu(self)
+        self.edit_menu = EditMenu(self)
         self.menu_bar.addMenu(self.edit_menu)
 
     def _init_docks(self):
+        """Initializes docks"""
         self.module_dock = QtWidgets.QDockWidget("Module", self)
-        self.module_dock.setAllowedAreas(QtCore.Qt.LeftDockWidgetArea | QtCore.Qt.RightDockWidgetArea)
-        self.addDockWidget(QtCore.Qt.RightDockWidgetArea, self.module_dock)
+        self.module_dock.setAllowedAreas(Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
+        self.addDockWidget(Qt.RightDockWidgetArea, self.module_dock)
 
-        self.dock2 = QtWidgets.QDockWidget("Toolbox", self)
-        self.dock2.setAllowedAreas(QtCore.Qt.LeftDockWidgetArea | QtCore.Qt.RightDockWidgetArea)
-        self.addDockWidget(QtCore.Qt.LeftDockWidgetArea, self.dock2)
+        self.toolbox_dock = QtWidgets.QDockWidget("Toolbox", self)
+        self.toolbox_dock.setAllowedAreas(Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
+        self.addDockWidget(Qt.LeftDockWidgetArea, self.toolbox_dock)
 
-        self.dock3 = QtWidgets.QDockWidget("Data/Config", self)
-        self.dock3.setAllowedAreas(QtCore.Qt.LeftDockWidgetArea | QtCore.Qt.RightDockWidgetArea)
-        self.addDockWidget(QtCore.Qt.RightDockWidgetArea, self.dock3)
+        self.data_dock = QtWidgets.QDockWidget("Data/Config", self)
+        self.data_dock.setAllowedAreas(Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
+        self.addDockWidget(Qt.RightDockWidgetArea, self.data_dock)
 
-    def eventFilter(self, QObject, QEvent):
-        return True
+    def _init_toolbox(self):
+        toolbox_layout = ActionCategory()
+        toolbox_layout2 = ActionCategory()
+        ToolboxView(GInputAction(TreeItem(["Input", 0, 0, 50, 50]), _Slot(0)), toolbox_layout)
+        ToolboxView(GAction(TreeItem(["Tuple", 0, 0, 50, 50]), tuple()), toolbox_layout2)
+
+        self.toolBox = QToolBox()
+
+        self.toolBox.addItem(toolbox_layout, "Input/Output")
+        self.toolBox.addItem(toolbox_layout2, "Data manipulation")
+        self.toolbox_dock.setWidget(self.toolBox)
 

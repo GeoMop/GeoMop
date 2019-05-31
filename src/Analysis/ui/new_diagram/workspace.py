@@ -5,17 +5,12 @@ Workspace where all user input is processed.
 """
 import cProfile
 import time
-from PyQt5 import QtWidgets, QtCore, QtGui, QtOpenGL
-from PyQt5.QtCore import QDir, QPoint, QRect
-from PyQt5.QtGui import QDrag
+from PyQt5 import QtWidgets, QtCore, QtGui
+from PyQt5.QtCore import QPoint
 from PyQt5.QtWidgets import QFileDialog, QApplication
 
 from .workflow_interface import WorkflowInterface
 from .module_view import ModuleView
-from .action_editor_menu import ActionEditorMenu
-from .g_action import GAction
-from .g_connection import GConnection
-from .action_for_subactions import GActionForSubactions
 from .scene import Scene
 
 
