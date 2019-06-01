@@ -22,7 +22,7 @@ def into_action(value):
     elif isinstance(value, instance.ActionInstance):
         return value
     elif type(value) in base_types:
-        return instance.ActionInstance.create(base.Value(), value)
+        return instance.ActionInstance.create(base.Value(value))
     elif type(value) in [tuple, list]:
         wrap_values = [into_action(val) for val in value]
         return instance.ActionInstance.create(base.List(), *wrap_values)
@@ -65,9 +65,10 @@ class ActionWrapper:
         args = [into_action(arg) for arg in args]
         kwargs = { key: into_action(val) for key, val in kwargs.items() }
         regular_inputs, private_args = separate_underscored_keys(kwargs)
-        action_instance, remaining_args = instance.ActionInstance.create(self.action, *args, **regular_inputs)
+        # print("Instance: ", self.action.name, args, regular_inputs)
+        action_instance = instance.ActionInstance.create(self.action, *args, **regular_inputs)
         # TODO: check that inputs are connected.
-        action_instance.set_metadata(private_args)
+        # action_instance.set_metadata(private_args)
         return dummy.Dummy.wrap(action_instance)
 
 

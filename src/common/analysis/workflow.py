@@ -8,7 +8,6 @@ Implementation of the Workflow composed action.
 - creating the 
 """
 
-_VAR_="self"
 
 
 
@@ -29,9 +28,9 @@ class _Slot(ActionInstance):
     def is_used(self):
         return bool(self.output_actions)
 
-    def _code(self):
-        return None
 
+    def code(self):
+        return None
 
 
 
@@ -70,7 +69,9 @@ class DFS:
             if i_input < len(action.arguments):
                 action_stack.append((action, i_input + 1))
                 input_action = action.arguments[i_input].value
-                assert isinstance(input_action, ActionInstance), (input_action.__class__, action, i_input)
+                # if not isinstance(input_action, ActionInstance):
+                #     x=1
+                assert isinstance(input_action, ActionInstance), (input_action.__class__, action.action_name, i_input)
 
                 self.edge_visit(input_action, action, i_input)
                 action_id = id(input_action)
@@ -89,11 +90,11 @@ class _Workflow(base._ActionBase):
     """
 
 
-
-
-    def __init__(self, name, vars, slots, result):
+    def __init__(self, name, vars, slots, result, params, output_type):
         super().__init__(name)
-
+        self.parameters = params
+        self.output_type = output_type
+        #
         self._result = result
         # Result subaction.
         self._vars = vars
@@ -154,38 +155,39 @@ class _Workflow(base._ActionBase):
             self.parameters.append(p)
 
 
-    def evaluate(self, input):
-        pass
+    # def evaluate(self, input):
+    #     pass
 
     #def _code(self):
     #    """ Representation of the workflow class instance within an outer workflow."""
     #
     #    pass
 
-    @classmethod
-    def dependencies(cls):
+
+    def dependencies(self):
         """
         :return: List of used actions (including workflows) and converters.
         """
-        return [v.action_name() for v in cls._actions.values()]
+        return [v.action_name() for v in self._actions.values()]
 
-    @classmethod
-    def code(cls):
+    
+    def code_of_definition(self):
         """
         Represent workflow by its source.
         :return: list of lines containing representation of the workflow as a decorated function.
         """
+        decorator = 'analysis' if self.is_analysis else 'workflow'
         params = [base._VAR_]
-        params.extend([cls._slots[islot].name for islot in range(len(cls._slots))])
-        head = "def {}({}):".format(cls.action_name(), ", ".join(params))
-        body = ["@wf.workflow", head]
+        params.extend([self._slots[islot].name for islot in range(len(self._slots))])
+        head = "def {}({}):".format(self.name, ", ".join(params))
+        body = ["@{base_module}.{decorator}".format(base_module='wf', decorator=decorator), head]
 
-        for iname in cls._topology_sort:
-            action = cls._actions[iname]
-            code = action._code()
-            if code:
+        for iname in self._topology_sort:
+            action_instance = self._actions[iname]
+            code = action_instance.code()
+            if code:    # skip slots
                 body.append("    " + code)
-        body.append("    return {}".format(cls._topology_sort[-1]))
+        body.append("    return {}".format(self._topology_sort[-1]))
         return "\n".join(body)
 
 

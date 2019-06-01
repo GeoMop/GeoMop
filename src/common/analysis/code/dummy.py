@@ -1,5 +1,6 @@
 from typing import *
 from common.analysis import action_base as base
+from common.analysis import action_base as base
 from common.analysis import action_instance as instance
 from common.analysis.converter import GetAttribute, GetItem
 from common.analysis.action_instance import  ActionInstance
@@ -36,13 +37,12 @@ class Dummy:
         # TODO: update the type to know that it is a dataclass containing 'key'
         # TODO: check that type is dataclass
         assert not is_underscored(key)
-        #action = object.__getattribute__(self, '__action').
-        action, remaining_args = GetAttribute.create(self._action, key)
-        assert not remaining_args
+        action = ActionInstance.create(GetAttribute(key), self._action)
         return Dummy.wrap(action)
 
     def __getitem__(self, idx: int):
-        action = GetItem.create(self._action, idx)
+        idx_wrap = ActionInstance.create(base.Value(idx))
+        action = ActionInstance.create(GetItem(), self._action, idx_wrap)
         return Dummy.wrap(action)
 
     # Binary

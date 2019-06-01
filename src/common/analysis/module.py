@@ -3,8 +3,8 @@ import sys
 import imp
 import traceback
 
-from common.analysis.code import dummy
-
+from common.analysis.code import wrap
+from common.analysis.action_instance import ActionInstance
 
 class InterpreterError(Exception): pass
 
@@ -78,7 +78,7 @@ class _Module:
         """
         if not name or name[0] == '_':
             return False
-        if isinstance(object, dummy.ActionWrapper):
+        if isinstance(object, wrap.ActionWrapper):
             return True
         else:
             print('Ignored definition of: {}'.format(name))
@@ -91,20 +91,24 @@ class _Module:
         """
         self.module = module
         # Ref to wrapped python module object.
-        self.definitions = {k:v for k, v in self.module.__dict__.items() if _Module.catch_object(k, v)}
+        self.definitions = {}
+        for k, v in self.module.__dict__.items():
+            if _Module.catch_object(k, v):
+                assert isinstance(v, wrap.ActionWrapper)
+                self.definitions[k] = v.action
         # List of analysis definition in the module (currently just defined workflows).
         self.analysis =  None
         # Instance of a workflow anotated by the decorator @analysis. Unique non-parametric workflow for running the analysis.
 
         for d in self.definitions.values():
-            d.action_class.set_module("")
+            d.set_module("")
 
         analysis = [v for v in self.definitions.values() if v.is_analysis]
         assert len(analysis) <= 1
         if analysis:
             # make instance of the main workflow
             analysis = analysis[0]
-            self.analysis = analysis()
+            self.analysis = ActionInstance.create(analysis)
         else:
             self.analysis = None
 
@@ -115,9 +119,9 @@ class _Module:
     def code(self):
         source = ["import common.analysis as wf"]
         for v in self.definitions.values():
-            action = v.action_class
+            action = v
             source.extend(["", ""])     # two empty lines as separator
-            source.append(action.code())
+            source.append(action.code_of_definition())
         return "\n".join(source)
 
 

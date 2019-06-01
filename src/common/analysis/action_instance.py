@@ -8,21 +8,6 @@ from common.analysis import action_base as base
 
 
 
-class ExcMissingArgument(Exception):
-    pass
-
-class ExcActionExpected(Exception):
-    pass
-
-class ExcTooManyArguments(Exception):
-    pass
-
-class ExcUnknownArgument(Exception):
-    pass
-
-class ExcDuplicateArgument(Exception):
-    pass
-
 
 
 
@@ -92,9 +77,9 @@ class ActionInstance:
         instance = ActionInstance(action)
         remaining_args, duplicate = instance.set_inputs(input_list=args, input_dict=kwargs)
         if remaining_args:
-            raise ExcUnknownArgument(remaining_args)
+            raise base.ExcUnknownArgument(remaining_args)
         if duplicate:
-            raise ExcDuplicateArgument(duplicate)
+            raise base.ExcDuplicateArgument(duplicate)
 
         return instance
 
@@ -142,20 +127,22 @@ class ActionInstance:
             param = params.get_index(i_arg)
             self.arguments.append(self.make_argument(param, arg))
 
+        len_args = len(self.arguments)
         self._fill_args()
         # Fill remaining arguments
-        for param in self.parameters:
+        for i_param in range(len_args, self.parameters.size()):
+            param = self.parameters.get_index(i_param)
             if param.name is None:
                 break
             old_arg = old_args[param.idx]
             value = input_dict.get(param.name, old_arg.value)
-            self.arguments.append(self.make_argument(param, value))
+            self.arguments[i_param] = self.make_argument(param, value)
 
         # Set named arguments
         unknown_args = {}
         duplicate_args = {}
         for key, val in input_dict.items():
-            param = self.parameters.with_name(key)
+            param = self.parameters.get_name(key)
             if param is None:
                 unknown_args[key] = val
             else:
@@ -198,20 +185,17 @@ class ActionInstance:
 
     def get_code_instance_name(self):
         if self._proper_instance_name:
-            return "{}.{}".format(_VAR_, self.name)
+            return "{}.{}".format(base._VAR_, self.name)
         else:
             return self.name
 
 
-    @classmethod
-    def set_module(cls, module_name):
-        if module_name != '__main__':
-            cls._module = module_name
 
 
 
 
-    def _code(self):
+
+    def code(self):
         """
         Return a representation of the action instance.
         This is generic representation code that calls the constructor.
@@ -222,17 +206,8 @@ class ActionInstance:
         :param config: String used for configuration, call serialization of the configuration by default.
         :return: string (code to instantiate the action)
         """
-        inputs=[]
-        for arg in self.arguments:
-            assert isinstance(arg.value, base._ActionBase)
-            input_instance = arg.value.get_code_instance_name()
-            inputs.append("{}={}".format(arg.parameter.name, input_instance))
-
-        input_string = ", ".join(inputs)
-        module_str = self._module
-        if module_str:
-            action_name = "{}.{}".format(module_str, self.action_name())
-        else:
-            action_name = self.action_name()
-        code_line =  "{} = {}({})".format(self.get_code_instance_name(), action_name, input_string)
+        format = self.action.format(len(self.arguments))
+        inputs = [arg.value.get_code_instance_name() for arg in self.arguments]
+        expression = format.format(*inputs)
+        code_line =  "{} = {}".format(self.get_code_instance_name(), expression)
         return code_line

@@ -37,9 +37,10 @@ def workflow(func):
     slots = [wf._Slot(i, name) for i, name in enumerate(param_names) ]
     dummies = [dummy.Dummy(slot) for slot in slots]
     func_args.extend(dummies)
+    print(func)
     output_action = wrap.into_action(func(*func_args))
 
-    new_workflow = wf._Workflow(workflow_name, variables, slots, output_action)
+    new_workflow = wf._Workflow(workflow_name, variables, slots, output_action, params, output_type)
     return wrap.public_action(new_workflow)
 
 
@@ -47,9 +48,10 @@ def analysis(func):
     """
     Decorator for the main analysis workflow of the module.
     """
-    w = workflow(func)
-    assert len(w.action_class._slots) == 0
-    w.is_analysis = True
+    w: wrap.ActionWrapper = workflow(func)
+    assert isinstance(w.action, wf._Workflow)
+    assert len(w.action._slots) == 0
+    w.action.is_analysis = True
     return w
 
 
@@ -61,8 +63,6 @@ def Class(data_class):
     """
     data_class = attr.s(data_class, auto_attribs=True)
     dataclass_action = base.ClassActionBase(data_class)
-    #.__name__, (ClassActionBase,), attributes)
-    #dataclass_action._extract_input_type(func=data_class.__init__, skip_self=True)
     return wrap.public_action(dataclass_action)
 
 

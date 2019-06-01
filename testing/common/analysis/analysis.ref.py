@@ -11,21 +11,19 @@ def test_list(self, a, b):
 
 @wf.Class
 class Point:
-  x:float
-  y:float
+    x:float
+    y:float
 
 
 @wf.workflow
 def test_class(self, a, b):
-    Value_1 = 'x'
     self.a_x = a.x
-    Value_2 = 'y'
     self.b_y = b.y
     Point_1 = Point(x=self.a_x, y=self.b_y)
     return Point_1
 
 
-@wf.workflow
+@wf.analysis
 def test_analysis(self):
     Value_1 = 10
     Value_2 = 'ahoj'

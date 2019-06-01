@@ -7,9 +7,25 @@ from typing import *
 from collections import defaultdict
 
 
+# Name for the first parameter of the workflow definiton function that is used
+# to capture instance names.
+_VAR_="self"
 
 
+class ExcMissingArgument(Exception):
+    pass
 
+class ExcActionExpected(Exception):
+    pass
+
+class ExcTooManyArguments(Exception):
+    pass
+
+class ExcUnknownArgument(Exception):
+    pass
+
+class ExcDuplicateArgument(Exception):
+    pass
 
 
 
@@ -35,6 +51,9 @@ class Parameters:
         # Map names to parameters.
         self._variable = False
         # indicates variable number of parameters, the last param have None name
+
+    def is_variadic(self):
+        return self._variable
 
     def size(self):
         return len(self.parameters)
@@ -80,17 +99,21 @@ def extract_func_signature(func, skip_self=True):
         idx = parameters.size()
         if skip_self and idx == 0 and param.name == 'self':
             continue
-        assert param.kind == param.POSITIONAL_ONLY or param.kind == param.POSITIONAL_OR_KEYWORD, str(param.kind)
+
         annotation = param.annotation if param.annotation != param.empty else None
         default = param.default if param.default != param.empty else None
 
-        param = ActionParameter(idx, param.name, annotation, default)
+        if param.kind == param.VAR_POSITIONAL:
+            assert default == None
+            param = ActionParameter(idx, None, annotation, default)
+        else:
+            assert param.kind == param.POSITIONAL_ONLY or param.kind == param.POSITIONAL_OR_KEYWORD, str(param.kind)
+            param = ActionParameter(idx, param.name, annotation, default)
         parameters.append(param)
     return parameters, signature.return_annotation
 
 
 class _ActionBase:
-    _module = "wf"
 
     """
     Base of all actions.
@@ -100,8 +123,9 @@ class _ActionBase:
     - have _code representation
     """
     def __init__(self, action_name = None ):
+        self.is_analysis = False
         self.name = action_name or self.__class__.__name__
-
+        self._module = "wf"
         self.parameters = Parameters()
         # Parameter specification list, class attribute, no parameters by default.
         self.output_type = None
@@ -118,6 +142,7 @@ class _ActionBase:
         if func is None:
             func = self._evaluate
         self.parameters, self.output_type = extract_func_signature(func, skip_self)
+        pass
 
 
 
@@ -138,6 +163,37 @@ class _ActionBase:
         assert False, "Implementation has to be provided."
 
 
+    def format(self, n_args=None):
+        """
+        Return a format string for the expression that constructs the action.
+        :param n_args: Number of arguments, number of placeholders. Can be None if the action is not variadic.
+        :return: str, format
+        Format contains '{N}' placeholders for the given N-th argument, the named placeholer '{VAR}'
+        is used for the variadic arguments, these are substituted as an argument list separated by comma and space.
+        E.g. "Action({0}, {1}, {})" can be expanded to :
+        "Action(arg0, arg1, arg2, arg3)"
+        """
+        if n_args is None:
+            assert not self.parameters.is_variadic()
+            n_args = self.parameters.size()
+        assert n_args >= self.parameters.size()
+        args=[]
+        for i_arg in range(n_args):
+            param = self.parameters.get_index(i_arg)
+            if param.name:
+                args.append("{name}={{{idx}}}".format(name=param.name, idx=i_arg))
+            else:
+                args.append("{{{idx}}}".format(idx=i_arg))
+        args = ", ".join(args)
+
+        module_str = self._module
+        if module_str:
+            action_name = "{}.{}".format(module_str, self.name)
+        else:
+            action_name = self.name
+
+        return "{name}({args})".format(name=action_name, args=args)
+
 
     def validate(self, inputs):
         return self.evaluate(inputs)
@@ -147,6 +203,9 @@ class _ActionBase:
         pass
 
 
+    def set_module(self, module_name):
+        if module_name != '__main__':
+            self._module = module_name
 
 
 class Value(_ActionBase):
@@ -157,15 +216,13 @@ class Value(_ActionBase):
     def evaluate(self, arguments):
         return self.value
 
-    def _code(self):
+    def format(self, n_args):
         value = self.value
         if type(value) is str:
-            value = "'{}'".format(value)
+            expr = "'{}'".format(value)
         else:
-            value = str(value)
-
-        code_line = "{} = {}".format(self.get_code_instance_name(), value)
-        return code_line
+            expr = str(value)
+        return expr
 
 
 
@@ -182,19 +239,6 @@ class _ListBase(_ActionBase):
         self.parameters.append(ActionParameter(idx=0, name=None, type=Any, default=None))
 
 
-    def _code_with_brackets(self, format: str):
-        inputs=[]
-        for arg in self.arguments:
-            assert isinstance(arg.value, base._ActionBase)
-            inputs.append(arg.value.get_code_instance_name())
-
-        input_string = ", ".join(inputs)
-        rhs = format.format(input_string)
-        code_line = "{} = {}".format(self.get_code_instance_name(), rhs)
-        return code_line
-
-
-
 # class Tuple(_ListBase):
 #     #__action_parameters = [('input', 'Any')]
 #     """ Merge any number of parameters into tuple."""
@@ -206,8 +250,12 @@ class _ListBase(_ActionBase):
 
 
 class List(_ListBase):
-    def _code(self):
-        return self._code_with_brackets(format = "[{}]")
+
+    def format(self, n_args):
+        assert n_args is not None
+        args=["{{{idx}}}".format(idx=i_arg) for i_arg in range(n_args)]
+        args = ", ".join(args)
+        return "[{args}]".format(args=args)
 
     def evaluate(self, inputs):
         return list(inputs)
@@ -221,24 +269,25 @@ class ClassActionBase(_ActionBase):
     Dataclass action
     """
     def __init__(self, data_class):
-        super().__init__()
+        super().__init__(data_class.__name__)
         self._data_class = data_class
         self._module = ""
         self._extract_input_type(func=data_class.__init__, skip_self=True)
 
-    def _evaluate(self, **kwargs):
-        return self._data_class(**kwargs)
+
+    def _evaluate(self, *args):
+        return self._data_class(*args)
 
 
-    def code(self):
+    def code_of_definition(self):
         lines = ['@wf.Class']
-        lines.append('class {}:'.format(self.action_name()))
+        lines.append('class {}:'.format(self.name))
         for attribute in self._data_class.__attrs_attrs__:
             type_str = attribute.type.__name__ if attribute.type else "Any"
             if attribute.default == attr.NOTHING:
                 default = ""
             else:
                 default = "={}".format(attribute.default)
-            lines.append("  {}:{}{}".format(attribute.name, type_str, default))
+            lines.append("    {}:{}{}".format(attribute.name, type_str, default))
 
         return "\n".join(lines)
