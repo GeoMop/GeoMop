@@ -1,6 +1,6 @@
 import attr
 from common.analysis.code import dummy, wrap
-from common.analysis import workflow as wf
+from common.analysis import action_workflow as wf
 from common.analysis import action_base as base
 
 class _Variables:
@@ -40,7 +40,8 @@ def workflow(func):
     print(func)
     output_action = wrap.into_action(func(*func_args))
 
-    new_workflow = wf._Workflow(workflow_name, variables, slots, output_action, params, output_type)
+    new_workflow = wf._Workflow(workflow_name)
+    new_workflow.set_from_source(slots, output_type, output_action)
     return wrap.public_action(new_workflow)
 
 

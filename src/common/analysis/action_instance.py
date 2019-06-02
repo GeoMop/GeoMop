@@ -160,16 +160,16 @@ class ActionInstance:
         :param value: value or action to set for the input, or None to unset the input.
         """
         if idx is None:
-            idx = len(self.arguments) + 1
-        param = self.parameters.at_index(idx)
+            idx = len(self.arguments)
+        param = self.parameters.get_index(idx)
         assert param is not None
-        if idx == len(self.arguments) + 1:
+        if idx == len(self.arguments):
             self.arguments.append(self.make_argument(param, None))
         self.arguments[idx] = self.make_argument(param, value)
 
         # remove empty variadic inputs
         while self.arguments and self.arguments[-1].status == ActionInputStatus.missing \
-              and self.arguments.parameter.name is None:
+              and self.arguments[-1].parameter.name is None:
             self.arguments.pop(-1)
 
 
@@ -193,9 +193,17 @@ class ActionInstance:
 
 
 
+    def relative_action_name(self, module_dict):
+        action_name = self.action_name
+        action_module = self.action.__module__
+        alias = module_dict.get(action_module)
+        if alias:
+            return "{}.{}".format(alias, action_name)
+        else:
+            return action_name
 
 
-    def code(self):
+    def code(self, module_dict):
         """
         Return a representation of the action instance.
         This is generic representation code that calls the constructor.
@@ -206,8 +214,8 @@ class ActionInstance:
         :param config: String used for configuration, call serialization of the configuration by default.
         :return: string (code to instantiate the action)
         """
-        format = self.action.format(len(self.arguments))
+        expr_format = self.action.format(len(self.arguments))
         inputs = [arg.value.get_code_instance_name() for arg in self.arguments]
-        expression = format.format(*inputs)
+        expression = expr_format.format(*inputs, action_name=self.relative_action_name(module_dict))
         code_line =  "{} = {}".format(self.get_code_instance_name(), expression)
         return code_line

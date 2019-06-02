@@ -28,13 +28,13 @@ def test_closest_common_ancestor():
 
 @pytest.mark.parametrize("src_file", ["analysis_in.py"])
 def test_representation(src_file):
-    module = analysis.module._Module.create_from_file(src_file)
+    module = analysis.module.Module(src_file)
     code = module.code()
     round_module_name = "round."+module.name
     with open(round_module_name +".py", "w") as f:
         f.write(code)
 
-    round_module = analysis.module._Module.create_from_source(round_module_name, code)
+    round_module = analysis.module.Module(round_module_name + ".py")
     round_code = round_module.code()
     assert code == round_code
 

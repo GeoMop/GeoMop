@@ -192,7 +192,7 @@ class _ActionBase:
         else:
             action_name = self.name
 
-        return "{name}({args})".format(name=action_name, args=args)
+        return "{{action_name}}({args})".format(args=args)
 
 
     def validate(self, inputs):
