@@ -9,11 +9,8 @@ GUI TODO:
 - ? change slot and result types automaticaly or explicitely (that
 
 
-TODO:
-0. DFS - add detection of cycle    
-    
-1. GUI API for adding and removing definitions from module
-2. GUI way to create and modify the workflow, in particular update a workflow from slots and result.
+TODO:  
+
 3. GUI way to modify dataclasses and enums
 
 3. test importing of user modules, better test of module functions
