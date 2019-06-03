@@ -34,7 +34,7 @@ def workflow(func):
         func_args.append(variables)
         param_names = param_names[1:]
 
-    slots = [wf._Slot(i, name) for i, name in enumerate(param_names) ]
+    slots = [wf.Slot(name) for i, name in enumerate(param_names) ]
     dummies = [dummy.Dummy(slot) for slot in slots]
     func_args.extend(dummies)
     print(func)

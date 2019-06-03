@@ -10,6 +10,11 @@ GUI TODO:
 
 
 TODO:  
+- side_effect results - perform some actions for their sideefect, need a way to connect them to the result action instance
+  that way result should have arbitrary number of parameters, but only the first is used (not good for a workflow with side effect but no true return value)
+  
+- introduce other special action instance SideEffect (works like result but is used for DFS,
+  side effect always contains result as its input
 
 3. GUI way to modify dataclasses and enums
 

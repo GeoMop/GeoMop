@@ -171,7 +171,7 @@ class Module:
             source.append(import_line)
 
         # make definitions
-        for v in self.definitions.values():
+        for v in self.definitions:
             action = v
             source.extend(["", ""])     # two empty lines as separator
             source.append(action.code_of_definition(self._full_name_dict))

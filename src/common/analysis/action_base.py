@@ -110,7 +110,9 @@ def extract_func_signature(func, skip_self=True):
             assert param.kind == param.POSITIONAL_ONLY or param.kind == param.POSITIONAL_OR_KEYWORD, str(param.kind)
             param = ActionParameter(idx, param.name, annotation, default)
         parameters.append(param)
-    return parameters, signature.return_annotation
+    return_type = signature.return_annotation
+    return_type = return_type if return_type != signature.empty else None
+    return parameters, return_type
 
 
 class _ActionBase:
@@ -279,7 +281,7 @@ class ClassActionBase(_ActionBase):
         return self._data_class(*args)
 
 
-    def code_of_definition(self):
+    def code_of_definition(self, module_name_dict):
         lines = ['@wf.Class']
         lines.append('class {}:'.format(self.name))
         for attribute in self._data_class.__attrs_attrs__:
