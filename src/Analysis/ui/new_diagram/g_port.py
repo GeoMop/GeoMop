@@ -95,7 +95,7 @@ class GInputPort(GPort):
 
     def mousePressEvent(self, event):
         if not self.connections:
-            super(GOutputPort, self).mousePressEvent(event)
+            super(GInputPort, self).mousePressEvent(event)
 
 
 class GOutputPort(GPort):
