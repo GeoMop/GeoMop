@@ -9,7 +9,6 @@ from PyQt5 import QtWidgets, QtCore, QtGui
 from PyQt5.QtCore import QPoint
 from PyQt5.QtWidgets import QFileDialog, QApplication
 
-from .workflow_interface import WorkflowInterface
 from .module_view import ModuleView
 from .scene import Scene
 
@@ -22,7 +21,7 @@ class Workspace(QtWidgets.QGraphicsView):
 
         self.module_view = ModuleView(module)
         self.module_view.on_wf_changed.connect(self._on_wf_changed)
-        self.scene = Scene(WorkflowInterface(self.module_view.current_wf), self)
+        self.scene = Scene(self.module_view.current_wf, self)
 
         self.setScene(self.scene)
         self.setRenderHint(QtGui.QPainter.Antialiasing, True)

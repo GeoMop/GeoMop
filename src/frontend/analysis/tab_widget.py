@@ -4,7 +4,7 @@ from PyQt5 import QtWidgets
 from PyQt5.QtWidgets import QTabWidget
 
 from .workspace import Workspace
-from src.common.analysis import base as wf
+from src.common.analysis.module import Module
 
 
 class TabWidget(QTabWidget):
@@ -30,7 +30,7 @@ class TabWidget(QTabWidget):
         if not isinstance(filename, str):
             filename = QtWidgets.QFileDialog.getOpenFileName(self.parent(), "Select Module", os.getcwd())[0]
 
-        module = wf._Module.create_from_file(filename)
+        module = Module(os.path.join(os.getcwd(), "analysis", filename))
         self._add_tab(os.path.basename(filename), module)
 
     def current_changed(self, index):

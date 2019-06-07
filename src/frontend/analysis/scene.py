@@ -2,10 +2,11 @@ from PyQt5 import QtWidgets, QtCore, QtGui
 from PyQt5.QtCore import QPoint, Qt
 from PyQt5.QtWidgets import QGraphicsProxyWidget
 
-from src.common.analysis.base import _Slot
+from src.common.analysis.action_base import List
+from src.common.analysis.action_instance import ActionInstance
+from src.common.analysis.action_workflow import Slot
 from .composite_type_view import CompositeTypeView
 from .g_input_action import GInputAction
-from src.common.analysis.actions import tuple
 from .root_action import RootAction
 from .g_action import GAction
 from .g_connection import GConnection
@@ -43,12 +44,12 @@ class Scene(QtWidgets.QGraphicsScene):
         self.initialize_workspace_from_workflow(workflow)
 
     def initialize_workspace_from_workflow(self, workflow):
-        for action_name in workflow.get_actions():
+        for action_name in workflow._actions:
             self._add_action(QPoint(0.0, 0.0), action_name)
-            action = workflow.get_actions()[action_name]
+            action = workflow._actions[action_name]
 
-        for slot_name, slot in workflow.get_slots().items():
-            self._add_action(QPoint(0.0, 0.0), slot.instance_name)
+        for slot in workflow.slots:
+            self._add_action(QPoint(0.0, 0.0), slot.name)
 
         self.update_scene()
         self.order_diagram()
@@ -79,10 +80,13 @@ class Scene(QtWidgets.QGraphicsScene):
             if self.new_connection is not None:
                 self.addItem(self.new_connection)
 
-            for action_name, action in self.workflow.get_actions().items():
+            for action_name, action in self.workflow._actions.items():
                 i = 0
-                for other_action in action._inputs:
-                    port1 = self.get_action(other_action.instance_name).out_ports[0]
+                for other_action in action.arguments: #todo: find out what is the number in tuple
+                    other_action = other_action.value
+                    port1 = self.get_action(other_action.name).out_ports[0]
+                    if len(self.get_action(action_name).in_ports) <= i:
+                        i = 1
                     port2 = self.get_action(action_name).in_ports[i]
                     port1.connections.append(GConnection(port1, port2))
                     port2.connections.append(port1.connections[-1])
@@ -92,10 +96,10 @@ class Scene(QtWidgets.QGraphicsScene):
             self.update()
 
     def draw_action(self, item):
-        action = self.workflow.get_actions().get(item.data(GActionData.NAME))
-        if isinstance(action, _Slot):
+        action = self.workflow._actions.get(item.data(GActionData.NAME))
+        if isinstance(action, Slot):
             self.actions.append(GInputAction(item, action, self.root_item))
-        elif isinstance(action, tuple):
+        elif isinstance(action, ActionInstance):
             self.actions.append(GAction(item, action, self.root_item))
 
         for child in item.children():
@@ -249,17 +253,17 @@ class Scene(QtWidgets.QGraphicsScene):
         self.action_model.add_item(pos.x(), pos.y(), 50, 50, name)
         self.update_model = True
 
-    def add_action(self, new_action_pos, action_type="tuple"):
-        if action_type == "tuple":
-            action = tuple()
-        elif action_type == "_Slot":
-            action = _Slot(1)    # todo: find out what is rank of slot currrently arbitrarily set to 1
-        name = self.action_model.add_item(new_action_pos.x(), new_action_pos.y(), 50, 50, action.action_name())
-        action.name(name)
-        if issubclass(type(action), _Slot):
-            self.workflow.get_slots()[name] = action
+    def add_action(self, new_action_pos, action_type="List"):
+        if action_type == "List":
+            action = ActionInstance(List())
+        elif action_type == "Slot":
+            action = Slot()
+        name = self.action_model.add_item(new_action_pos.x(), new_action_pos.y(), 50, 50, action.name)
+        action.name = name
+        if issubclass(type(action), Slot):
+            self.workflow.slots.append(action)
 
-        self.workflow.get_actions()[name] = action
+        self.workflow._actions[action.name] = action
 
 
     '''
@@ -295,19 +299,17 @@ class Scene(QtWidgets.QGraphicsScene):
             port2.connections.append(self.new_connection)
             action1 = port1.parentItem().w_data_item
             action2 = port2.parentItem().w_data_item
-            action1.output_actions.append(action2)
-            action2._inputs.append(action1)
+            self.workflow.set_action_input(action2, len(action2.arguments), action1)
             if True: #self.is_graph_acyclic():
                 self.new_connection.setFlag(QtWidgets.QGraphicsPathItem.ItemIsSelectable, True)
                 self.new_connection = None
                 self.update_model = True
-                """
+
                 if port1.appending_port:
                     port1.appending_port = False
 
                 if port2.appending_port:
                     port2.appending_port = False
-                """
             else:
                 msg = "Pipeline cannot be cyclic!"
                 msg = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Warning,

@@ -2,7 +2,7 @@ from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtGui import QFont
 from PyQt5.QtWidgets import QTreeWidget, QTreeWidgetItem, QMenu, QAction
 
-from src.common.analysis.base import _WorkflowBase
+from src.common.analysis.action_workflow import _Workflow
 
 
 class ModuleView(QTreeWidget):
@@ -19,20 +19,20 @@ class ModuleView(QTreeWidget):
         self.setHeaderHidden(True)
         self.root_item = QTreeWidgetItem(self, [self._module.name])
         self.doubleClicked.connect(self._double_clicked)
-        for name, wf in module.definitions.items():
+        for wf in module.definitions:
 
             self._currentWF = wf
-            workflow = QTreeWidgetItem(self.root_item, [name])
+            workflow = QTreeWidgetItem(self.root_item, [wf.name])
             self.curr_wf_item = workflow
 
-            if wf._slots:
+            if wf.slots:
                 input_parent = QTreeWidgetItem(workflow,["Inputs"])
-            for number, slot in wf._slots.items():
-                child = QTreeWidgetItem(input_parent,[slot.instance_name])
+            for slot in wf.slots:
+                child = QTreeWidgetItem(input_parent,[slot.name])
 
             if wf._result:
                 result_parent = QTreeWidgetItem(workflow, ["Output"])
-                QTreeWidgetItem(result_parent, [wf._result.instance_name])
+                QTreeWidgetItem(result_parent, [wf.result.name])
 
         self.mark_active_wf_item(self.curr_wf_item)
 

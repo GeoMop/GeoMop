@@ -42,7 +42,7 @@ class GAction(QtWidgets.QGraphicsPathItem):
 
         self.resize_handle_width = 6
 
-        self.type_name = QGraphicsSimpleTextItem(w_data_item.action_name(), self)
+        self.type_name = QGraphicsSimpleTextItem(w_data_item.action_name, self)
         self.type_name.setPos(QtCore.QPoint(self.resize_handle_width, GPort.SIZE / 2))
         self.type_name.setBrush(QtCore.Qt.white)
 
@@ -56,7 +56,10 @@ class GAction(QtWidgets.QGraphicsPathItem):
         self.g_data_item = g_data_item
         self.w_data_item = w_data_item
 
-        self._add_ports(len(w_data_item._inputs))
+        if len(w_data_item.arguments) > 0:
+            self._add_ports(len(w_data_item.arguments), w_data_item.arguments[-1].parameter.name is None)
+        else:
+            self._add_ports(0)
 
         self.level = 0
         self.height = self.height
@@ -166,15 +169,13 @@ class GAction(QtWidgets.QGraphicsPathItem):
         else:
             return self.out_ports[index]
 
-    def _add_ports(self, n_ports):
+    def _add_ports(self, n_ports, appending=False):
         for i in range(n_ports):
             self.add_g_port(True, "Input Port" + str(i))
+        if appending:
+            self.in_ports[-1].appending_port = True
 
         self.add_g_port(False, "Output Port")
-
-        if self.w_data_item.n_parameters < 0:
-            self.add_g_port(True, "Input Port" + str(n_ports))
-            self.in_ports[-1].appending_port = True
 
     def inner_area(self):
         """Returns rectangle of the inner area of GAction."""
