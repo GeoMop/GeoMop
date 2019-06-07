@@ -380,7 +380,7 @@ class Scene(QtWidgets.QGraphicsScene):
         self.action_model.removeRow(action.g_data_item.child_number())
         self.actions.remove(action)
         self.removeItem(action)
-        self.workflow.get_actions().pop(action.name, None)
+        self.workflow._actions.pop(action.name, None)
 
     def delete_connection(self, conn):
         action1 = conn.port1.parentItem().w_data_item
