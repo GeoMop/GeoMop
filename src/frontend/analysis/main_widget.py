@@ -8,8 +8,9 @@ import os, sys
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QToolBox
 
-from src.common.analysis.action_base import List
-from src.common.analysis.action_instance import ActionInstance
+import src.common.analysis.action_instance as instance
+import src.common.analysis.action_workflow as wf
+import src.common.analysis.action_base as base
 from .menu.file_menu import FileMenu
 from .composite_type_view import CompositeTypeView
 from src.common.analysis.action_workflow import Slot
@@ -72,7 +73,7 @@ class MainWidget(QtWidgets.QMainWindow):
         toolbox_layout = ActionCategory()
         toolbox_layout2 = ActionCategory()
         ToolboxView(GInputAction(TreeItem(["Input", 0, 0, 50, 50]), Slot("a")), toolbox_layout)
-        ToolboxView(GAction(TreeItem(["List", 0, 0, 50, 50]), ActionInstance(List(), "List")), toolbox_layout2)
+        ToolboxView(GAction(TreeItem(["List", 0, 0, 50, 50]), instance.ActionInstance.create( base.List())), toolbox_layout2)
 
         self.toolBox = QToolBox()
 

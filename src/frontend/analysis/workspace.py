@@ -58,7 +58,7 @@ class Workspace(QtWidgets.QGraphicsView):
         self.mouse_press_event_pos = QPoint(0, 0)
 
     def _on_wf_changed(self):
-        self.scene = Scene(WorkflowInterface(self.module_view.current_wf), self)
+        self.scene = Scene(self.module_view.current_wf, self)
         self.setScene(self.scene)
 
     def mousePressEvent(self, press_event):
@@ -70,7 +70,7 @@ class Workspace(QtWidgets.QGraphicsView):
     def dragEnterEvent(self, drag_enter):
         """Accept drag event if it carries action."""
         if drag_enter.mimeData().hasText():
-            if drag_enter.mimeData().text() in ["_Slot", "tuple"]:
+            if drag_enter.mimeData().text() in ["Slot", "List"]:
                 drag_enter.acceptProposedAction()
 
     def dropEvent(self, drop_event):

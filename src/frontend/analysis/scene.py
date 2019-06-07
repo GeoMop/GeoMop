@@ -3,7 +3,7 @@ from PyQt5.QtCore import QPoint, Qt
 from PyQt5.QtWidgets import QGraphicsProxyWidget
 
 from src.common.analysis.action_base import List
-from src.common.analysis.action_instance import ActionInstance
+from src.common.analysis.action_instance import ActionInstance, ActionInputStatus
 from src.common.analysis.action_workflow import Slot
 from .composite_type_view import CompositeTypeView
 from .g_input_action import GInputAction
@@ -83,14 +83,17 @@ class Scene(QtWidgets.QGraphicsScene):
             for action_name, action in self.workflow._actions.items():
                 i = 0
                 for other_action in action.arguments: #todo: find out what is the number in tuple
-                    other_action = other_action.value
-                    port1 = self.get_action(other_action.name).out_ports[0]
-                    if len(self.get_action(action_name).in_ports) <= i:
-                        i = 1
-                    port2 = self.get_action(action_name).in_ports[i]
-                    port1.connections.append(GConnection(port1, port2))
-                    port2.connections.append(port1.connections[-1])
-                    self.addItem(port1.connections[-1])
+                    status = other_action.status
+                    if status != ActionInputStatus.missing:
+                        other_action = other_action.value
+                        port1 = self.get_action(other_action.name).out_ports[0]
+                        if len(self.get_action(action_name).in_ports) <= i:
+                            i = 1
+                        port2 = self.get_action(action_name).in_ports[i]
+                        port1.connections.append(GConnection(port1, port2, status))
+                        port2.connections.append(port1.connections[-1])
+                        self.addItem(port1.connections[-1])
+
                     i += 1
 
             self.update()
@@ -382,8 +385,9 @@ class Scene(QtWidgets.QGraphicsScene):
     def delete_connection(self, conn):
         action1 = conn.port1.parentItem().w_data_item
         action2 = conn.port2.parentItem().w_data_item
-        action1.output_actions.remove(action2)
-        action2._inputs.remove(action1)
+        for i in range(len(action2.arguments)):
+            if action1 == action2.arguments[i].value:
+                self.workflow.set_action_input(action2, i, None)
         conn.port1.connections.remove(conn)
         conn.port2.connections.remove(conn)
         self.removeItem(conn)

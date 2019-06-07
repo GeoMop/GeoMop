@@ -56,10 +56,11 @@ class GAction(QtWidgets.QGraphicsPathItem):
         self.g_data_item = g_data_item
         self.w_data_item = w_data_item
 
-        if len(w_data_item.arguments) > 0:
-            self._add_ports(len(w_data_item.arguments), w_data_item.arguments[-1].parameter.name is None)
+        if len(w_data_item.parameters.parameters) > 0:
+            self._add_ports(len(w_data_item.arguments), w_data_item.parameters.parameters[-1].name is None)
         else:
-            self._add_ports(0)
+            self._add_ports(len(w_data_item.arguments))
+
 
         self.level = 0
         self.height = self.height
@@ -173,6 +174,7 @@ class GAction(QtWidgets.QGraphicsPathItem):
         for i in range(n_ports):
             self.add_g_port(True, "Input Port" + str(i))
         if appending:
+            self.add_g_port(True, "Input Port" + str(0))
             self.in_ports[-1].appending_port = True
 
         self.add_g_port(False, "Output Port")

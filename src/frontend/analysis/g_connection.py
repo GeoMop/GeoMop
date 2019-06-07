@@ -5,16 +5,21 @@ Representation of connection between two ports.
 """
 
 from PyQt5 import QtWidgets, QtCore, QtGui
-from PyQt5.QtCore import QEvent
-from PyQt5.QtGui import QHelpEvent
+from PyQt5.QtCore import QEvent, Qt
+from PyQt5.QtGui import QHelpEvent, QRadialGradient
 from PyQt5.QtWidgets import QToolTip
+from src.common.analysis.action_instance import ActionInputStatus
 
 from .g_port import GPort, GOutputPort
 
-
 class GConnection(QtWidgets.QGraphicsPathItem):
     """Representation of connection between two ports."""
-    def __init__(self, port1, port2=None, parent=None):
+    color = {ActionInputStatus.ok: Qt.darkGreen,
+             ActionInputStatus.seems_ok: Qt.darkYellow,
+             ActionInputStatus.error_type: Qt.darkRed,
+             ActionInputStatus.error_value: Qt.darkRed}
+
+    def __init__(self, port1, port2=None, state=None, parent=None):
         """Initializes connection.
         :param port1: OutputPort or any port if port2 is None.
         :param port2: InputPort.
@@ -25,8 +30,9 @@ class GConnection(QtWidgets.QGraphicsPathItem):
         self.port1 = port1  # either first port when creating connection or always OutputPort if connection is set
         self.port2 = port2 if self.connection_set else GPort(-1, self.port1.get_connection_point())  # usually InputPort
         # drawing options
-        self.full_pen = QtGui.QPen(QtCore.Qt.black, 2)
-        self.dash_pen = QtGui.QPen(QtCore.Qt.black, 2, QtCore.Qt.DashLine)
+        color = self.color.get(state, Qt.black)
+        self.full_pen = QtGui.QPen(color, 2)
+        self.dash_pen = QtGui.QPen(color, 2, QtCore.Qt.DashLine)
         self.setPen(self.full_pen)
         self.setZValue(10.0)
         self.setFlag(self.ItemIsSelectable)
@@ -66,7 +72,6 @@ class GConnection(QtWidgets.QGraphicsPathItem):
     def paint(self, painter, style, widget=None):
         """If connection is selected, draw it as dash line."""
         style.state &= ~QtWidgets.QStyle.State_Selected     # remove selection box
-
         super(GConnection, self).paint(painter, style, widget)
 
     def update_gfx(self):
