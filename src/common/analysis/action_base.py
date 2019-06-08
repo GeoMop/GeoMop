@@ -37,7 +37,7 @@ class ActionParameter:
     default: Any = None
 
     def get_default(self) -> Tuple[bool, Any]:
-        if self.default:
+        if self.default is not None:
             return True, self.default
         else:
             return False, self.default
@@ -276,6 +276,21 @@ class ClassActionBase(_ActionBase):
         self._module = ""
         self._extract_input_type(func=data_class.__init__, skip_self=True)
 
+
+    @staticmethod
+    def construct_from_params(name: str, params: Parameters):
+        """
+        Use Params to consturct the data_class and then instance of ClassActionBase.
+        :param name:
+        :param params:
+        :return:
+        """
+        attributes = {}
+        for param in params:
+            attributes[param.name] = attr.ib(default=param.default, type=param.type)
+        data_class = type(name, (object,), attributes)
+        data_class = attr.s(data_class)
+        return ClassActionBase(data_class)
 
     def _evaluate(self, *args):
         return self._data_class(*args)
