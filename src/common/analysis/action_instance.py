@@ -101,10 +101,14 @@ class ActionInstance:
         is_default = False
         if value is None:
             is_default, value = param.get_default()
+            if is_default:
+                value = ActionInstance.create(base.Value(value))
 
         if value is None:
             return ActionArgument(param, None, False, ActionInputStatus.missing)
 
+        # if not isinstance(value, ActionInstance):
+        #     x = 1
         assert isinstance(value, ActionInstance), type(value)
         if not pytypes.is_subtype(value.output_type, param.type):
             return  ActionArgument(param, value, is_default, ActionInputStatus.error_type)

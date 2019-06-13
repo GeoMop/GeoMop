@@ -26,6 +26,7 @@ class ActionTypes:
 class Scene(QtWidgets.QGraphicsScene):
     def __init__(self, workflow, parent=None):
         super(Scene, self).__init__(parent)
+        self.unconnected_actions = {}
         self.workflow = workflow
         self.actions = []
         self.new_connection = None
@@ -48,8 +49,8 @@ class Scene(QtWidgets.QGraphicsScene):
             self._add_action(QPoint(0.0, 0.0), action_name)
             action = workflow._actions[action_name]
 
-        for slot in workflow.slots:
-            self._add_action(QPoint(0.0, 0.0), slot.name)
+        #for slot in workflow.slots:
+        #    self._add_action(QPoint(0.0, 0.0), slot.name)
 
         self.update_scene()
         self.order_diagram()
@@ -74,15 +75,17 @@ class Scene(QtWidgets.QGraphicsScene):
             self.actions.clear()
             self.root_item = RootAction()
             self.addItem(self.root_item)
+            temp = self.action_model.get_item().children()
             for child in self.action_model.get_item().children():
                 self.draw_action(child)
 
             if self.new_connection is not None:
                 self.addItem(self.new_connection)
 
-            for action_name, action in self.workflow._actions.items():
+            all_actions = {**self.workflow._actions, **self.unconnected_actions}
+            for action_name, action in all_actions.items():
                 i = 0
-                for other_action in action.arguments: #todo: find out what is the number in tuple
+                for other_action in action.arguments:
                     status = other_action.status
                     if status != ActionInputStatus.missing:
                         other_action = other_action.value
@@ -100,6 +103,8 @@ class Scene(QtWidgets.QGraphicsScene):
 
     def draw_action(self, item):
         action = self.workflow._actions.get(item.data(GActionData.NAME))
+        if action is None:
+            action = self.unconnected_actions.get(item.data(GActionData.NAME))
         if isinstance(action, Slot):
             self.actions.append(GInputAction(item, action, self.root_item))
         elif isinstance(action, ActionInstance):
@@ -266,7 +271,7 @@ class Scene(QtWidgets.QGraphicsScene):
         if issubclass(type(action), Slot):
             self.workflow.slots.append(action)
 
-        self.workflow._actions[action.name] = action
+        self.unconnected_actions[name] = action
 
 
     '''
@@ -302,7 +307,7 @@ class Scene(QtWidgets.QGraphicsScene):
             port2.connections.append(self.new_connection)
             action1 = port1.parentItem().w_data_item
             action2 = port2.parentItem().w_data_item
-            self.workflow.set_action_input(action2, len(action2.arguments), action1)
+            self.workflow.set_action_input(action2, port2.index, action1)
             if True: #self.is_graph_acyclic():
                 self.new_connection.setFlag(QtWidgets.QGraphicsPathItem.ItemIsSelectable, True)
                 self.new_connection = None
@@ -310,6 +315,17 @@ class Scene(QtWidgets.QGraphicsScene):
 
                 if port1.appending_port:
                     port1.appending_port = False
+
+                def update_unconected(action):
+                    self.unconnected_actions.pop(action.name, None)
+                    for argument in action.arguments:
+                        update_unconected(argument.value)
+
+                if action1 in self.workflow._actions.values():
+                    update_unconected(action1)
+
+                if action2 in self.workflow._actions.values():
+                    update_unconected(action2)
 
                 if port2.appending_port:
                     port2.appending_port = False
@@ -380,6 +396,7 @@ class Scene(QtWidgets.QGraphicsScene):
         self.action_model.removeRow(action.g_data_item.child_number())
         self.actions.remove(action)
         self.removeItem(action)
+        #for action in action.
         self.workflow._actions.pop(action.name, None)
 
     def delete_connection(self, conn):
@@ -388,6 +405,14 @@ class Scene(QtWidgets.QGraphicsScene):
         for i in range(len(action2.arguments)):
             if action1 == action2.arguments[i].value:
                 self.workflow.set_action_input(action2, i, None)
+
+        def put_all_actions_to_unconnected(action):
+            self.unconnected_actions[action.name] = action
+            for argument in action.arguments:
+                put_all_actions_to_unconnected(argument.value)
+
+        if action1 not in self.workflow._actions:
+            put_all_actions_to_unconnected(action1)
         conn.port1.connections.remove(conn)
         conn.port2.connections.remove(conn)
         self.removeItem(conn)
