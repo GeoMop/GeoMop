@@ -5,6 +5,7 @@ import attr
 import pytypes
 from typing import *
 from collections import defaultdict
+from common.analysis import data
 
 
 # Name for the first parameter of the workflow definiton function that is used
@@ -288,11 +289,15 @@ class ClassActionBase(_ActionBase):
         attributes = {}
         for param in params:
             attributes[param.name] = attr.ib(default=param.default, type=param.type)
-        data_class = type(name, (object,), attributes)
+        data_class = type(name, (data.DataClassBase, ), attributes)
         data_class = attr.s(data_class)
         return ClassActionBase(data_class)
 
-    def _evaluate(self, *args):
+    @property
+    def constructor(self):
+        return self._data_class
+
+    def _evaluate(self, *args) -> data.DataClassBase:
         return self._data_class(*args)
 
 
