@@ -3,6 +3,7 @@ import os
 from PyQt5 import QtWidgets
 from PyQt5.QtWidgets import QTabWidget
 
+from src.frontend.analysis.module_view import ModuleView
 from .workspace import Workspace
 from src.common.analysis.module import Module
 
@@ -22,9 +23,12 @@ class TabWidget(QTabWidget):
 
         self.main_widget = main_widget
 
-    def _add_tab(self, model_filename, module):
+        self.module_views = {}
+
+    def _add_tab(self, module_filename, module):
         w = Workspace(module, self)
-        self.addTab(w, model_filename)
+        self.module_views[module_filename] = ModuleView(module)
+        self.addTab(w, module_filename)
 
     def open_module(self, filename=None):
         if not isinstance(filename, str):
@@ -34,13 +38,16 @@ class TabWidget(QTabWidget):
         self._add_tab(os.path.basename(filename), module)
 
     def current_changed(self, index):
-        curr_module = self.currentWidget().module_view
+        curr_module = self.module_views[self.tabText(index)]
         curr_module.show()
         self.main_widget.module_dock.setWidget(curr_module)
 
+    def current_view(self):
+        return self.module_views[self.tabText(self.currentIndex())]
 
     def on_close_tab(self, index):
         print(self.currentIndex())
+        self.module_views.pop(self.tabText(index), None)
         self.removeTab(index)
 
     def add_action(self):
