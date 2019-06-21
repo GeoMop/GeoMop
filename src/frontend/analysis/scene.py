@@ -1,6 +1,7 @@
 from PyQt5 import QtWidgets, QtCore, QtGui
 from PyQt5.QtCore import QPoint, Qt
-from PyQt5.QtWidgets import QGraphicsProxyWidget
+from PyQt5.QtGui import QStaticText
+from PyQt5.QtWidgets import QGraphicsProxyWidget, QGraphicsSimpleTextItem, QGraphicsItem
 
 from src.common.analysis.action_base import List
 from src.common.analysis.action_instance import ActionInstance, ActionInputStatus
@@ -31,6 +32,9 @@ class Scene(QtWidgets.QGraphicsScene):
         self.actions = []
         self.new_connection = None
 
+        self.workflow_name = QGraphicsSimpleTextItem(workflow.name)
+        self.workflow_name.setFlag(QGraphicsItem.ItemIgnoresTransformations, True)
+
         self.root_item = RootAction()
         self.addItem(self.root_item)
 
@@ -43,6 +47,8 @@ class Scene(QtWidgets.QGraphicsScene):
         self.setSceneRect(QtCore.QRectF(QtCore.QPoint(-10000000, -10000000), QtCore.QPoint(10000000, 10000000)))
 
         self.initialize_workspace_from_workflow(workflow)
+
+
 
     def initialize_workspace_from_workflow(self, workflow):
         for action_name in workflow._actions:
@@ -68,6 +74,14 @@ class Scene(QtWidgets.QGraphicsScene):
     def data_changed(self):
         self.update_model = True
 
+    def drawForeground(self, painter, rectf):
+        super(Scene, self).drawForeground(painter, rectf)
+        painter.resetTransform()
+        painter.scale(1.5, 1.5)
+        text = QStaticText(self.workflow.name)
+        painter.drawStaticText(QPoint(5,5), text)
+
+
     def update_scene(self):
         if self.update_model:
             self.update_model = False
@@ -76,6 +90,7 @@ class Scene(QtWidgets.QGraphicsScene):
             self.root_item = RootAction()
             self.addItem(self.root_item)
             temp = self.action_model.get_item().children()
+
             for child in self.action_model.get_item().children():
                 self.draw_action(child)
 

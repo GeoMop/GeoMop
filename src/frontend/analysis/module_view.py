@@ -47,7 +47,6 @@ class ModuleView(QTreeWidget):
             curr_item = curr_item.parent()
 
         self.mark_active_wf_item(curr_item)
-        #current_workspace = self.workspaces.get(curr_item.data(0,0))[1]
         self.set_current_workspace(curr_item.data(0, 0))
 
 
