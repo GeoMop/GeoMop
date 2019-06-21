@@ -1,7 +1,7 @@
 import os
 
 from PyQt5 import QtWidgets
-from PyQt5.QtWidgets import QTabWidget
+from PyQt5.QtWidgets import QTabWidget, QStackedWidget, QWidget
 
 from src.frontend.analysis.module_view import ModuleView
 from .workspace import Workspace
@@ -21,14 +21,24 @@ class TabWidget(QTabWidget):
         self.edit_menu.order_diagram.triggered.connect(self.order_diagram)
         self.currentChanged.connect(self.current_changed)
 
+
         self.main_widget = main_widget
 
         self.module_views = {}
 
+    def _on_workspace_changed(self):
+        pass
+
     def _add_tab(self, module_filename, module):
-        w = Workspace(module, self)
-        self.module_views[module_filename] = ModuleView(module)
+        w = QStackedWidget()
+        self.module_views[module_filename] = ModuleView(self, module,self.edit_menu)
+        for name, workspace in self.module_views[module_filename].workspaces.items():
+            w.addWidget(workspace)
+
         self.addTab(w, module_filename)
+
+    def change_workspace(self, workspace):
+        self.currentWidget().setCurrentWidget(workspace)
 
     def open_module(self, filename=None):
         if not isinstance(filename, str):

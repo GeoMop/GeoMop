@@ -9,27 +9,23 @@ from PyQt5 import QtWidgets, QtCore, QtGui
 from PyQt5.QtCore import QPoint
 from PyQt5.QtWidgets import QFileDialog, QApplication
 
-from .module_view import ModuleView
 from .scene import Scene
 
 
 class Workspace(QtWidgets.QGraphicsView):
     """Graphics scene which handles user input and shows user the results."""
-    def __init__(self, module, parent=None):
+    def __init__(self, workflow, edit_menu, parent=None):
         """Initializes class."""
         super(Workspace, self).__init__(parent)
-
-        self.module_view = ModuleView(module)
-        self.module_view.on_wf_changed.connect(self._on_wf_changed)
-        self.scene = Scene(self.module_view.current_wf, self)
-
+        self.workflow = workflow
+        self.scene = Scene(workflow, self)
         self.setScene(self.scene)
         self.setRenderHint(QtGui.QPainter.Antialiasing, True)
 
         # for deciding if context menu should appear
         self.viewport_moved = False
 
-        self.edit_menu = self.parent().edit_menu
+        self.edit_menu = edit_menu
 
         self.setAcceptDrops(True)
 
@@ -58,7 +54,7 @@ class Workspace(QtWidgets.QGraphicsView):
         self.mouse_press_event_pos = QPoint(0, 0)
 
     def _on_wf_changed(self):
-        self.scene = Scene(self.module_view.current_wf, self)
+        self.scene = Scene(self.module_view.current_workspace, self)
         self.setScene(self.scene)
 
     def mousePressEvent(self, press_event):
