@@ -279,8 +279,11 @@ class Scene(QtWidgets.QGraphicsScene):
     def add_action(self, new_action_pos, action_type="List"):
         if action_type == "List":
             action = ActionInstance(List())
-        elif action_type == "Slot":
+        elif action_type == "_ActionBase":
             action = Slot()
+        else:
+            assert True, "Action isn't supported by scene!"
+            return
         name = self.action_model.add_item(new_action_pos.x(), new_action_pos.y(), 50, 50, action.name)
         action.name = name
         if issubclass(type(action), Slot):

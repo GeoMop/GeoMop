@@ -26,9 +26,6 @@ class TabWidget(QTabWidget):
 
         self.module_views = {}
 
-    def _on_workspace_changed(self):
-        pass
-
     def _add_tab(self, module_filename, module):
         w = QStackedWidget()
         self.module_views[module_filename] = ModuleView(self, module,self.edit_menu)
@@ -60,16 +57,19 @@ class TabWidget(QTabWidget):
         self.module_views.pop(self.tabText(index), None)
         self.removeTab(index)
 
+    def currentWorkspace(self):
+        return self.currentWidget().currentWidget()
+
     def add_action(self):
-        self.currentWidget().scene.add_action(self.currentWidget().scene.new_action_pos)
+        self.currentWorkspace().scene.add_action(self.currentWorkspace().scene.new_action_pos)
 
     def delete_items(self):
-        self.currentWidget().scene.delete_items()
+        self.currentWorkspace().scene.delete_items()
 
     def add_random_items(self):
-        self.currentWidget().scene.add_random_items()
+        self.currentWorkspace().scene.add_random_items()
 
     def order_diagram(self):
-        self.currentWidget().scene.order_diagram()
+        self.currentWorkspace().scene.order_diagram()
 
 

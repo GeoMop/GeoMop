@@ -66,7 +66,7 @@ class Workspace(QtWidgets.QGraphicsView):
     def dragEnterEvent(self, drag_enter):
         """Accept drag event if it carries action."""
         if drag_enter.mimeData().hasText():
-            if drag_enter.mimeData().text() in ["Slot", "List"]:
+            if drag_enter.mimeData().text() in ["_ActionBase", "List"]:
                 drag_enter.acceptProposedAction()
 
     def dropEvent(self, drop_event):
