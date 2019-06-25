@@ -25,21 +25,23 @@ class ModuleView(QTreeWidget):
         self.workspaces = {}
 
         for wf in module.definitions:
-            self.workspaces[wf.name] = (Workspace(wf, edit_menu))
-            self._current_workspace = self.workspaces[wf.name]
-            item = QTreeWidgetItem(self.root_item, [wf.name])
-            self.curr_wf_item = item
+            if issubclass(type(wf), _Workflow):
+                self.workspaces[wf.name] = (Workspace(wf, edit_menu))
+                self._current_workspace = self.workspaces[wf.name]
+                item = QTreeWidgetItem(self.root_item, [wf.name])
+                self.curr_wf_item = item
 
-            if wf.slots:
-                input_parent = QTreeWidgetItem(item,["Inputs"])
-            for slot in wf.slots:
-                child = QTreeWidgetItem(input_parent,[slot.name])
+                if wf.slots:
+                    input_parent = QTreeWidgetItem(item,["Inputs"])
+                for slot in wf.slots:
+                    child = QTreeWidgetItem(input_parent,[slot.name])
 
-            if wf._result:
-                result_parent = QTreeWidgetItem(item, ["Output"])
-                QTreeWidgetItem(result_parent, [wf.result.name])
+                if wf._result:
+                    result_parent = QTreeWidgetItem(item, ["Output"])
+                    QTreeWidgetItem(result_parent, [wf.result.name])
 
-        self.mark_active_wf_item(self.root_item.child(0))
+        if self.root_item.childCount() > 0:
+            self.mark_active_wf_item(self.root_item.child(0))
 
     def change_workflow(self):
         curr_item = self.currentItem()

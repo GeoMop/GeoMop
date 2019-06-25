@@ -164,18 +164,21 @@ class Scene(QtWidgets.QGraphicsScene):
                 self.move(item.g_data_item, None, prev_y)
             items = sorted(actions_by_levels[level], key=lambda item:item.x())
             middle = math.floor(len(items)/2)
-            prev_item = items[middle]
+            prev_x = items[middle].pos().x()
+            prev_width = items[middle].width
             for i in range(middle + 1, len(items)):
-                if items[i].pos().x() < prev_item.pos().x() + prev_item.width:
-                    self.move(items[i].g_data_item, prev_item.pos().x() + prev_item.width + 10, None)
-                prev_item = items[i]
+                if items[i].pos().x() < prev_x + prev_width:
+                    prev_x = prev_x + prev_width + 10
+                    self.move(items[i].g_data_item, prev_x, None)
+                prev_width = items[i].width
 
-            prev_item = items[middle]
+            prev_x = items[middle].pos().x()
+            prev_width = items[middle].width
 
             for i in range(middle - 1, -1, -1):
-                if items[i].pos().x() + items[i].width > prev_item.pos().x():
-                    self.move(items[i].g_data_item, prev_item.pos().x() - items[i].width - 10, None)
-                prev_item = items[i]
+                if items[i].pos().x() + items[i].width > prev_x:
+                    prev_x = prev_x - items[i].width - 10
+                    self.move(items[i].g_data_item, prev_x, None)
 
             prev_y = prev_y + max_height + 50
 

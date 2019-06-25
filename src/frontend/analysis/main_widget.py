@@ -7,7 +7,6 @@ import os, sys
 
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QToolBox
-
 import src.common.analysis.action_instance as instance
 import src.common.analysis.action_workflow as wf
 import src.common.analysis.action_base as base
@@ -17,7 +16,7 @@ from src.common.analysis.action_workflow import Slot
 from .tab_widget import TabWidget
 from .toolbox_view import ToolboxView
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
+
 from PyQt5 import QtWidgets, QtCore
 from .menu.edit_menu import EditMenu
 from .g_action import GAction
@@ -35,7 +34,7 @@ class MainWidget(QtWidgets.QMainWindow):
         self.tab_widget = TabWidget(self, self.edit_menu)
         self.setCentralWidget(self.tab_widget)
 
-        self.tab_widget.open_module("test_module.py")   # for testing purposes
+        self.tab_widget.open_module("C:\\Users\\samot\\PycharmProjects\\GeoMop\\testing\\common\\analysis\\analysis_in.py")   # for testing purposes
 
         self._init_toolbox()
 
