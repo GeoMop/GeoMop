@@ -78,7 +78,7 @@ class Scene(QtWidgets.QGraphicsScene):
         super(Scene, self).drawForeground(painter, rectf)
         painter.resetTransform()
         painter.scale(1.5, 1.5)
-        text = QStaticText(self.workflow.name)
+        text = QStaticText("Workflow: " + self.workflow.name)
         painter.drawStaticText(QPoint(5,5), text)
 
 
