@@ -192,7 +192,7 @@ class Scheduler:
         dfs.DFS(neighbours=predecessors,
                 postvisit=post_visit).run(self.tasks.values())
 
-        print("N task: ", len(self.tasks))
+        #print("N task: ", len(self.tasks))
 
 
 
@@ -372,7 +372,7 @@ class Evaluation:
             composed_id, time, composed_task = heapq.heappop(self.queue)
             # TODO: fix expand, it connects Slots not to heads, but to an _ActionBase instance.
             task_dict = composed_task.expand()
-            print("Expanded: ", task_dict)
+            # print("Expanded: ", task_dict)
             for task in task_dict.values():
                 if isinstance(task, task_mod.Composed):
                     self.enqueue(task)

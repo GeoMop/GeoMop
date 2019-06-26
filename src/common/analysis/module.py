@@ -131,7 +131,7 @@ class Module:
         """
         analysis = []
         for name, obj in self.module.__dict__.items():
-            print(name, type(obj))
+            # print(name, type(obj))
             if isinstance(obj, wrap.ActionWrapper):
                 action = obj.action
                 self.insert_definition(action)
