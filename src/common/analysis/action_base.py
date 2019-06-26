@@ -262,7 +262,7 @@ class _ListBase(_ActionBase):
     def __init__(self):
         super().__init__()
         self.parameters = Parameters()
-        self.parameters.append(ActionParameter(idx=0, name=None, type=Any, default=None))
+        self.parameters.append(ActionParameter(idx=0, name=None, type=Any, default=self.parameters.no_default))
 
 
 # class Tuple(_ListBase):

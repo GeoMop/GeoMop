@@ -11,15 +11,16 @@ Implementation of the Workflow composed action.
 """
 
 
+class Slot(base._ActionBase):
+    pass
 
-
-class Slot(ActionInstance):
+class SlotInstance(ActionInstance):
     def __init__(self, slot_name):
         """
         Auxiliary action to connect to a named input slot of the workflow.
         :param slot_name: Slot name gives also name of appropriate Workflow's parameter.
         """
-        super().__init__(base._ActionBase(), slot_name)
+        super().__init__(Slot(), slot_name)
         self.arguments = []
         # self.rank = i_slot
         # """ Slot rank. """
@@ -223,7 +224,7 @@ class _Workflow(base._ActionBase):
         self.update_parameters()
 
 
-    def insert_slot(self, i_slot:int , slot: Slot) -> None:
+    def insert_slot(self, i_slot:int, slot: SlotInstance) -> None:
         """
         Insert a new slot on i_th position shifting the slot on i-th position and remaining to the right.
         Change of the name
