@@ -12,10 +12,10 @@ Same special dataclasses are implemented, in particular:
 """
 
 import pyhash
-from typing import Union, List, TypeVar
+from typing import Union, List, NewType
 
 
-BasicType = TypeVar['BasicType', bool, int, float, complex, str]
+BasicType = Union[bool, int, float, complex, str]
 DataType = Union[BasicType, List['DataType'], 'DataClassBase']
 
 # Just an empty data class to check the types.
@@ -23,9 +23,10 @@ class DataClassBase:
     pass
 
 
-HashValue = TypeVar['HashValue', int]
+HashValue = NewType('HashValue', int)
 
-def hash(stream: bytearray, previous:HashValue) -> HashValue:
+_hasher_fn = pyhash.murmur3_x64_128()
+def hash(stream: bytearray, previous:HashValue=0) -> HashValue:
     """
     Compute the hash of the bytearray.
     We use fast non-cryptographic hashes long enough to keep probability of collision rate at
@@ -36,7 +37,7 @@ def hash(stream: bytearray, previous:HashValue) -> HashValue:
     - input and result hashes
     - ResultsDB
     """
-    return pyhash.murmur3_x64_128(stream, seed=previous)
+    return _hasher_fn(stream, seed=previous)
 
 def serialize(data):
     """

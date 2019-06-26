@@ -23,7 +23,7 @@ class ActionInputStatus(enum.IntEnum):
 @attr.s(auto_attribs=True)
 class ActionArgument:
     parameter: base.ActionParameter
-    value: '_ActionBase' = None
+    value: 'base._ActionBase' = None
     is_default: bool = False
     status: ActionInputStatus = ActionInputStatus.missing
 
@@ -46,7 +46,7 @@ class ActionInstance:
 
         self.action = action
         """ The Action (instance of _ActionBase), have defined parameter. """
-        self.arguments = []
+        self.arguments: List[ActionArgument] = []
         self._fill_args()
         """ Inputs connected to the action parameters."""
         self.output_actions = []
@@ -198,6 +198,11 @@ class ActionInstance:
 
 
     def relative_action_name(self, module_dict):
+        """
+        Construct the action class name for given set of imported modules.
+        :param module_dict: A dict mapping the full module path to its imported alias.
+        :return: The action name using the alias instead of the full module path.
+        """
         action_name = self.action_name
         action_module = self.action.__module__
         alias = module_dict.get(action_module)

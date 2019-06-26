@@ -10,15 +10,19 @@ Evaluation of a workflow.
     relay on equality of the data if the hashes are equal.
 4. Tasks are assigned to the resources by scheduler,
 """
-from typing import Any, List
+from typing import Any, List, Optional
 import attr
 import heapq
+import numpy as np
+import time
+
 
 import common.analysis.data as data
 import common.analysis.action_base as base
+from common.analysis import dfs
 from common.analysis.action_workflow import _Workflow
-
-
+from common.analysis import task as task_mod
+import common.analysis.action_instance as instance
 
 
 class Resource:
@@ -47,19 +51,19 @@ class Resource:
         # Maximal number of MPI processes one can assign.
         self._finished = []
 
-    def assign_task(self, task, i_thread=None):
-        """
-        Just evaluate tthe task immediately.
-        :param task:
-        :param i_thread:
-        :return:
-        """
-        task.evaluate()
+    # def assign_task(self, task, i_thread=None):
+    #     """
+    #     Just evaluate tthe task immediately.
+    #     :param task:
+    #     :param i_thread:
+    #     :return:
+    #     """
+    #     task.evaluate()
+    #
+    # def assign_mpi_task(self, task, n_mpi_procs=None):
+    #     pass
 
-    def assign_mpi_task(self, task, n_mpi_procs=None):
-        pass
-
-    def finished(self):
+    def get_finished(self):
         """
         Return list of the tasks finished since the last call.
         :return:
@@ -67,6 +71,28 @@ class Resource:
         finished = self._finished
         self._finished = []
         return finished
+
+    def submit(self, task):
+        is_ready = task.is_ready()
+        assert task.status >= task_mod.Status.ready
+        if is_ready:
+            task.evaluate()
+            self._finished.append(task)
+            #self._evaluate(task)
+
+    def _evaluate(self, task):
+        """
+        Evaluate the task using the input from the input tasks.
+        :return:
+        """
+
+        input_data_hash = input_data.hash()
+        if self._last_input_hash and self._last_input_hash == input_data_hash:
+            return self._result
+        else:
+            self._result = action.evaluate(input_data)
+            self._last_input_hash = input_data_hash
+        return self._result
 
 
 
@@ -76,13 +102,97 @@ class Scheduler:
         """
         :param tasks_dag: Tasks to be evaluated.
         """
+        self.resources = resources
+        # Dict of available resources
 
-    def update(self, tasks):
+        self.tasks = {}
+        # all not yet sumitted tasks, vertices of the DAG that is optimized by the scheduler
+        # maps task ID to the task
+
+        self._ready_queue = []
+        # Priority queue of the 'ready' tasks.  Used to submit the ready tasks without
+        # whole DAG optimization. Priority is the
+
+        self._start_time = time.clock()
+        # Start time of the DAG evaluation.
+
+        self._topology_sort = []
+        # Topological sort of the tasks.
+
+    @property
+    def n_assigned_tasks(self):
+        return len(self.tasks)
+
+    def get_time(self):
+        return time.clock() - self._start_time
+
+    def append(self, tasks):
         """
         Add more tasks of the same DAG to be scheduled to the resources,
-        :param tasks:
+        :param tasks: All tasks that are new or have changed inputs.
+        :return: List of composed tasks to expand. If empty the optimization should be called.
+        """
+        self.tasks.update({ t.id: t for t in tasks})
+
+    def ready_queue_push(self, task):
+        if task.is_ready():
+            heapq.heappush(self._ready_queue, task)
+
+
+
+    def _collect_finished(self):
+        # collect finished tasks, update ready queue
+        finished = []
+        for resource in self.resources:
+            new_finished = resource.get_finished()
+            for task in new_finished:
+                for dep_task in task.outputs:
+                    self.ready_queue_push(dep_task)
+            finished.extend(new_finished)
+        return finished
+
+
+    def update(self):
+        """
+        Update resources, collect finished tasks, submit new ready tasks.
+        Should be called approximately every 'call_period' seconds.
+        """
+        finished = self._collect_finished()
+        while self._ready_queue:
+            task = heapq.heappop(self._ready_queue)
+            if task.id in self.tasks:   # deal with duplicate entrieas in the queue
+                self.resources[task.resource_id].submit(task)
+                del self.tasks[task.id]
+        return finished
+
+    def optimize(self):
+        """
+        Perform CPM on the DAG of non-submitted tasks.
+        Assign start_times and priorities according to the slack time.
+        Assume just a single resource.
         :return:
         """
+        # perform topological sort
+        def predecessors(task):
+            if task.is_finished():
+                return []
+            else:
+                max_end_time = 0
+                for pre in task.inputs:
+                    max_end_time = max(max_end_time, pre.start_time + pre.eval_time)
+                task.start_time = max_end_time
+            return task.inputs
+
+        def post_visit(task):
+            task.resource_id = 0
+            self.ready_queue_push(task)
+            self._topology_sort.append(task)
+
+
+        dfs.DFS(neighbours=predecessors,
+                postvisit=post_visit).run(self.tasks.values())
+
+        print("N task: ", len(self.tasks))
 
 
 
@@ -103,31 +213,9 @@ class Result:
         return deserialize(self.result)
 
 
-@attr.s(auto_attribs=True)
-class Task:
-    action: base._ActionBase
-    inputs: List['Task']
-    outputs: List['Task']
-    result: data.DataType = None
-    _id: int = None
-
-    def evaluate(self):
-        data_inputs = [i.result for i in self.inputs]
-        assert all([i.is_finished() for i in data_inputs])
-        self.result = self.action.evaluate(inputs=data_inputs)
-        assert self.result is not None
 
 
-    def is_finished(self):
-        return self.result is not None
 
-
-    def task_id(self) -> int:
-        if self._id is None:
-            self._id = 0
-            for input_task in task.inputs:
-                data.hash(input_task.task_id(), seed=self._id)
-        return self._id
 
 
 class ResultDB:
@@ -149,75 +237,154 @@ class ResultDB:
 
 
 class Evaluation:
-    """
+    """/
     The class for evaluation of a workflow.
-    - perform rewriting workflows into the task DAG
-    - use given scheduler to assign tasks to resources
-    - keeps input and output hashes
-    - implement reuse form previous evaluationevaluation
+    - perform expansion of composed tasks into the task DAG
+    - can evaluate a workflow in interaction with the Scheduler
+    - hierarchical view of the execution DAG, tasks are organised to the tree of composed tasks
+      currently all tasks are kept, in future, just a map from the task address in the tree to its input hash would be
+      enough computing results of the micro action on the fly
+    - grouping of actions into macro actions is done here as the part of the expansion process
+
+
+
+    Execute the 'wf' workflow for the data arguments given by 'inputs'.
+
+    - Assign 'inputs' to the workflow inputs, effectively creating an analysis (workflow without inputs).
+    - Expand the workflow to the Task DAG.
+    - while not finished:
+        expand_composed_tasks
+        update scheduler
+
+    We use Dijkstra algorithm (on incoplete graph) to process tasks according to the execution time on the reference resource.
+    Tasks are identified by the hash of their inputs.
+    :param wf:
+    :param inputs:
+    :return: List of all tasks.
     """
-    def __init__(self):
+    @staticmethod
+    def make_analysis(action:base._ActionBase, inputs:List[data.DataType]):
+        """
+        Bind values 'inputs' as parameters of the action using the Value action wrappers,
+        returns a workflow without parameters.
+        :param action:
+        :param inputs:
+        :return: a bind workflow instance
+        """
+        assert not action.parameters.is_variadic()
+        assert len(inputs) == action.parameters.size()
+        bind_name = 'all_bind_' + action.name
+        workflow = _Workflow(bind_name)
+
+        bind_action = instance.ActionInstance.create(action)
+        for i, input in enumerate(inputs):
+            value_instance = instance.ActionInstance.create(base.Value(input))
+            workflow.set_action_input(bind_action, i, value_instance)
+            assert bind_action.arguments[i].status >= instance.ActionInputStatus.seems_ok
+        workflow.set_action_input(workflow.result, 0, bind_action)
+        return workflow
+
+
+
+
+
+
+
+
+
+    def __init__(self, analysis:base._ActionBase):
+        """
+        Create object for evaluation of the analysis created from the workflow 'wf' using
+        values 'inputs' as its arguments.
+        :param analysis: an action without inputs
+        """
         self.resources = [ Resource() ]
         self.scheduler = Scheduler(self.resources)
         self.result_db = ResultDB()
 
-    def execute_workflow(self, wf:_Workflow, inputs=[]):
-        """
-        Execute the 'wf' workflow for the data arguments given by 'inputs'.
 
-        - Assign 'inputs' to the workflow inputs, effectively creating an analysis (workflow without inputs).
-        - Expand the workflow to the Task DAG.
-        - while not finished:
-            expand_composed_tasks
-            update scheduler
+        self.final_task = analysis.task_class(analysis)
+        self.final_task.set_id(self.final_task, '__root__')
 
-        We use Dijkstra algorithm (on incoplete graph) to process tasks according to the execution time on the reference resource.
-        Tasks are identified by the hash of their inputs.
-        :param wf:
-        :param inputs:
-        :return: List of all tasks.
+        self.composed_id = 0
+        # Auxiliary ID of composed tasks to break ties
+        self.queue = []
+        # Priority queue of the composed tasks to expand. Tasks are expanded until the task DAG is not
+        # complete or number of unresolved tasks is smaller then given limit.
+        self.enqueue(self.final_task)
+
+        self.force_finish = False
+        # Used to force end of evaluation after an error.
+        self.error_tasks = []
+        # List of tasks finished with error.
+
+
+        # init scheduler
+        self.tasks_update([self.final_task])
+
+    def tasks_update(self, tasks):
+        for t in tasks:
+            self.estimate_task_eval_time(t)
+        self.scheduler.append(tasks)
+
+    def estimate_task_eval_time(self, task):
         """
-        force_finish = False
+        Estimate the task evaluation time using the action and result_db.
+        :param task:
+        :return:
+        """
+        if task.is_finished():
+            task.eval_time = task._end_time - task._start_time
+        else:
+            task.time_estimate = 1
+
+    def execute(self, assigned_tasks_limit = np.inf, process_tasks = np.inf):
+        """
+        Execute the workflow.
+        :return:
+        """
+        while not self.force_finish:
+            schedule = self.expand_tasks(assigned_tasks_limit)
+            self.tasks_update(schedule)
+            self.scheduler.update()
+            self.scheduler.optimize()
+            if  self.scheduler.n_assigned_tasks == 0:
+                self.force_finish = True
+
+
+        return self.final_task
+
+
+    def enqueue(self, task: task_mod.Composed):
+        heapq.heappush(self.queue, (self.composed_id, task.time_estimate, task))
+        self.composed_id += 1
+
+
+    def expand_tasks(self, assigned_tasks_limit):
+        """
+        Expand composed tasks until number of planed tasks in the scheduler is under the given limit.
+        :return:
+        """
         # Force end of evaluation before all tasks are finished, e.g. due to an error.
-        queue = []
+        schedule = []
 
-        while self.queue and not force_finish:
-            composed_task = heapq.heappop(queue)
-            # TODO: expand composed task, add regular tasks to scheduler and new composed tasks to queue.
+        while self.queue and not self.force_finish and self.scheduler.n_assigned_tasks < assigned_tasks_limit:
+            composed_id, time, composed_task = heapq.heappop(self.queue)
+            # TODO: fix expand, it connects Slots not to heads, but to an _ActionBase instance.
+            task_dict = composed_task.expand()
+            print("Expanded: ", task_dict)
+            for task in task_dict.values():
+                if isinstance(task, task_mod.Composed):
+                    self.enqueue(task)
+                else:
+                    schedule.append(task)
+            self.tasks_update([composed_task])
+        return schedule
 
 
-
-       
-    def expand_task(virtual_task, dag):
-       pass
 
     def extract_input(self):
         input_data = List(*[i._result for i in self._inputs])
 
-    def _evaluate(self, task):
-        """
-        Evaluate the task using the input from the input tasks.
-        :return:
-        """
-
-        input_data_hash = input_data.hash()
-        if self._last_input_hash and self._last_input_hash == input_data_hash:
-            return self._result
-        else:
-            self._result = action.evaluate(input_data)
-            self._last_input_hash = input_data_hash
-        return self._result
 
 
-
-
-class ComposedTask(Task):
-    """
-    Task container that can not be evaluated, but can be expanded.
-    """
-
-    def run(self):
-        assert False
-
-    def expand(self):
-        pass

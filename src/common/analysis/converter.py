@@ -20,7 +20,7 @@ class GetAttribute(base._ActionBase):
         return "{{0}}.{key}".format(key=self.key)
 
     def _evaluate(self, data_class: Any) -> Any:
-        return data_class.get_attribute(self.key)
+        return data_class.__getattribute__(self.key)
 
 
 
