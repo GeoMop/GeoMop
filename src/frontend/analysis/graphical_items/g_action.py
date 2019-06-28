@@ -5,15 +5,14 @@ Graphical object representing an action in pipeline.
 """
 
 from PyQt5 import QtWidgets, QtCore, QtGui
-from PyQt5.QtCore import Qt, QRectF, QRect, QPoint
+from PyQt5.QtCore import Qt, QRectF
 from PyQt5.QtGui import QPixmap, QPainter
-from PyQt5.QtWidgets import QGraphicsSimpleTextItem, QToolTip, QStyleOptionGraphicsItem, QGraphicsItem
+from PyQt5.QtWidgets import QGraphicsSimpleTextItem, QStyleOptionGraphicsItem, QGraphicsItem
 
 from .g_action_background import GActionBackground, ActionStatus
 from .g_port import GPort, GInputPort, GOutputPort
-from .editable_text import EditableLabel
-from .rect_resize_handles import RectResizeHandles
-from .g_action_data_model import GActionData
+from frontend.analysis.util.editable_text import EditableLabel
+from frontend.analysis.data.g_action_data_model import GActionData
 
 
 class GAction(QtWidgets.QGraphicsPathItem):

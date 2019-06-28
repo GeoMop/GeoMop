@@ -1,10 +1,9 @@
 import os
 
 from PyQt5 import QtWidgets
-from PyQt5.QtWidgets import QTabWidget, QStackedWidget, QWidget
+from PyQt5.QtWidgets import QTabWidget, QStackedWidget
 
-from src.frontend.analysis.module_view import ModuleView
-from .workspace import Workspace
+from frontend.analysis.widgets.module_view import ModuleView
 from common.analysis.module import Module
 
 

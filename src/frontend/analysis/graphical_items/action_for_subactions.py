@@ -3,10 +3,9 @@ Special action which can contain subactions for repeating processes.
 @author: Tomáš Blažek
 @contact: tomas.blazek@tul.cz
 """
-from .rect_resize_handles import RectResizeHandles
-from .g_action import GAction
-from .g_port import GPort
-from PyQt5 import QtGui, QtCore, QtWidgets
+from frontend.analysis.util.rect_resize_handles import RectResizeHandles
+from frontend.analysis.graphical_items.g_action import GAction
+from PyQt5 import QtCore
 
 
 class GActionForSubactions(GAction):

@@ -1,22 +1,20 @@
-from PyQt5 import QtWidgets, QtCore, QtGui
+from PyQt5 import QtWidgets, QtCore
 from PyQt5.QtCore import QPoint, Qt
 from PyQt5.QtGui import QStaticText
-from PyQt5.QtWidgets import QGraphicsProxyWidget, QGraphicsSimpleTextItem, QGraphicsItem
+from PyQt5.QtWidgets import QGraphicsSimpleTextItem, QGraphicsItem
 
 from common.analysis.action_base import List
 from common.analysis.action_instance import ActionInstance, ActionInputStatus
 from common.analysis.action_workflow import Slot
-from .composite_type_view import CompositeTypeView
-from .g_input_action import GInputAction
-from .root_action import RootAction
-from .g_action import GAction
-from .g_connection import GConnection
-from .g_port import GOutputPort
-from .action_for_subactions import GActionForSubactions
-from .g_action_data_model import GActionDataModel, GActionData
+from frontend.analysis.graphical_items.g_input_action import GInputAction
+from frontend.analysis.graphical_items.root_action import RootAction
+from frontend.analysis.graphical_items.g_action import GAction
+from frontend.analysis.graphical_items.g_connection import GConnection
+from frontend.analysis.graphical_items.g_port import GOutputPort
+from frontend.analysis.graphical_items.action_for_subactions import GActionForSubactions
+from frontend.analysis.data.g_action_data_model import GActionDataModel, GActionData
 import random
 import math
-import copy
 
 
 class ActionTypes:

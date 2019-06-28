@@ -12,7 +12,7 @@ temp = os.getcwd()
 sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(os.getcwd()))))
 os.chdir(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 from PyQt5.QtWidgets import QApplication, QWidget
-from analysis.main_widget import MainWidget
+from frontend.analysis.widgets.main_widget import MainWidget
 
 
 if __name__ == "__main__":

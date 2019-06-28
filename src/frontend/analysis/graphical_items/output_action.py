@@ -1,4 +1,4 @@
-from .g_action import GAction
+from frontend.analysis.graphical_items.g_action import GAction
 
 
 class OutputGAction(GAction):

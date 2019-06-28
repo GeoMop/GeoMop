@@ -1,5 +1,5 @@
 from PyQt5 import QtWidgets, QtCore, QtGui
-from .g_port import GPort
+from frontend.analysis.graphical_items.g_port import GPort
 
 
 class EditableLabel(QtWidgets.QGraphicsTextItem):

@@ -1,12 +1,7 @@
-from PyQt5 import QtGui
-from PyQt5.QtCore import QEvent, QRect, QRectF, QMimeData, QPoint
-from PyQt5.QtGui import QBrush, QColor, QPen, QDrag, QPixmap, QPainter, QIcon
-from PyQt5.QtWidgets import QGraphicsItem, QGraphicsView, QGraphicsScene, QGraphicsRectItem, QStyleOptionGraphicsItem, \
-    QPushButton, QLabel
-from PyQt5.QtWidgets import QGraphicsSceneMouseEvent
+from PyQt5.QtCore import QMimeData, QPoint
+from PyQt5.QtGui import QDrag
+from PyQt5.QtWidgets import QLabel
 from PyQt5.QtCore import Qt
-
-from .g_action_background import ActionStatus
 
 
 class ToolboxView(QLabel):

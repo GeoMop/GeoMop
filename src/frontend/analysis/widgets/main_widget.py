@@ -3,29 +3,27 @@ Main window.
 @author: Tomáš Blažek
 @contact: tomas.blazek@tul.cz
 """
-import os, sys
 
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QToolBox
 
-from .menu.file_menu import FileMenu
-from .composite_type_view import CompositeTypeView
+from frontend.analysis.menu.file_menu import FileMenu
+from frontend.analysis.widgets.composite_type_view import CompositeTypeView
 from common.analysis.action_workflow import SlotInstance
 
 from .tab_widget import TabWidget
 from .toolbox_view import ToolboxView
 
 import common.analysis.action_instance as instance
-import common.analysis.action_workflow as wf
 import common.analysis.action_base as base
 
 
-from PyQt5 import QtWidgets, QtCore
-from .menu.edit_menu import EditMenu
-from .g_action import GAction
-from .tree_item import TreeItem
-from .action_category import ActionCategory
-from .g_input_action import GInputAction
+from PyQt5 import QtWidgets
+from frontend.analysis.menu.edit_menu import EditMenu
+from frontend.analysis.graphical_items.g_action import GAction
+from frontend.analysis.data.tree_item import TreeItem
+from frontend.analysis.widgets.action_category import ActionCategory
+from frontend.analysis.graphical_items.g_input_action import GInputAction
 
 
 class MainWidget(QtWidgets.QMainWindow):
@@ -70,6 +68,7 @@ class MainWidget(QtWidgets.QMainWindow):
         self.data_dock = QtWidgets.QDockWidget("Data/Config", self)
         self.data_dock.setAllowedAreas(Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
         self.addDockWidget(Qt.RightDockWidgetArea, self.data_dock)
+        self.data_dock.hide()
 
     def _init_toolbox(self):
         toolbox_layout = ActionCategory()
