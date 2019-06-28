@@ -5,6 +5,8 @@ import attr
 import pytypes
 from typing import *
 from collections import defaultdict
+from common.analysis import data
+from common.analysis import task
 
 
 # Name for the first parameter of the workflow definiton function that is used
@@ -28,20 +30,22 @@ class ExcDuplicateArgument(Exception):
     pass
 
 
+class NoDefault:
+    pass
+
 
 @attr.s(auto_attribs=True)
 class ActionParameter:
     idx: int
     name: str
     type: Any = None
-    default: Any = None
+    default: Any = NoDefault()
 
     def get_default(self) -> Tuple[bool, Any]:
-        if self.default is not None:
+        if not isinstance(self.default, NoDefault):
             return True, self.default
         else:
-            return False, self.default
-
+            return False, None
 
 class Parameters:
     def __init__(self):
@@ -51,6 +55,8 @@ class Parameters:
         # Map names to parameters.
         self._variable = False
         # indicates variable number of parameters, the last param have None name
+        self.no_default = NoDefault()
+
 
     def is_variadic(self):
         return self._variable
@@ -125,6 +131,7 @@ class _ActionBase:
     - have _code representation
     """
     def __init__(self, action_name = None ):
+        self.task_class = task.Atomic
         self.is_analysis = False
         self.name = action_name or self.__class__.__name__
         self._module = "wf"
@@ -146,11 +153,21 @@ class _ActionBase:
         self.parameters, self.output_type = extract_func_signature(func, skip_self)
         pass
 
+    def hash(self):
+        """
+        Hash of the atomic action. Should be unique for the particular Action instance.
+        """
+        return data.hash(self.name)
 
 
-    # def evaluate(self, inputs):
-    #     inputs = {arg.param.name: input for arg, input in zip(self.arguments, inputs)}
-    #     return self._evaluate(**inputs)
+    def evaluate(self, inputs):
+        """
+        Common evaluation function for all actions.
+        Call _evaluate which actually implements the action.
+        :param inputs: List of arguments.
+        :return: action result
+        """
+        return self._evaluate(*inputs)
 
 
     def _evaluate(self):
@@ -201,13 +218,7 @@ class _ActionBase:
         return self.evaluate(inputs)
 
 
-    def expand(self):
-        pass
 
-
-    def set_module(self, module_name):
-        if module_name != '__main__':
-            self._module = module_name
 
 
 class Value(_ActionBase):
@@ -215,7 +226,10 @@ class Value(_ActionBase):
         super().__init__()
         self.value = value
 
-    def evaluate(self, arguments):
+    def hash(self):
+        return data.hash(self.value)
+
+    def _evaluate(self):
         return self.value
 
     def format(self, n_args):
@@ -226,6 +240,16 @@ class Value(_ActionBase):
             expr = str(value)
         return expr
 
+
+class Pass(_ActionBase):
+    """
+    Do nothing action. Meant for internal usage in particular.
+    """
+    def __init__(self):
+        super().__init__()
+
+    def _evaluate(self, input:data.DataType):
+        return input
 
 
 
@@ -238,7 +262,7 @@ class _ListBase(_ActionBase):
     def __init__(self):
         super().__init__()
         self.parameters = Parameters()
-        self.parameters.append(ActionParameter(idx=0, name=None, type=Any, default=None))
+        self.parameters.append(ActionParameter(idx=0, name=None, type=Any, default=self.parameters.no_default))
 
 
 # class Tuple(_ListBase):
@@ -288,11 +312,15 @@ class ClassActionBase(_ActionBase):
         attributes = {}
         for param in params:
             attributes[param.name] = attr.ib(default=param.default, type=param.type)
-        data_class = type(name, (object,), attributes)
+        data_class = type(name, (data.DataClassBase, ), attributes)
         data_class = attr.s(data_class)
         return ClassActionBase(data_class)
 
-    def _evaluate(self, *args):
+    @property
+    def constructor(self):
+        return self._data_class
+
+    def _evaluate(self, *args) -> data.DataClassBase:
         return self._data_class(*args)
 
 
@@ -308,3 +336,5 @@ class ClassActionBase(_ActionBase):
             lines.append("    {}:{}{}".format(attribute.name, type_str, default))
 
         return "\n".join(lines)
+
+

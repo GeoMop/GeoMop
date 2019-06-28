@@ -1,22 +1,26 @@
 
 from typing import List, Any
-from src.common.analysis import action_base as base
-from src.common.analysis.action_instance import ActionInstance
+from common.analysis import action_base as base
+from common.analysis import task
+from common.analysis import dfs
+from common.analysis.action_instance import ActionInstance
+
 """
 Implementation of the Workflow composed action.
 - creating the 
 """
 
 
+class Slot(base._ActionBase):
+    pass
 
-
-class Slot(ActionInstance):
-    def __init__(self, slot_name=None):
+class SlotInstance(ActionInstance):
+    def __init__(self, slot_name):
         """
         Auxiliary action to connect to a named input slot of the workflow.
-        :param slot_name:
+        :param slot_name: Slot name gives also name of appropriate Workflow's parameter.
         """
-        super().__init__(base._ActionBase(), slot_name)
+        super().__init__(Slot(), slot_name)
         self.arguments = []
         # self.rank = i_slot
         # """ Slot rank. """
@@ -31,10 +35,23 @@ class Slot(ActionInstance):
     def code(self, module_dict):
         return None
 
-class _ResultAction(base._ActionBase):
-    """ Auxiliary result action."""
-    def _evaluate(self, result: Any) -> None:
-        pass
+class _ResultAction(base._ListBase):
+    """
+     Auxiliary result action.
+     Takes arbitrary number of inputs, at leas one input must be provided.
+     Returns the first input, other inputs are used just for their side effects (using the Save action).
+
+     Workflow decorator automatically connects all Save actions to the ignored result inputs.
+    """
+    def __init__(self):
+        super().__init__()
+        self.parameters = base.Parameters()
+        self.parameters.append(base.ActionParameter(idx=0, name="result", type=Any, default=None))
+        self.parameters.append(base.ActionParameter(idx=1, name=None, type=Any, default=self.parameters.no_default))
+
+
+    def evaluate(self, inputs):
+        return inputs[0]
 
 class Result(ActionInstance):
     """ Auxiliary result action instance, used to treat the result connecting in the consistnet way."""
@@ -45,59 +62,6 @@ class Result(ActionInstance):
         return None
 
 
-class DFS:
-    def __init__(self, previsit=None, postvisit=None, edge_visit=None):
-        self.previsit = previsit or self.previsit
-        self.postvisit = postvisit or self.postvisit
-        self.edge_visit = edge_visit or self.edge_visit
-
-    @staticmethod
-    def previsit(action):
-        pass
-
-    @staticmethod
-    def postvisit(action):
-        pass
-
-    @staticmethod
-    def edge_visit(previous, action, i_input):
-        pass
-
-    def run(self, root_action) -> bool:
-        """
-        Generic DFS for the action DAG.
-        :param root_action: Starting vertex - the result action of the workflow
-        :return: False in the case of found cycle.
-        """
-        action_closed = {}
-        action_stack = [(root_action, 0)]
-        while action_stack:
-            action, i_input = action_stack.pop(-1)
-            if i_input < len(action.arguments):
-                action_stack.append((action, i_input + 1))
-                input_action = action.arguments[i_input].value
-                if input_action is None:
-                    # TODO: possibly report missing input
-                    continue
-                # if not isinstance(input_action, ActionInstance):
-                #     x=1
-                assert isinstance(input_action, ActionInstance), (input_action.__class__, action.action_name, i_input)
-
-                self.edge_visit(input_action, action, i_input)
-                action_id = id(input_action)
-                status = action_closed.get(action_id, None)
-                if status is None:
-                    # unvisited vertex
-                    action_closed[action_id] = False
-                    self.previsit(action)
-                    action_stack.append((input_action, 0))
-                elif not status:
-                    # open vertex (cycle)
-                    return False
-            else:
-                self.postvisit(action)
-                action_closed[id(action)] = True
-        return True
 
 
 class _Workflow(base._ActionBase):
@@ -117,6 +81,7 @@ class _Workflow(base._ActionBase):
         :param output_type:
         """
         super().__init__(name)
+        self.task_class = task.Composed
         self._result = Result()
         # Result subaction.
         self._slots = []
@@ -124,7 +89,7 @@ class _Workflow(base._ActionBase):
         self._actions = {}
         # Dict:  unique action instance name -> action instance.
         self._topology_sort = []
-        # topoloicaly sorted actions
+        # topologically sorted action instance names
 
         self.update_parameters()
 
@@ -137,6 +102,9 @@ class _Workflow(base._ActionBase):
         return self._slots
 
     def set_from_source(self, slots, output_type, output_action):
+        """
+        Used by the workflow decorator to setup the instance.
+        """
         self._slots = slots
         self._result.set_single_input(0, output_action)
         self._result.action.output_type = output_type
@@ -189,8 +157,8 @@ class _Workflow(base._ActionBase):
         # def edge_visit(previous, action, i_arg):
         #     return previous.output_actions.append((action, i_arg))
 
-        is_dfs = DFS(postvisit=construct_postvisit)\
-                    .run(self._result)
+        is_dfs = dfs.DFS(neighbours=lambda action: (arg.value for arg in action.arguments),
+                         postvisit=construct_postvisit).run([self._result])
         if not is_dfs:
             return False
 
@@ -256,7 +224,7 @@ class _Workflow(base._ActionBase):
         self.update_parameters()
 
 
-    def insert_slot(self, i_slot:int , slot: Slot) -> None:
+    def insert_slot(self, i_slot:int, slot: SlotInstance) -> None:
         """
         Insert a new slot on i_th position shifting the slot on i-th position and remaining to the right.
         Change of the name
@@ -278,7 +246,14 @@ class _Workflow(base._ActionBase):
 
     def set_action_input(self, action: ActionInstance, i_arg:int, input_action: ActionInstance) -> bool:
         """
-        Set argument 'i_arg' of the 'action' to 'input_action'.
+        Set argument 'i_arg' of the 'action' to the 'input_action'.
+
+        E.g. wf.set_action_input(list_1, 0, slot_a)
+        The result of the workflow is an action that takes arbitrary number of arguments but
+
+
+
+
         """
         if i_arg < len(action.arguments):
             orig_input = action.arguments[i_arg]
@@ -299,7 +274,7 @@ class _Workflow(base._ActionBase):
         #     orig_input.output_actions = [aa  for aa in orig_input.output_actions if aa != action_arg]
 
 
-    def set_result(self, result_type):
+    def set_result_type(self, result_type):
         """
         TOOD: Test after introduction of typing.
         :param result_type:
@@ -321,22 +296,26 @@ class _Workflow(base._ActionBase):
             self.parameters.append(p)
 
 
+    def expand(self, inputs):
+        """
+        Expansion of the composed task with given data inputs (possibly None if not evaluated yet).
+        :param inputs: List[Task]
+        :return: None if can not be expanded yet, otherwise return dict mapping action instance names to the created tasks.
+        In particular slots are named ('__slot__', i) and result task have name '__result__'
+        The composed task is then responsible for replacement of the slots by the input tasks and the result by the the composed task itself.
+        """
+        childs = {}
+        assert len(self._slots) == len(inputs)
+        # TODO: fix connection of slots to inputs
+        for slot, input in zip(self._slots, inputs):
+            childs[slot.name] = input
+        for action_instance_name in self._topology_sort:
+            if action_instance_name not in childs:
+                action_instance = self._actions[action_instance_name]
+                arg_tasks = [childs[arg.value.name] for arg in action_instance.arguments]
+                childs[action_instance.name] = action_instance.action.task_class(action_instance.action, arg_tasks)
+        return childs
 
-    """
-    Necessary opeartions:
-
-    
-    - set_slot(i_slot, slot) - add/remove slots, removeing a slot moves order of others
-    - set_action_input(action, i_arg, input_action) - performs also the update
-      e.g. set_action_input(w.result, 0, input_action)
-    
-    Comments:
-    - have auxiliary action Result (can not remove it)            
-    - no need for add_action - just create one and connect it.
-    - orphan actions are automatically removed, but these can be reconnected as long as 
-      GUI keeps its own list of active actions
-    - orphan actions are not saved to source
-    """
 
 
 

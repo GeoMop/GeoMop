@@ -2,10 +2,14 @@ import os
 import sys
 import imp
 import traceback
+from typing import Callable
 from types import ModuleType
 
-from src.common.analysis.code import wrap
-from src.common.analysis.action_instance import ActionInstance
+from common.analysis.code import wrap
+from common.analysis import action_workflow as wf
+from common.analysis import data
+from common.analysis import action_base
+from common.analysis.action_instance import ActionInstance
 
 class InterpreterError(Exception): pass
 
@@ -23,7 +27,6 @@ def my_exec(cmd, globals=None, locals=None, description='source string'):
         detail = err.args[0] if err.args else None
         etype, exc, tb = sys.exc_info()
         line_number = traceback.extract_tb(tb)[-1][1]
-
 
         traceback.print_exception(etype, exc, tb)
         raise InterpreterError("%s at line %d of %s: %s" % (error_class, line_number, description, detail))
@@ -80,11 +83,13 @@ class Module:
         # data classes, enums.
         # GUI note: Can be directly reorganized by the GUI. Adding, removing, changing order.
         # TODO: implement a method for sorting the definitions (which criteria)
+        self._name_to_def = {}
+        # Maps identifiers to the definitions. (e.g. name of a workflow to its object)
 
         self.imported_modules = []
         # List of imported modules.
         self._full_name_dict = {}
-        #  Map the full module name to the alias and the module object (e.g. numpy.linalg to np
+        #  Map the full module name to the alias and the module object (e.g. numpy.linalg to np)
         self.ignored_definitions = []
         # Objects of the module, that can not by sourced.
         # If there are any we can not reproduce the source.
@@ -126,13 +131,15 @@ class Module:
         """
         analysis = []
         for name, obj in self.module.__dict__.items():
-            print(name, type(obj))
+            # print(name, type(obj))
             if isinstance(obj, wrap.ActionWrapper):
                 action = obj.action
+                self.insert_definition(action)
+                assert isinstance(action, action_base._ActionBase)
                 assert name == action.name
-                self.definitions.append(action)
                 if action.is_analysis:
                     analysis.append(action)
+
             else:
                 if type(obj) is ModuleType:
                     full_name = obj.__name__
@@ -148,6 +155,22 @@ class Module:
             self.analysis = ActionInstance.create(analysis)
         else:
             self.analysis = None
+
+
+    def insert_definition(self, action: action_base._ActionBase, pos:int=None):
+        """
+        Insert a new definition of the 'action' to given position 'pos'.
+        :param action: An action class (including dataclass construction actions).
+        :param pos: Target position, default is __len__ meaning append to the list.
+        :return:
+        """
+        if pos is None:
+            pos = len(self.definitions)
+        assert isinstance(action, action_base._ActionBase)
+        self.definitions.insert(pos, action)
+        self._name_to_def[action.name] = action
+
+
 
 
     @property
@@ -203,6 +226,17 @@ class Module:
         return analysis
 
 
+    def get_workflow(self, name: str) -> wf._Workflow:
+        """
+        Get the workflow by the name.
+        :param name:
+        :return:
+        """
+        return self._name_to_def[name]
+
+    def get_dataclass(self, name:str) -> Callable[..., data.DataClassBase]:
+        dclass = self._name_to_def[name]
+        return dclass._evaluate
 
 """
 Object progression:
