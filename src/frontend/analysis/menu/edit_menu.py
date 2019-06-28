@@ -18,8 +18,8 @@ class EditMenu(QtWidgets.QMenu):
         self.delete.setShortcut(QtGui.QKeySequence.Delete)
         self.addAction(self.delete)
 
-        self.add_random = QtWidgets.QAction("Add random action (for test purposes)")
-        self.addAction(self.add_random)
+        #self.add_random = QtWidgets.QAction("Add random action (for test purposes)")
+        #self.addAction(self.add_random)
 
         self.order_diagram = QtWidgets.QAction("Arrange diagram")
         self.addAction(self.order_diagram)

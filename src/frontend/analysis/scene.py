@@ -3,9 +3,9 @@ from PyQt5.QtCore import QPoint, Qt
 from PyQt5.QtGui import QStaticText
 from PyQt5.QtWidgets import QGraphicsProxyWidget, QGraphicsSimpleTextItem, QGraphicsItem
 
-from src.common.analysis.action_base import List
-from src.common.analysis.action_instance import ActionInstance, ActionInputStatus
-from src.common.analysis.action_workflow import Slot
+from common.analysis.action_base import List
+from common.analysis.action_instance import ActionInstance, ActionInputStatus
+from common.analysis.action_workflow import Slot
 from .composite_type_view import CompositeTypeView
 from .g_input_action import GInputAction
 from .root_action import RootAction
@@ -282,8 +282,8 @@ class Scene(QtWidgets.QGraphicsScene):
     def add_action(self, new_action_pos, action_type="List"):
         if action_type == "List":
             action = ActionInstance(List())
-        elif action_type == "_ActionBase":
-            action = Slot()
+        elif action_type == "Slot":
+            action = ActionInstance(Slot())
         else:
             assert True, "Action isn't supported by scene!"
             return

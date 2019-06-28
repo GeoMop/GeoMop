@@ -7,14 +7,17 @@ import os, sys
 
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QToolBox
-import src.common.analysis.action_instance as instance
-import src.common.analysis.action_workflow as wf
-import src.common.analysis.action_base as base
+
 from .menu.file_menu import FileMenu
 from .composite_type_view import CompositeTypeView
-from src.common.analysis.action_workflow import Slot
+from common.analysis.action_workflow import SlotInstance
+
 from .tab_widget import TabWidget
 from .toolbox_view import ToolboxView
+
+import common.analysis.action_instance as instance
+import common.analysis.action_workflow as wf
+import common.analysis.action_base as base
 
 
 from PyQt5 import QtWidgets, QtCore
@@ -34,7 +37,7 @@ class MainWidget(QtWidgets.QMainWindow):
         self.tab_widget = TabWidget(self, self.edit_menu)
         self.setCentralWidget(self.tab_widget)
 
-        self.tab_widget.open_module("C:\\Users\\samot\\PycharmProjects\\GeoMop\\testing\\common\\analysis\\analysis_in.py")   # for testing purposes
+        #self.tab_widget.open_module("C:\\Users\\samot\\PycharmProjects\\GeoMop\\testing\\common\\analysis\\analysis_in.py")   # for testing purposes
 
         self._init_toolbox()
 
@@ -71,7 +74,7 @@ class MainWidget(QtWidgets.QMainWindow):
     def _init_toolbox(self):
         toolbox_layout = ActionCategory()
         toolbox_layout2 = ActionCategory()
-        ToolboxView(GInputAction(TreeItem(["Input", 0, 0, 50, 50]), Slot("a")), toolbox_layout)
+        ToolboxView(GInputAction(TreeItem(["Input", 0, 0, 50, 50]), SlotInstance("a")), toolbox_layout)
         ToolboxView(GAction(TreeItem(["List", 0, 0, 50, 50]), instance.ActionInstance.create( base.List())), toolbox_layout2)
 
         self.toolBox = QToolBox()

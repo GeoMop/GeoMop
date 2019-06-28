@@ -1,9 +1,9 @@
 from typing import *
-from src.common.analysis import action_base as base
-from src.common.analysis import action_base as base
-from src.common.analysis import action_instance as instance
-from src.common.analysis.converter import GetAttribute, GetItem
-from src.common.analysis.action_instance import  ActionInstance
+from common.analysis import action_base as base
+from common.analysis import action_base as base
+from common.analysis import action_instance as instance
+from common.analysis.converter import GetAttribute, GetItem
+from common.analysis.action_instance import  ActionInstance
 
 
 def is_underscored(s:Any) -> bool:

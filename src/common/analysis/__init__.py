@@ -1,4 +1,4 @@
-from src.common.analysis.code.decorators import workflow, analysis, action, Class
+from common.analysis.code.decorators import workflow, analysis, action, Class
 from .action import *
 
 """

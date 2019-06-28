@@ -8,7 +8,7 @@ from PyQt5 import QtWidgets, QtCore, QtGui
 from PyQt5.QtCore import QEvent, Qt
 from PyQt5.QtGui import QHelpEvent, QRadialGradient
 from PyQt5.QtWidgets import QToolTip
-from src.common.analysis.action_instance import ActionInputStatus
+from common.analysis.action_instance import ActionInputStatus
 
 from .g_port import GPort, GOutputPort
 

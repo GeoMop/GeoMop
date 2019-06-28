@@ -68,7 +68,7 @@ class GAction(QtWidgets.QGraphicsPathItem):
 
         self.progress = 0
 
-        self.status = ActionStatus.ERROR
+        self.status = ActionStatus.IDLE
 
     def __repr__(self):
         return self.name + "\t" + str(self.level)

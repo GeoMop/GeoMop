@@ -1,4 +1,4 @@
-import src.common.analysis as wf
+import common.analysis as wf
 
 
 @wf.workflow

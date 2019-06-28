@@ -1,7 +1,7 @@
 import attr
-from src.common.analysis.code import dummy, wrap
-from src.common.analysis import action_workflow as wf
-from src.common.analysis import action_base as base
+from common.analysis.code import dummy, wrap
+from common.analysis import action_workflow as wf
+from common.analysis import action_base as base
 
 class _Variables:
     """

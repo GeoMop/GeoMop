@@ -5,7 +5,7 @@ from PyQt5.QtWidgets import QTabWidget, QStackedWidget, QWidget
 
 from src.frontend.analysis.module_view import ModuleView
 from .workspace import Workspace
-from src.common.analysis.module import Module
+from common.analysis.module import Module
 
 
 class TabWidget(QTabWidget):
@@ -17,7 +17,7 @@ class TabWidget(QTabWidget):
         self.edit_menu = edit_menu
         self.edit_menu.new_action.triggered.connect(self.add_action)
         self.edit_menu.delete.triggered.connect(self.delete_items)
-        self.edit_menu.add_random.triggered.connect(self.add_random_items)
+        #self.edit_menu.add_random.triggered.connect(self.add_random_items)
         self.edit_menu.order_diagram.triggered.connect(self.order_diagram)
         self.currentChanged.connect(self.current_changed)
 

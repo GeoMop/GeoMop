@@ -2,7 +2,7 @@
 import indexed
 from typing import *
 
-from src.common.analysis import action_base as base
+from common.analysis import action_base as base
 
 
 

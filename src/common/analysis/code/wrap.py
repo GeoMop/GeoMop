@@ -4,9 +4,9 @@ wrapped into Dummy object.
 """
 from typing import Any, Dict
 from numpy import array
-from src.common.analysis import action_base as base
-from src.common.analysis import action_instance as instance
-from src.common.analysis.code import dummy
+from common.analysis import action_base as base
+from common.analysis import action_instance as instance
+from common.analysis.code import dummy
 
 
 

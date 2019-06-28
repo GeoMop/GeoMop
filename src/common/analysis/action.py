@@ -1,4 +1,4 @@
-from src.common.analysis import module
+from common.analysis import module
 import attr
 
 

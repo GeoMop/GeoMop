@@ -4,7 +4,7 @@ import attr
 from typing import List, Dict, Union
 from numpy import array
 
-from src.common.analysis import action_base as base
+from common.analysis import action_base as base
 
 
 

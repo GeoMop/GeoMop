@@ -9,8 +9,6 @@ from .g_action import GAction
 class GInputAction(GAction):
     def __init__(self, g_data_item, w_data_item, parent=None):
         super(GInputAction, self).__init__(g_data_item, w_data_item, parent)
-        self.status = ActionStatus.PAUSED
-        self.progress = 30
 
     def _add_ports(self, n_ports):
         self.add_g_port(False, "Output Port")

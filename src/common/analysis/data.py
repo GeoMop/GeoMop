@@ -11,7 +11,7 @@ Same special dataclasses are implemented, in particular:
 - ...
 """
 
-import pyhash
+#import hashlib
 from typing import Union, List, NewType
 
 
@@ -25,7 +25,7 @@ class DataClassBase:
 
 HashValue = NewType('HashValue', int)
 
-_hasher_fn = pyhash.murmur3_x64_128()
+#hasher_fn = hashlib.murmur3_x64_128()
 def hash(stream: bytearray, previous:HashValue=0) -> HashValue:
     """
     Compute the hash of the bytearray.
@@ -37,7 +37,8 @@ def hash(stream: bytearray, previous:HashValue=0) -> HashValue:
     - input and result hashes
     - ResultsDB
     """
-    return _hasher_fn(stream, seed=previous)
+    return hash(stream, previous)
+    #return hasher_fn(stream, seed=previous)
 
 def serialize(data):
     """
