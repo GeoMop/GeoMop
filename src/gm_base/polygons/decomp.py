@@ -466,23 +466,25 @@ class Decomposition:
         for seg, side in a_wire.segments(start=b_next_seg, end=(segment, b_vtx_prev_side)):
             assert seg.wire[side] == a_wire
             seg.wire[side] = b_wire
+        a_wire.segment = segment.next[b_vtx_prev_side]
+        b_wire.segment = b_next_seg
 
         segment.disconnect_wires()
         segment.disconnect_vtx(out_vtx)
         segment.disconnect_vtx(in_vtx)
 
         # setup new b_wire
-        b_wire.segment = b_next_seg
         b_wire.polygon = a_wire.polygon
         if polygon.outer_wire == a_wire:
             # one wire inside other
+            orig_parent = a_wire.parent
             outer_wire, inner_wire = b_wire, a_wire
             if a_wire.contains_wire(b_wire):
                 outer_wire, inner_wire = a_wire, b_wire
+            self._update_wire_parents(orig_parent, outer_wire, inner_wire)
             polygon.outer_wire = outer_wire
-            outer_wire.set_parent(a_wire.parent)  # outer keep parent of original wire
+            outer_wire.set_parent(orig_parent)  # outer keep parent of original wire
             inner_wire.set_parent(outer_wire)
-            self._update_wire_parents(a_wire.parent, a_wire.parent, inner_wire)
 
         else:
             # both wires are holes

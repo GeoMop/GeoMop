@@ -88,6 +88,17 @@ class TestWire:
         sg4, = decomp.add_line((.5,.5), (0.6,0.6))
         decomp.new_segment(sg4.vtxs[0], pt0)
         assert len(decomp.decomp.wires) == 3
+        decomp = PolygonDecomposition()
+
+    def test_split_wires(self):
+        decomp = PolygonDecomposition()
+        # square
+        sg_a, = decomp.add_line((0,0), (2,0))
+        sg_b, = decomp.add_line((2, 0), (2, 2))
+        sg_c, = decomp.add_line((2, 2), (0, 2))
+        sg_d, = decomp.add_line((0, 2), (0, 0))
+        # dendrite with triangle polygon
+
 
 
 class TestPolygon:
@@ -365,12 +376,19 @@ class TestDecomposition:
         self.check_split_poly_structure(decomp, out_square, in_square)
 
         # join nested wires
-        sg_x = pd.new_segment( sg_a.vtxs[out_vtx], sg_e.vtxs[out_vtx] )
+        sg_x = pd.new_segment(sg_e.vtxs[out_vtx],  sg_a.vtxs[out_vtx] )
 
         # split nested wires
+        #plot_polygon_decomposition(decomp)
         pd.delete_segment(sg_x)
         self.check_split_poly_structure(decomp, out_square, in_square)
 
+        # Join nested wires, oposite (other order of wires in _split_wires)
+        sg_x = pd.new_segment(sg_a.vtxs[out_vtx], sg_e.vtxs[out_vtx])
+        # split nested wires
+        #plot_polygon_decomposition(decomp)
+        pd.delete_segment(sg_x)
+        self.check_split_poly_structure(decomp, out_square, in_square)
 
         # split polygon - balanced
         seg_y, = pd.add_line((0.5, 0.5), (1,1))
