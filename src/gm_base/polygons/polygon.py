@@ -1,14 +1,16 @@
-import gm_base.polygons.idmap as idmap
+from . import idmap
 from .segment import right_side, left_side, out_vtx, in_vtx
 import numpy as np
 
 class Polygon(idmap.IdObject):
 
     def __init__(self, outer_wire):
+        super().__init__()
         self.outer_wire = outer_wire
-        # outer boundary wire, inside of the polygon boundary.
+        # outer boundary wire
         self.free_points = set()
         # Dict ID->pt of free points inside the polygon.
+
 
     def __repr__(self):
         outer = self.outer_wire.id

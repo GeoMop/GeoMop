@@ -1,5 +1,5 @@
-import gm_base.polygons.polygons as polygons
-from gm_base.polygons.decomp import PolygonChange, in_vtx, out_vtx, right_side, left_side
+from . import polygons
+from .decomp import PolygonChange, in_vtx, out_vtx, right_side, left_side
 
 def deep_copy(self):
     """
@@ -13,12 +13,12 @@ def deep_copy(self):
     decomp = PolygonDecomposition()
 
     for pt in self.points.values():
-        decomp.points.append(Point(pt.xy, poly=None), id=pt.id)
+        decomp.points.append(Point(pt.xy, poly=None, attr=pt.attr), id=pt.id)
         id_maps[0][pt.id] = pt.id
 
     seg_orig_to_new = {}
     for seg in self.segments.values():
-        new_seg = decomp.make_segment(seg.point_ids())
+        new_seg = decomp.make_segment(seg.point_ids(), attr=seg.attr)
         id_maps[1][new_seg.id] = seg.id
         seg_orig_to_new[seg.id] = new_seg.id
 
@@ -30,7 +30,7 @@ def deep_copy(self):
             wire = [seg_orig_to_new[seg.id] for seg, side in hole.segments()]
             holes.append(wire)
         free_points = [pt.id for pt in poly.free_points]
-        new_poly = decomp.make_polygon(outer_wire, holes, free_points)
+        new_poly = decomp.make_polygon(outer_wire, holes, free_points, poly.attr)
         id_maps[2][new_poly.id] = poly.id
 
     decomp.set_wire_parents()
@@ -39,7 +39,7 @@ def deep_copy(self):
     return decomp, id_maps
 
 
-def intersect_single(decomp, other, merge_tol=1e-10):
+def intersect_single(decomp, other, merge_tol = 1e-10):
     """
     TODO: move to separate intersection module.
 
@@ -68,6 +68,7 @@ def intersect_single(decomp, other, merge_tol=1e-10):
     """
     save_tol = decomp.tolerance
     decomp.tolerance = merge_tol
+
     maps_self = [ {}, {}, {}]
     maps_other = [ {}, {}, {}]
     # for dim in range(3):
@@ -98,6 +99,8 @@ def intersect_single(decomp, other, merge_tol=1e-10):
         # print(decomp)
         # print('add line {} {}'.format(a, b))
         line_div = decomp._add_line_seg_intersections(new_a_pt, new_b_pt)
+        # TODO: modify to changes in _add_line_seg_intersections
+        # we have no seg_b, and the new line may be curved by snapping.
         for t, (mid_pt, seg_a, seg_b) in line_div.items():
             maps_self[1][seg_b.id] = maps_self[1].get(seg_a.id, seg_a.id)
             assert seg_a.id not in maps_other[1]
@@ -153,7 +156,7 @@ def intersect_single(decomp, other, merge_tol=1e-10):
 
 
 
-def intersect_decompositions(decomps):
+def intersect_decompositions(decomps, merge_tol = 1e-10):
     """
     Intersection of a list of decompositions. Segments and polygons are subdivided.
 
@@ -162,12 +165,18 @@ def intersect_decompositions(decomps):
     common_decomp - resulting merged/intersected decomposition.
     poly_maps - List of maps, one for every input decomposition. For single decomp the map
     consists of maps for every dimension, [map_0d, map_1d, map_2d].
-    map_Nd - is a dict mapping IDs of sommon_decomp objects to IDs of decomp objects.
+    map_Nd - is a dict mapping IDs of common_decomp objects to IDs of decomp objects.
     Objects of common_decomp that have no preimage in decomp are omitted.
 
     TODO: For larger number of intersectiong decompositions, it would be better to
     use a binary tree reduction instead of linear pass to have n log(n) complexity of map updating.
     """
+    if len(decomps) == 1:
+        common_decomp = decomps[0]
+        all_maps = [[{pt.id: pt.id for pt in common_decomp.points.values()},
+                     {seg.id: seg.id for seg in common_decomp.segments.values()},
+                     {poly.id: poly.id for poly in  common_decomp.polygons.values()}]]
+        return common_decomp, all_maps
     common_decomp = polygons.PolygonDecomposition()
     all_maps = []
     for decomp in decomps:
@@ -177,7 +186,7 @@ def intersect_decompositions(decomps):
             len(common_decomp.segments),
             len(common_decomp.decomp.wires),
             len(common_decomp.polygons)))
-        common_decomp, common_maps, decomp_maps = intersect_single(common_decomp, decomp)
+        common_decomp, common_maps, decomp_maps = intersect_single(common_decomp, decomp, merge_tol)
         decomp_maps = [ { key: val for key,val in map.items() if val is not None} for map in decomp_maps ]
         for one_decomp_maps in all_maps:
             for one_dim_map, common_map in zip(one_decomp_maps, common_maps):

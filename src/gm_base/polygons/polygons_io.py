@@ -1,10 +1,13 @@
+
+
 import gm_base.geometry_files.format_last as gs
-import gm_base.polygons.polygons as polygons
+from . import polygons
 
-
-from gm_base.polygons.decomp import Point
 """
-TODO: Try to remove dependency on `decomp` module.
+TODO: 
+- make serilization /deserialization independent of gm_base.geometry_files.format_last.
+  Just serialize/deserialize into/from list of nodes and topology dict, this can either by used directly 
+  or reorganized by an upper layer in order to stick to the Geometry file format..
 """
 
 
@@ -31,6 +34,8 @@ def serialize(polydec):
     containing the index of the object in the output file lists.
     :param polydec: PolygonDecomposition
     :return: (nodes, topology)
+
+    TODO: serialize attributes
     """
     decomp = polydec.decomp
     decomp.check_consistency()
@@ -53,6 +58,7 @@ def serialize(polydec):
             polygon.holes.append(wire)
         polygon.free_points = [pt.index for pt in poly.free_points]
         topology.polygons.append(polygon)
+
     return (nodes, topology)
 
 
@@ -64,6 +70,8 @@ def deserialize(nodes, topology):
     produced by serialize function.
     :return: PolygonDecomposition. The attributes 'id' and 'index' of nodes, segments and polygons
     are set to their indices in the input file lists, counting from 0.
+
+    TODO: deserialize attributes
     """
     polydec = polygons.PolygonDecomposition()
     decomp = polydec.decomp
@@ -75,6 +83,7 @@ def deserialize(nodes, topology):
     if len(topology.polygons) == 0 or len(topology.polygons[0].segment_ids) > 0:
         reconstruction_from_old_input(polydec, topology)
         return polydec
+
 
     for id, seg in enumerate(topology.segments):
         vtxs_ids = seg.node_ids
@@ -105,7 +114,7 @@ def reconstruction_from_old_input(polydec, topology):
         s.index = id
         assert s.id == id
 
-    polydec.outer_polygon.index = 0
+    polydec.outer_polygon.index  = 0
     for id, poly in enumerate(topology.polygons):
         segments = {seg_id for seg_id in poly.segment_ids}
         candidates = []
@@ -119,4 +128,3 @@ def reconstruction_from_old_input(polydec, topology):
         assert len(candidates) == 1
         candidates[0].index = id + 1
     polydec.decomp.check_consistency()
-
