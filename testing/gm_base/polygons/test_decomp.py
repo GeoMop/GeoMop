@@ -276,6 +276,7 @@ class TestDecomposition:
 
         # delete segment - split wire
         pd.delete_segment(sg_m)
+        decomp.check_consistency()
         assert len(decomp.wires) == 4
         assert len(decomp.polygons) == 2
         #plot_polygon_decomposition(decomp)
@@ -284,12 +285,15 @@ class TestDecomposition:
         # other split wire
         pt_op = sg_p.vtxs[out_vtx]
         pd.delete_segment(sg_f)
+        decomp.check_consistency()
+
         assert len(decomp.wires) == 5
         assert len(decomp.polygons) == 2
         #plot_polygon_decomposition(decomp)
 
         #test split_segment connected on both sides; split non outer polygon
         seg_y, = pd.add_line( (0,0.25), (0.25, 0.25))
+        decomp.check_consistency()
         assert pd.get_last_polygon_changes() == (PolygonChange.split, 1, 2)
 
         # test _join_segments - _split_segment inversion
@@ -297,6 +301,7 @@ class TestDecomposition:
         mid_point = seg1.vtxs[in_vtx]
         seg0 = sg_e.next[left_side][0]
         decomp.join_segments(mid_point, seg0, seg1)
+        decomp.check_consistency()
 
         # print("Decomp:\n", decomp)
         pd.delete_point(pt_op)

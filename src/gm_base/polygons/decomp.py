@@ -93,6 +93,16 @@ class Decomposition:
                and len(self.segments) == len(other.segments) \
                and len(self.polygons) == len(other.polygons)
 
+    def shape(self, dim_id):
+        """
+        Getter for shapes (points, segments, polygons) for given (dim, id) tuple
+        which servers as unique identifier.
+        Usage: decomp.shape[dim_id]
+        :return: shape
+        """
+        dim, id = dim_id
+        return self.shapes[dim][id]
+
 
     def check_consistency(self):
         # print(self)
@@ -113,7 +123,7 @@ class Decomposition:
                 assert child.id in self.wires
                 child.parent == w
             assert w.polygon.id in self.polygons
-            assert w == w.polygon.outer_wire or w in w.polygon.outer_wire.childs
+            assert w == w.polygon.outer_wire or w in w.polygon.outer_wire.childs, w
             if w.is_root():
                 assert w == self.outer_polygon.outer_wire
             else:
@@ -475,36 +485,54 @@ class Decomposition:
 
         # setup new b_wire
         b_wire.polygon = a_wire.polygon
+        orig_parent = a_wire.parent
         if polygon.outer_wire == a_wire:
             # one wire inside other
-            orig_parent = a_wire.parent
             outer_wire, inner_wire = b_wire, a_wire
             if a_wire.contains_wire(b_wire):
                 outer_wire, inner_wire = a_wire, b_wire
-            self._update_wire_parents(orig_parent, outer_wire, inner_wire)
+
             polygon.outer_wire = outer_wire
             outer_wire.set_parent(orig_parent)  # outer keep parent of original wire
             inner_wire.set_parent(outer_wire)
+            # childs of the orig wire are in outer wire
+            for ch in a_wire.childs:
+                ch.set_parent(outer_wire)
+            # possible wires in the new inner_wire bubble
+            for seg, side in inner_wire.segments():
+                side_wire = seg.wire[1-side]
+                assert side_wire == inner_wire or inner_wire.contains_wire(side_wire)
+                side_wire.set_parent(inner_wire)
+
+            #self._update_wire_parents(orig_parent, outer_wire, inner_wire)
 
         else:
             # both wires are holes
-            b_wire.set_parent(a_wire.parent)
-            self._update_wire_parents(a_wire, a_wire, b_wire)
+            a_wire.set_parent(orig_parent)
+            b_wire.set_parent(orig_parent)
+            for wire in list(a_wire.childs):
+                if a_wire.contains_wire(wire):
+                    wire.set_parent(a_wire)
+                else:
+                    wire.set_parent(b_wire)
+
+            #self._update_wire_parents(a_wire, a_wire, b_wire)
 
         # remove segment
         self.last_polygon_change = (PolygonChange.shape, [polygon], None)
         self._destroy_segment(segment)
 
-    def _update_wire_parents(self, orig_wire, outer_wire, inner_wire):
-        # Auxiliary method of _split_wires.
-        # update all wires having orig wire as parent
-        # TODO: use wire childs
-        for wire in self.wires.values():
-            if wire.parent == orig_wire:
-                if inner_wire.contains_wire(wire):
-                    wire.set_parent(inner_wire)
-                else:
-                    wire.set_parent(outer_wire)
+
+    # def _update_wire_parents(self, orig_wire, outer_wire, inner_wire):
+    #     # Auxiliary method of _split_wires.
+    #     # update all wires having orig wire as parent
+    #     # TODO: use wire childs
+    #     for wire in self.wires.values():
+    #         if wire.parent == orig_wire:
+    #             if inner_wire.contains_wire(wire):
+    #                 wire.set_parent(inner_wire)
+    #             else:
+    #                 wire.set_parent(outer_wire)
 
 
 
