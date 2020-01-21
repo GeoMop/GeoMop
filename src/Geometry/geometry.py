@@ -1261,11 +1261,11 @@ class LayerGeometry(gs.LayerGeometry):
             for id, char_length in self.vtx_char_length:
                 print(r'Characteristic Length {%s} = %s;' % (id, char_length), file=f)
 
-                gmsh_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../gmsh/gmsh.exe")
+        gmsh_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../gmsh/gmsh.exe")
         if not os.path.exists(gmsh_path):
             gmsh_path = "gmsh"
 
-        process = subprocess.run([gmsh_path, "-3", self.geo_file], stderr=subprocess.PIPE, stdout=subprocess.PIPE)
+        process = subprocess.run([gmsh_path, "-3", "-format", "msh2", self.geo_file], stderr=subprocess.PIPE, stdout=subprocess.PIPE)
         stderr = process.stderr.decode('ascii')
         stdout = process.stdout.decode('ascii')
         if process.returncode != 0:
