@@ -156,14 +156,14 @@ def build(data_app, mj_id):
         pe = {"__class__": "ProcessPBS",
               "executable": multi_job_service,
               "exec_args": {"__class__": "ExecArgs",
-                            "pbs_args": _get_pbs_conf(mj_pbs_preset)}}
+                            "pbs_args": _get_pbs_conf(mj_pbs_preset, name=mj_id)}}
 
     if j_pbs_preset is None:
         job_pe = {"__class__": "ProcessExec"}
     else:
         job_pe = {"__class__": "ProcessPBS",
                   "exec_args": {"__class__": "ExecArgs",
-                                "pbs_args": _get_pbs_conf(j_pbs_preset)}}
+                                "pbs_args": _get_pbs_conf(j_pbs_preset, name=mj_id)}}
 
     log_all = mj_log_level == logging.INFO
     job_service_data = {"service_host_connection": j_con,
@@ -618,7 +618,7 @@ def build_ssh_conf(ssh):
     return con
 
 
-def _get_pbs_conf(preset, pbs_params=[]):
+def _get_pbs_conf(preset, pbs_params=[], name=""):
     """
     Converts preset data to PbsConfig.
     :param preset: Preset data object from UI.
@@ -626,7 +626,7 @@ def _get_pbs_conf(preset, pbs_params=[]):
     """
     pbs = {"__class__": "PbsConfig"}
 
-    pbs["name"] = preset.name
+    pbs["name"] = name if name else preset.name
     pbs["dialect"] = {"__class__": preset.pbs_system}
     pbs["queue"] = preset.queue
     pbs["walltime"] = preset.walltime
