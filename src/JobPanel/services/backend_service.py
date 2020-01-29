@@ -26,6 +26,9 @@ class MJInfo(JsonData):
         self.proxy = ServiceProxy()
         """mj proxy"""
 
+        self.process_id_saved = False
+        """True if process_id was saved"""
+
         self.n_jobs = 0
         """number of known jobs"""
 
@@ -382,6 +385,10 @@ class Backend(ServiceBase):
             if mj.proxy._status == ServiceStatus.done and not mj.log_planed_to_download:
                 mj.files_to_download.append(os.path.join(GEOMOP_INTERNAL_DIR_NAME, "mj_service.log"))
                 mj.log_planed_to_download = True
+
+            if not mj.process_id_saved and mj.proxy.process_id != "":
+                mj.process_id_saved = True
+                self._config_changed = True
 
     def _process_queues(self):
         """
