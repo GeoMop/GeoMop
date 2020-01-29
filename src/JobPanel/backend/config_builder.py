@@ -1,4 +1,5 @@
 import os
+import sys
 import json
 import logging
 
@@ -7,7 +8,7 @@ from JobPanel.ui.dialogs import SshPasswordDialog
 from JobPanel.data.secret import Secret
 from gm_base.geomop_analysis import Analysis, InvalidAnalysis
 from gm_base.global_const import GEOMOP_INTERNAL_DIR_NAME
-from .path_converter import if_win_win2lin_conv_path
+from .path_converter import if_win_win2lin_conv_path, win2lin_conv_path
 
 
 def build(data_app, mj_id):
@@ -50,12 +51,16 @@ def build(data_app, mj_id):
         err.extend(e)
         return err, None
 
+    # convert paths on win
+    if sys.platform == "win32":
+        input_files = [win2lin_conv_path(file) for file in input_files]
+
     # mj_config_dir
     mj_config_dir = os.path.join(workspace, analysis, "mj", mj)
 
     # ToDo: vyresit lepe
-    loc_geomop_root = if_win_win2lin_conv_path(os.path.join(
-        os.path.dirname(os.path.realpath(__file__)), "..", ".."))
+    loc_geomop_root = if_win_win2lin_conv_path(os.path.normpath(os.path.join(
+        os.path.dirname(os.path.realpath(__file__)), "..", "..")))
     loc_geomop_analysis_workspace = if_win_win2lin_conv_path(os.path.abspath(workspace))
 
     # multi_job_service executable
