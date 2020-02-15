@@ -11,6 +11,7 @@ PyQt5
 PyQtWebEngine
 qscintilla
 plotly
+gmsh-sdk
 
 # pip3
 # setuptools
