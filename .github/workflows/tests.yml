@@ -25,7 +25,7 @@ jobs:
     - name: Install packages
       run: |
         sudo apt-get update
-        sudo apt-get install -y python3-psutil python3-paramiko
+        sudo apt-get install -y python3-psutil python3-paramiko gmsh
 
     - name: Set up test user
       run: |
