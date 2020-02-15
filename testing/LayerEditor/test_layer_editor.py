@@ -43,10 +43,10 @@ def start_dialog(editor):
 
 
 
-def test_region_panel(qtbot, qapp):
-    """
-    Proof of concept for testing Layer editor GUI.
-    :param qtbot: pytest-qt, qtbot to test widgets
-    :param qapp: common QApplication instance for all tests.
-    :return:
-    """
+# def test_region_panel(qtbot, qapp):
+#     """
+#     Proof of concept for testing Layer editor GUI.
+#     :param qtbot: pytest-qt, qtbot to test widgets
+#     :param qapp: common QApplication instance for all tests.
+#     :return:
+#     """
