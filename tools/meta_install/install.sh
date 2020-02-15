@@ -28,7 +28,7 @@ mkdir -p "$GEOMOP_INST"
 
 echo "Creating virtual environment..."
 rm -rf "$GEOMOP_INST/env"
-module add python-3.4.1-gcc python34-modules-gcc
+module add python-3.6.2-gcc python36-modules-gcc
 python -m venv "$GEOMOP_INST/env"
 
 
@@ -43,7 +43,7 @@ echo "Instaling python packages..."
 "$GEOMOP_INST/env/bin/pip" install PyYAML
 "$GEOMOP_INST/env/bin/pip" install paramiko
 "$GEOMOP_INST/env/bin/pip" install numpy
-"$GEOMOP_INST/env/bin/pip" install scipy==0.18.1
+"$GEOMOP_INST/env/bin/pip" install scipy
 
 
 echo "Copying GeoMop modules..."
@@ -64,7 +64,7 @@ source /etc/profile
 
 module purge
 module load metabase
-module add python-3.4.1-gcc python34-modules-gcc
+module add python-3.6.2-gcc python36-modules-gcc
 
 "$GEOMOP_INST/env/bin/python" "\$@"
 EOF

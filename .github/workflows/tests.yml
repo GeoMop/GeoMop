@@ -1,0 +1,76 @@
+name: Tests
+
+on: [push]
+
+env:
+  METACENTRUM_FRONTEND: charon.nti.tul.cz
+  METACENTRUM_TEST_DIR: /storage/liberec3-tul/home/${{secrets.METACENTRUM_USERNAME}}/github_tests/${{github.sha}}
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Initialize submodules
+      run: |
+        cp .gitmodules_https .gitmodules
+        git submodule init
+        git submodule update
+        git submodule sync
+        git checkout .gitmodules
+
+    - name: Install packages
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y python3-psutil python3-paramiko
+
+    - name: Set up test user
+      run: |
+        sudo useradd -m -s /bin/bash test
+        sudo mkdir -m 777 /home/test/test_dir
+        mkdir -p -m 700 ~/.ssh
+        ssh-keygen -t rsa -f ~/.ssh/id_rsa -q -P ""
+        chmod 600 ~/.ssh/id_rsa
+        sudo mkdir -p -m 700 /home/test/.ssh
+        sudo chown test:test /home/test/.ssh
+        sudo cp /home/runner/.ssh/id_rsa.pub /home/test/.ssh/authorized_keys
+        sudo chown test:test /home/test/.ssh/authorized_keys
+
+    - name: Set up Python 3.6
+      uses: actions/setup-python@v1
+      with:
+        python-version: 3.6
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Prepare charon
+      run: >
+        sshpass -p "${{secrets.METACENTRUM_PASSWORD}}" ssh ${{secrets.METACENTRUM_USERNAME}}@$METACENTRUM_FRONTEND
+        -o StrictHostKeyChecking=no
+        "source /etc/profile &&
+        mkdir -p $METACENTRUM_TEST_DIR &&
+        cd $METACENTRUM_TEST_DIR &&
+        git clone https://github.com/GeoMop/GeoMop.git &&
+        cd GeoMop &&
+        git checkout $GITHUB_SHA &&
+        bash ./tools/meta_install/test_install.sh"
+
+    - name: Run tests
+      run: |
+        echo "metacentrum:${{secrets.METACENTRUM_USERNAME}}:${{secrets.METACENTRUM_PASSWORD}}" > ~/.ssh/passwords
+        pip install pytest pytest-qt
+        cd testing
+        pytest
+
+    - name: Cleanup charon
+      if: success() || failure()
+      run: >
+        sshpass -p "${{secrets.METACENTRUM_PASSWORD}}" ssh ${{secrets.METACENTRUM_USERNAME}}@$METACENTRUM_FRONTEND
+        -o StrictHostKeyChecking=no
+        "rm -rf $METACENTRUM_TEST_DIR"

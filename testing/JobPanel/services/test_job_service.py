@@ -1,7 +1,7 @@
 from JobPanel.backend.service_base import ServiceBase, ServiceStatus
 from testing.JobPanel.mock.passwords import get_test_password
 from .port_forwarder import PortForwarder
-from gm_base.config import GEOMOP_INTERNAL_DIR_NAME
+from gm_base.global_const import GEOMOP_INTERNAL_DIR_NAME
 
 import threading
 import os

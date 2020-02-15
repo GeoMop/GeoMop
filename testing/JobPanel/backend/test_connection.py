@@ -1,6 +1,7 @@
 # prerequisites for this tests:
 # 1: on machine must be user "test" with ssh keys set for user which runs tests (or password in secret file)
 # 2: directory "/home/test/test_dir" must be writable for user which runs tests
+# 3: python3-psutil python3-paramiko must be installed
 
 # TODO: Run in Tox virtual environment, try to set $HOME to a test directory and setup prerequisities
 
@@ -18,6 +19,7 @@ import logging
 import time
 import stat
 import pytest
+import subprocess
 
 logging.basicConfig(filename='test_connection.log', filemode='w', level=logging.INFO)
 
@@ -287,6 +289,8 @@ def test_exceptions():
         assert False
     except SSHAuthenticationError:
         pass
+    except SSHError:
+        pass
 
     con = ConnectionSSH({"address": "unknown_host", "uid": "user", "password": ""})
     try:
@@ -429,6 +433,10 @@ def test_docker(request):
     # create analysis workspace
     os.makedirs(os.path.join(TEST_FILES, "workspace"), exist_ok=True)
 
+    # copy "t_service.py" into workspace which is mounted in docker
+    shutil.copyfile(os.path.join(this_source_dir, "t_service.py"),
+                    os.path.join(TEST_FILES, "workspace", "t_service.py"))
+
     # local service
     env = {"__class__": "Environment",
            "geomop_root": geomop_root_local,
@@ -449,7 +457,7 @@ def test_docker(request):
           "name": "docker"}
     pd = {"__class__": "ProcessDocker",
           "executable": {"__class__": "Executable",
-                         "path": os.path.join(this_source_dir, "t_service.py"),
+                         "path": os.path.abspath(os.path.join(TEST_FILES, "workspace", "t_service.py")),
                          "script": True}}
     service_data = {"service_host_connection": cd,
                     "process": pd,
@@ -461,8 +469,12 @@ def test_docker(request):
     test_service = local_service._child_services[1]
 
     # wait for test service running
-    time.sleep(10)
-    assert test_service._status == ServiceStatus.running
+    for i in range(60):
+        time.sleep(1)
+        if test_service._status == ServiceStatus.running:
+            break
+    else:
+        assert False
 
     # stop test service
     answer = []
@@ -471,8 +483,8 @@ def test_docker(request):
     #assert len(answer) > 0
 
 
-METACENTRUM_FRONTEND = "charon-ft.nti.tul.cz"
-METACENTRUM_HOME = "/storage/liberec1-tul/home/"
+METACENTRUM_FRONTEND = "charon.nti.tul.cz"
+METACENTRUM_HOME = "/storage/liberec3-tul/home"
 
 
 @pytest.mark.slow
@@ -498,10 +510,12 @@ def test_mc_get_delegator(request):
     local_service_thread.start()
 
     # environment
-    test_dir = METACENTRUM_HOME + "/" + mc_u + "/jenkins_test"
+    rev = subprocess.check_output(["git", "rev-parse", "HEAD"], universal_newlines=True).strip()
+    test_dir = METACENTRUM_HOME + "/" + mc_u + "/github_tests/" + rev
     env = {"__class__": "Environment",
-           "geomop_root": test_dir + "/geomop",
-           "python": test_dir + "/geomop/bin/python"}
+           "geomop_root": test_dir + "/geomop_root",
+           "geomop_analysis_workspace": test_dir + "/workspace",
+           "python": test_dir + "/geomop_root/bin/python"}
 
     # ConnectionSSH
     con = ConnectionSSH({"address": METACENTRUM_FRONTEND, "uid": mc_u, "password": mc_p, "environment":env})
@@ -538,11 +552,12 @@ def test_mc_delegator_pbs(request):
     local_service_thread.start()
 
     # environment
-    test_dir = METACENTRUM_HOME + "/" + mc_u + "/jenkins_test"
+    rev = subprocess.check_output(["git", "rev-parse", "HEAD"], universal_newlines=True).strip()
+    test_dir = METACENTRUM_HOME + "/" + mc_u + "/github_tests/" + rev
     env = {"__class__": "Environment",
-           "geomop_root": test_dir + "/geomop",
+           "geomop_root": test_dir + "/geomop_root",
            "geomop_analysis_workspace": test_dir + "/workspace",
-           "python": test_dir + "/geomop/bin/python"}
+           "python": test_dir + "/geomop_root/bin/python"}
 
     # ConnectionSSH
     con = ConnectionSSH({"address": METACENTRUM_FRONTEND, "uid": mc_u, "password": mc_p, "environment":env})
@@ -555,7 +570,7 @@ def test_mc_delegator_pbs(request):
 
     # start process
     process_config = {"__class__": "ProcessPBS",
-                      "executable": {"__class__": "Executable", "name": "sleep"},
+                      "executable": {"__class__": "Executable", "path": "/bin/sleep"},
                       "exec_args": {"__class__": "ExecArgs", "args": ["600"], "pbs_args": {"__class__": "PbsConfig", "dialect":{"__class__": "PbsDialectPBSPro"}}},
                       "environment": env}
     answer = []
@@ -565,11 +580,12 @@ def test_mc_delegator_pbs(request):
     def wait_for_answer(ans, t):
         for i in range(t):
             time.sleep(1)
+            delegator_proxy._process_answers()
             if len(ans) > 0:
                 break
 
     wait_for_answer(answer, 60)
-    process_id = answer[-1]
+    process_id = answer[-1]["data"]
 
     # get status
     time.sleep(10)
@@ -579,7 +595,7 @@ def test_mc_delegator_pbs(request):
 
     # wait for answer
     wait_for_answer(answer, 60)
-    status = answer[-1][process_id]["status"]
+    status = answer[-1]["data"][process_id]["status"]
     assert status == ServiceStatus.queued or status == ServiceStatus.running
 
     # kill
@@ -589,6 +605,6 @@ def test_mc_delegator_pbs(request):
 
     # wait for answer
     wait_for_answer(answer, 60)
-    assert answer[-1] is True
+    assert answer[-1]["data"] is True
 
     con.close_connections()
