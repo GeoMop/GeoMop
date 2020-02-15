@@ -42,7 +42,7 @@ def check_files(f_geom, f_mesh):
        ])
 
 def test_run_geometry(in_file, mesh_step):
-    full_in_file = os.path.join('test_data', in_file)
+    full_in_file = os.path.join(this_source_dir, 'test_data', in_file)
     try:
         geometry.make_geometry(layers_file=full_in_file, mesh_step=mesh_step)
     except geometry.ExcGMSHCall as e:
