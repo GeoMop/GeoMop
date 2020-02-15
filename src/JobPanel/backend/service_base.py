@@ -541,7 +541,7 @@ class ServiceBase(JsonData):
         return ServiceStatus.running.name
 
     def request_stop(self, data):
-        self._closing = True
+        self._set_status_done()
         return {'data' : 'closing'}
 
     @LongRequest

@@ -340,12 +340,11 @@ class AnalysisDialog(QtWidgets.QDialog):
             flowInputText = self.ui.flowInputComboBox.currentText()
             layersFileText = self.ui.layersFileComboBox.currentText()
             scriptText = self.ui.scriptComboBox.currentText()
-            flowVersionText = self.ui.flowVersionComboBox.currentText()
         else:
             flowInputText = ""
             layersFileText = ""
             scriptText = ""
-            flowVersionText = ""
+            self.ui.flowVersionComboBox.setCurrentText(self.analysis.flow123d_version)
 
         # fill file comboboxs
         self.ui.flowInputComboBox.clear()
@@ -387,14 +386,6 @@ class AnalysisDialog(QtWidgets.QDialog):
             if (ind < 0) and (len(self.analysis.script_files) > 0):
                 ind = 0
         self.ui.scriptComboBox.setCurrentIndex(ind)
-
-        # select version
-        ind = self.ui.flowVersionComboBox.findText(flowVersionText)
-        if ind < 0:
-            ind = self.ui.flowVersionComboBox.findText(self.analysis.flow123d_version)
-            if ind < 0:
-                ind = 0
-        self.ui.flowVersionComboBox.setCurrentIndex(ind)
 
     def set_data(self, data=None):
         if data:
@@ -516,6 +507,7 @@ class UiAnalysisDialog:
         self.flowVersionLabel.setText("Flow123d version:")
         self.flowVersionComboBox = QtWidgets.QComboBox(self.mainVerticalLayoutWidget)
         self.flowVersionComboBox.addItems(FLOW123D_VERSION_LIST)
+        self.flowVersionComboBox.setEditable(True)
         sep = QtWidgets.QLabel(self.mainVerticalLayoutWidget)
         sep.setMaximumWidth(100)
         sep.setMinimumWidth(100)
