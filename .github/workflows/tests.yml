@@ -39,10 +39,10 @@ jobs:
         sudo cp /home/runner/.ssh/id_rsa.pub /home/test/.ssh/authorized_keys
         sudo chown test:test /home/test/.ssh/authorized_keys
 
-    - name: Set up Python 3.6
+    - name: Set up Python 3.7
       uses: actions/setup-python@v1
       with:
-        python-version: 3.6
+        python-version: 3.7
 
     - name: Install dependencies
       run: |
