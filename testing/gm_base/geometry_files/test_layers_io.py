@@ -33,8 +33,13 @@ class TestGeometryStructures:
     def reload(self, layers_file):
         gs_lg = layers_io.read_geometry(layers_file)
         out_file = layers_file + ".out"
-        gs = layers_io.write_geometry(out_file, gs_lg)
+        gs = self.write_geometry(out_file, gs_lg)
         return out_file
+
+    def write_geometry(self, file_name, lg):
+        """Write LayerGeometry data to file"""
+        with open(file_name, 'w') as f:
+            json.dump(lg.serialize(), f, indent=4, sort_keys=True)
 
 
 
