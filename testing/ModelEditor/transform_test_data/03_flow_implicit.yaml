@@ -31,6 +31,9 @@ problem: !Coupling_Sequential
     balance: true
   solute_equation: !Coupling_OperatorSplitting
     transport: !Solute_AdvectionDiffusion_DG
+      solver: !Petsc
+        a_tol: 1.0e-12
+        r_tol: 1.0e-12
       input_fields:
         - rid: 17
           init_conc: 0
@@ -40,9 +43,6 @@ problem: !Coupling_Sequential
           porosity: 0.25
         - region: IMPLICIT BOUNDARY
           bc_conc: 1
-      solver: !Petsc
-        a_tol: 1.0e-12
-        r_tol: 1.0e-12
     substances:
       - age
     output_stream: 

@@ -92,7 +92,7 @@ def _decode_con(con):
     pattern = re.compile(r"/\*.*?\*/", re.DOTALL)
     con = pattern.sub(r'', con)   
     pattern = re.compile(r"^([^\s\[\{,=]+)\s*=\s*")
-    con = pattern.sub(r'"\2" : ', con)
+    con = pattern.sub(r'"\1" : ', con)
     pattern = re.compile(r"([\s\[\{,=])([^\s\[\{,=]+)\s*=\s*")
     con = pattern.sub(r'\1"\2" : ', con)
     return json.loads(con, object_pairs_hook=OrderedDict)
