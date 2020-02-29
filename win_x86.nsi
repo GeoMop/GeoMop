@@ -117,7 +117,7 @@ Section "Runtime Environment" SecRuntime
 
   # Clean GeoMop source, env directories.
   RMDir /r "$INSTDIR\env"
-  RMDir /r "$INSTDIR\common"
+  RMDir /r "$INSTDIR\gm_base"
 
   # Install virtualenv.
   SetOutPath $INSTDIR\prerequisites
