@@ -129,9 +129,6 @@ Section "Runtime Environment" SecRuntime
   SetOutPath $INSTDIR
   #File /r "${BUILD_DIR}\env"
 
-  # Copy the common folder.
-  File /r /x *~ /x __pycache__ /x pylintrc /x *.pyc "${SRC_DIR}\common"
-
   # Copy the gm_base folder.
   File /r /x *~ /x __pycache__ /x pylintrc /x *.pyc "${SRC_DIR}\gm_base"
 
