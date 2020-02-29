@@ -31,7 +31,7 @@ jobs:
     - name: Create Windows installer
       run: |
         mkdir -p dist
-        docker run -i -v $(pwd):/nsis-project flow123d/nsis-3.05-1 /nsis-project/win_x86.nsi
+        docker run -i -u $(id -u):$(id -u) -v $(pwd):/nsis-project flow123d/nsis-3.05-1 /nsis-project/win_x86.nsi
 
     - uses: actions/upload-artifact@v1
       with:
