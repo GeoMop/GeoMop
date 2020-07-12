@@ -74,15 +74,14 @@ class SurfFormData(GL.Surface):
             self.__dict__[key] = val
         self._idx = idx
         try:
-            self._approx_maker = ba.SurfaceApprox.approx_from_file(self.grid_file, self.file_delimiter, self.file_skip_lines)
+            self._approx_maker = ba.SurfaceApprox.approx_from_file(self.grid_file)
         except:
             return None
 
         return self
 
     def init_from_file(self, file):
-        self._approx_maker = ba.SurfaceApprox.approx_from_file(file, self.file_delimiter,
-                                                               self.file_skip_lines)
+        self._approx_maker = ba.SurfaceApprox.approx_from_file(file)
         self.grid_file = file
         self._quad = self._approx_maker.compute_default_quad()
         self._nuv = self._approx_maker.compute_default_nuv()
