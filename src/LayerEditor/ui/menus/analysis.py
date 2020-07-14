@@ -17,7 +17,7 @@ class AnalysisMenu(QMenu):
         super(AnalysisMenu, self).__init__(parent)
         self.flow123d_versions = flow123d_versions
         self.config = config
-        self._group = QtWidgets.QActionGroup(self, exclusive=True)
+        self._group = QtWidgets.QActionGroup(self)
         self._group.triggered.connect(self._analysis_selected)
         self._actions = []
         # self._create_analysis_action = QAction('&Create', self)

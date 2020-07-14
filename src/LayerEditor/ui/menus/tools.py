@@ -20,7 +20,7 @@ class ToolsMenu(QMenu):
         self.addAction(self._selmode_action)
         self.addSeparator()
         
-        self._operation_mode_group = QActionGroup(self, exclusive=True)
+        self._operation_mode_group = QActionGroup(self)
         self._operation_mode_group.triggered.connect(self._select_operation)
 
         self._point_op_action = QAction('&Point Operations', self)

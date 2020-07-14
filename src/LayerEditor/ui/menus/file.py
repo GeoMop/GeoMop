@@ -45,7 +45,7 @@ class MainFileMenu(QMenu):
 
         self._recent_file_signal_connect = False
         self._recent = self.addMenu('Open &Recent Files')
-        self._recent_group = QActionGroup(self, exclusive=True)
+        self._recent_group = QActionGroup(self)
 
         self.addSeparator()
 
