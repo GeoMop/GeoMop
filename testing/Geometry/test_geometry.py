@@ -25,7 +25,7 @@ def check_files(f_geom, f_mesh):
     file_path = list(os.path.split(f_geom))
     file_path.insert(-1, 'ref')
     ref_file = os.path.join(*file_path)
-    return filecmp.cmp(f_geom, ref_file)
+    return filecmp.cmp(f_geom, ref_file, shallow=False)
 
     # For mesh just check that the file exists
     assert os.path.isfile(f_mesh)
