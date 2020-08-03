@@ -148,7 +148,8 @@
             "dim": "none",
             "mesh_step": null,
             "name": "NONE",
-            "not_used": true
+            "not_used": true,
+            "topo_dim": "invalid"
         },
         {
             "__class__": "Region",
@@ -330,6 +331,6 @@
     "version": [
         0,
         5,
-        0
+        5
     ]
 }

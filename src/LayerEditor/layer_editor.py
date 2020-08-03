@@ -186,8 +186,8 @@ class LayerEditor:
 
     def make_mesh(self):
         """open Make mesh dialog"""
-        if self.save_file() is False:
-            return
+        # if self.save_file() is False:
+        #     return
 
         dlg = MakeMeshDlg(self.mainwindow)
         dlg.exec()

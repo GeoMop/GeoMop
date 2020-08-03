@@ -144,10 +144,17 @@ def convert_file_to_actual_format(json_obj, base_path=""):
     return layers
 
 
-def read_geometry(file_name):
-    """return LayerGeometry data"""
-    with open(file_name) as f:
-        contents = f.read()
+def read_geometry(file_name, file_object=None):
+    """
+    return LayerGeometry data
+    If file_object is not None data are read from it
+    and file_name is used only to extract base_path.
+    """
+    if file_object is None:
+        with open(file_name) as f:
+            contents = f.read()
+    else:
+        contents = file_object.read()
     json_lg = json.loads(contents, encoding="utf-8")
     base_path = os.path.dirname(file_name)
     return convert_file_to_actual_format(json_lg, base_path=base_path)
