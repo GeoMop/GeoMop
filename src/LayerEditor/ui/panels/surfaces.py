@@ -5,12 +5,14 @@ import PyQt5.QtCore as QtCore
 import os
 import numpy as np
 import copy
+import shutil
 
-import gm_base.b_spline
-import bspline_approx as ba
+from bgem.bspline import bspline_approx as ba
 from gm_base.geomop_dialogs import GMErrorDialog
 import gm_base.icon as icon
 import gm_base.geometry_files.format_last as GL
+
+from LayerEditor.leconfig import cfg
 
 """
 TODO:
@@ -300,6 +302,7 @@ class Surfaces(QtWidgets.QWidget):
         # delimiter
         wg_delimiter_lbl = QtWidgets.QLabel("Delimiter:")
         self.wg_delimiter_cb = self._make_delimiter_combo()
+        self.set_delimiter()
 
         import_row.addWidget(wg_header_lbl)
         import_row.addWidget(self.wg_skip_lines_le)
@@ -424,7 +427,7 @@ class Surfaces(QtWidgets.QWidget):
     def _make_delimiter_combo(self):
         cb = QtWidgets.QComboBox()
         delimiters = [
-            ("space/tab", ' \t'),
+            ("space/tab", '[ \t]'),
             ("comma", ","),
             ("semi-comma", ";"),
             ("|","|")
@@ -542,16 +545,62 @@ class Surfaces(QtWidgets.QWidget):
         self._fill_forms()
 
     def _load_file(self, surface_data):
+        # save layer data first
+        if cfg.curr_file is None:
+            QtWidgets.QMessageBox.information(
+                self, 'Save layer data',
+                'Layer data file must be save first.')
+            cfg.main_window._layer_editor.save_file()
+        if cfg.curr_file is None:
+            return
+
         file, pattern = QtWidgets.QFileDialog.getOpenFileName(
             self, "Choose grid file", self.home_dir, "File (*.*)")
         if not file:
             return
+
+        file = self._check_file_path(file)
+        if not file:
+            return
+
         try:
             return surface_data.init_from_file(file)
         except Exception as e:
             err_dialog = GMErrorDialog(self)
             err_dialog.open_error_dialog("Wrong grid file structure!", error=e)
             return None
+
+    def _check_file_path(self, file):
+        """
+        Check if file is in project directory.
+        If not try copy it.
+        Returns new path or empty string if it is not possible.
+        """
+        layer_file_dir = os.path.dirname(cfg.curr_file)
+        relpath = os.path.relpath(file, start=layer_file_dir)
+        if relpath.startswith("../") or (os.sep == "\\" and relpath.startswith("..\\")):
+            basename = os.path.basename(file)
+            path_in_dir = os.path.join(layer_file_dir, basename)
+            if os.path.exists(path_in_dir):
+                QtWidgets.QMessageBox.critical(
+                    self, 'File already exists',
+                    'File "{}" already exists in project directory.'.format(basename))
+                return ""
+
+            msg = QtWidgets.QMessageBox(self)
+            msg.setWindowTitle("Copy file")
+            msg.setText('File must be in project directory.\n'
+                        "Do you want to copy it?")
+            msg.setStandardButtons(QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No)
+            msg.setDefaultButton(QtWidgets.QMessageBox.Yes)
+            ret = msg.exec()
+            if ret == QtWidgets.QMessageBox.Yes:
+                shutil.copyfile(file, path_in_dir)
+                return path_in_dir
+            else:
+                return ""
+
+        return file
 
     def apply(self):
         """Save changes to file and compute new elevation and error"""
