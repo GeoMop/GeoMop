@@ -14,6 +14,9 @@ from .menus.analysis import AnalysisMenu
 from .menus.settings import MainSettingsMenu
 from .menus.mesh import MeshMenu
 import gm_base.icon as icon
+from .panels.new_diagram.diagram_view import DiagramView
+from .panels.new_diagram.tools import Cursor
+
 
 class MainWindow(QtWidgets.QMainWindow):
     """Main application window."""
@@ -32,6 +35,8 @@ class MainWindow(QtWidgets.QMainWindow):
     def make_widgets(self):
         self.setMinimumSize(1060, 660)
 
+        Cursor.setup_cursors()
+
         # splitters
         self._hsplitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal, self)
         self.setCentralWidget(self._hsplitter)
@@ -49,8 +54,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self._vsplitter1.addWidget(self.wg_regions)
 
         # scene
-        self.diagramScene = panels.Diagram(self._hsplitter)
-        self.diagramView = QtWidgets.QGraphicsView(self.diagramScene, self._hsplitter)
+        #self.diagramScene = panels.Diagram(self._hsplitter)
+
+        self.diagramView = DiagramView(self._hsplitter)
+        self.diagramScene = self.diagramView._scene
         self.diagramView.setResizeAnchor(QtWidgets.QGraphicsView.NoAnchor)
         self.diagramView.setTransformationAnchor(QtWidgets.QGraphicsView.NoAnchor)
         self.diagramView.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
@@ -115,9 +122,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self._status.showMessage("Ready", 5000)
 
         # signals
-        self.diagramScene.cursorChanged.connect(self._cursor_changed)
-        self.diagramScene.possChanged.connect(self._move)
-        self.diagramScene.regionsUpdateRequired.connect(self._update_regions)
+        #self.diagramScene.cursorChanged.connect(self._cursor_changed)
+        #self.diagramScene.possChanged.connect(self._move)
+        #self.diagramScene.regionsUpdateRequired.connect(self._update_regions)
         self.shp.background_changed.connect(self.background_changed)
         self.shp.item_removed.connect(self.del_background_item)
         self.layers.viewInterfacesChanged.connect(self.refresh_view_data)
@@ -160,9 +167,9 @@ class MainWindow(QtWidgets.QMainWindow):
     def paint_new_data(self):
         """Propagate new diagram scene to canvas"""
         self.layers.change_size()
-        self.diagramScene.show_init_area(True)
-        if not cfg.config.show_init_area:
-            self.diagramScene.show_init_area(False)            
+        #self.diagramScene.show_init_area(True)
+        #if not cfg.config.show_init_area:
+            #self.diagramScene.show_init_area(False)
         self.display_area()
 
     def refresh_curr_data(self, old_i, new_i):
@@ -191,7 +198,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def refresh_view_data(self, i):
         """Propagate new views (static, not edited diagrams) 
         scene to canvas. i is changed view."""
-        self.diagramScene.update_views()
+        #self.diagramScene.update_views()
         self._move()
         
     def refresh_diagram_shp(self):
@@ -243,7 +250,7 @@ class MainWindow(QtWidgets.QMainWindow):
             cfg.diagram.x = rect.left()
             cfg.diagram.y = rect.top()-(view_rect.height()/cfg.diagram.zoom-rect.height())/2
         if cfg.diagram.pen_changed:
-            self.diagramScene.update_geometry()
+            self.diagramScene.update_scene()
         self._display(view_rect)
         
     def get_display_rect(self):
@@ -317,9 +324,10 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def _refresh_area(self):
         """Refresh init area"""
-        if self.diagramScene.init_area is not None:
-            self.diagramScene.init_area.reload()
-        
+        #if self.diagramScene.init_area is not None:
+        #   self.diagramScene.init_area.reload()
+        pass
+
     def closeEvent(self, event):
         """Performs actions before app is closed."""
         # prompt user to save changes (if any)

@@ -14,7 +14,7 @@ class Region(IO.Region):
         pass
 
 class Surface(IO.Surface):
-    def __init__(selfself, surface):
+    def __init__(self, surface):
 
         self._interfaces = set()
         # Connected interfaces

@@ -151,7 +151,7 @@ class EditMenu(QtWidgets.QMenu):
  
     def _deselect(self):
         """deselect selected items"""
-        self._diagram.selection.deselect_selected()
+        self._diagram.selection.deselect_all()
         
     def _select(self):
         """select all items"""
