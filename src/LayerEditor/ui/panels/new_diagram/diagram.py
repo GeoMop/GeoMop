@@ -141,6 +141,10 @@ class Diagram(QtWidgets.QGraphicsScene):
         for g_seg in self.segments.values():
             g_seg.update_zoom(value)
 
+    def update_all_points(self):
+        for g_point in self.points.values():
+            g_point.update()
+
     def update_all_segments(self):
         for g_seg in self.segments.values():
             g_seg.update()

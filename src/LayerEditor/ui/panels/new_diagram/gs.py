@@ -76,16 +76,19 @@ class GsPoint(QtWidgets.QGraphicsEllipseItem):
     def move_to(self, x, y):
         #self.pt.set_xy(x, y)
         displacement = np.array([x - self.pt.xy[0], -y - self.pt.xy[1]])
+        print(f"{displacement[0]} {displacement[1]}")
         if self.scene().decomposition.check_displacment([self.pt], displacement):
             self.scene().decomposition.move_points([self.pt], displacement)
-
+        else:
+            return False
+        
         # for gseg in self.pt.g_segments():
         #     gseg.update()
         if self.scene():
             self.scene().update_all_segments()
             self.scene().update_all_polygons()
         self.update()
-
+        return True
 
     def itemChange(self, change, value):
         """
@@ -98,7 +101,8 @@ class GsPoint(QtWidgets.QGraphicsEllipseItem):
         #print("change: ", change, "val: ", value)
         if change == QtWidgets.QGraphicsItem.ItemPositionHasChanged:
             #self.pt.set_xy(value.x(), value.y())
-            self.move_to(value.x(), value.y())
+            if not self.move_to(value.x(), value.y()):
+                return super(GsPoint, self).itemChange(change, self.pos())
         if change == QtWidgets.QGraphicsItem.ItemSelectedChange:
             if self.isSelected():
                 self.setZValue(self.SELECTED_ZVALUE)
@@ -232,23 +236,24 @@ class GsSegment(QtWidgets.QGraphicsLineItem):
             painter.setPen(self.region_pen)
         painter.drawLine(self.line())
 
+    def move_to(self, x, y):
+        #self.pt.set_xy(x, y)
+        displacement = np.array([x - self.pos().x(), -y + self.pos().y()])
+        if self.scene().decomposition.check_displacment([self.segment.vtxs[0], self.segment.vtxs[1]], displacement):
+            self.scene().decomposition.move_points([self.segment.vtxs[0], self.segment.vtxs[1]], displacement)
+
+        # for gseg in self.pt.g_segments():
+        #     gseg.update()
+        if self.scene():
+            self.scene().update_all_points()
+            self.scene().update_all_segments()
+            self.scene().update_all_polygons()
+        self.update()
+
     def itemChange(self, change, value):
         #print("change: ", change, "val: ", value)
         if change == QtWidgets.QGraphicsItem.ItemPositionChange:
-            # set new values to data layer
-            p0 = self.segment.vtxs[0]
-            p1 = self.segment.vtxs[1]
-            diff = np.array([value.x() - self.pos().x(), value.y() - self.pos().y()])
-            p0.move(diff)
-            p1.move(diff)
-
-            # update graphic layer
-            #p0.gpt.update()
-            #p1.gpt.update()
-            self.scene().update_all_segments()
-            self.scene().update_all_polygons()
-
-            return self.pos()
+            self.move_to(value.x(), value.y())
         if change == QtWidgets.QGraphicsItem.ItemSelectedChange:
             if self.isSelected():
                 self.setZValue(self.SELECTED_ZVALUE)
