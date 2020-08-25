@@ -2,9 +2,9 @@
 """
 from PyQt5.QtWidgets import QMenu, QAction, QActionGroup, qApp
 
-from LayerEditor.leconfig import cfg
+
 from gm_base.geomop_dialogs import GMAboutDialog
-from LayerEditor.ui.dialogs import LE_help_dialog
+
 
 
 class MainFileMenu(QMenu):
@@ -16,7 +16,7 @@ class MainFileMenu(QMenu):
         self.setTitle(title)
         self._layer_editor = layer_editor
         self.parent = parent
-        self._about_dialog = GMAboutDialog(parent, 'GeoMop LayerEditor')
+        self._about_dialog = GMAboutDialog(parent, 'GeoMop OldLayerEditor')
 
         self._new_file_action = QAction('&New File ...', self)
         self._new_file_action.setShortcut(cfg.get_shortcut('new_file').key_sequence)

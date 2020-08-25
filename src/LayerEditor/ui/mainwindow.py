@@ -5,7 +5,7 @@
 import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtCore as QtCore
 import PyQt5.QtGui as QtGui
-#from LayerEditor.data import cfg
+from LayerEditor.data import cfg
 #from . import panels
 from LayerEditor.ui.tools.cursor import Cursor
 from LayerEditor.ui.diagram_editor.diagram_view import DiagramView
@@ -17,7 +17,7 @@ from LayerEditor.ui.diagram_editor.diagram_view import DiagramView
 import gm_base.icon as icon
 # from .panels.new_diagram.diagram_view import DiagramView
 # from .panels.new_diagram.tools import Cursor
-#from LayerEditor.ui.menus.file import MainFileMenu
+from LayerEditor.ui.menus.file import MainFileMenu
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -82,13 +82,13 @@ class MainWindow(QtWidgets.QMainWindow):
         # Menu bar
         self._menu = self.menuBar()
         # self._edit_menu = EditMenu(self, self.diagramScene)
-        #self._file_menu = MainFileMenu(self, self._layer_editor)
+        self._file_menu = MainFileMenu(self, self._layer_editor)
         # self._analysis_menu = AnalysisMenu(self, cfg.config)
         # self._settings_menu = MainSettingsMenu(self, self._layer_editor)
         # self._mesh_menu = MeshMenu(self, self._layer_editor)
         # self.update_recent_files(0)
 
-        #self._menu.addMenu(self._file_menu)
+        self._menu.addMenu(self._file_menu)
         # self._menu.addMenu(self._edit_menu)
         # self._menu.addMenu(self._analysis_menu)
         # self._menu.addMenu(self._settings_menu)
@@ -131,7 +131,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # self.wg_surface_panel.show_grid.connect(self._show_grid)
 
         # initialize components
-        #self.config_changed()
+        self.config_changed()
 
     # def release_data(self, diagram):
     #     """Release all diagram graphic object"""
@@ -288,10 +288,10 @@ class MainWindow(QtWidgets.QMainWindow):
     #         cfg.layer_heads.select_regions(dict(regions_of_layers))
     #
     #
-    # def config_changed(self):
-    #     """Handle changes of config."""
-    #     analysis = cfg.analysis or '(No Analysis)'
-    #     self._analysis_label.setText(analysis)
+    def config_changed(self):
+        """Handle changes of config."""
+        analysis = cfg.analysis or '(No Analysis)'
+        self._analysis_label.setText(analysis)
     #
     # def _region_changed(self):
     #     """Region in regions panel was changed."""
@@ -327,3 +327,4 @@ class MainWindow(QtWidgets.QMainWindow):
     def show_status_message(self, message, duration=5000):
         """Show a message in status bar for the given duration (in ms)."""
         self._status.showMessage(message, duration)
+
