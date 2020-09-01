@@ -28,14 +28,14 @@ class LayerEditor:
         #    self.parse_args(args)
 
 
-        self.geo_data = GeometryData()
+        self.le_data = LEData()
         self.cfg = _Config.open()
 
         self.mainwindow = MainWindow(self)
         self.exit = False
 
-        save_fn = lambda c=self.cfg: self.geo_data.le_serializer.save(c)
-        self.autosave = Autosave(self.cfg.current_workdir, lambda: self.cfg.curr_file, save_fn)
+        save_fn = lambda c=self.le_data: self.le_data.le_serializer.save(c)
+        self.autosave = Autosave(self.cfg.current_workdir, lambda: self.le_data.curr_file, save_fn)
         self._restore_backup()
 
         # show
@@ -48,6 +48,7 @@ class LayerEditor:
 
     def qapp_setup(self):
         """Setup application."""
+        Cursor.setup_cursors()
         QtWidgets.QApplication.setWindowIcon(icon.get_app_icon("le-geomap"))
         QtCore.QLocale.setDefault(QtCore.QLocale(QtCore.QLocale.English, QtCore.QLocale.UnitedStates))
 
@@ -107,7 +108,7 @@ class LayerEditor:
         if restored:
             #self.cfg.main_window.release_data(self.cfg.diagram_id())
             #self.cfg.history.remove_all()
-            self.geo_data.le_serializer.load(self.cfg, self.autosave.backup_filename())
+            self.le_data = LEData(self.autosave.backup_filename())
             #self.cfg.main_window.refresh_all()
             #self.cfg.history.last_save_labels = -1
         self.autosave.autosave_timer.stop()
@@ -122,9 +123,9 @@ class LayerEditor:
             return
 
         #self.mainwindow.release_data(cls.diagram_id())
-        self.geo_data = GeometryData()
+        self.le_data = LEData()
 
-        self.geo_data.curr_diagram.area.set_area([(0, 0), (100, 0), (100, 100), (0, 100)])
+        self.le_data.curr_diagram.area.set_area([(0, 0), (100, 0), (100, 100), (0, 100)])
         #self.mainwindow.refresh_all()
         #self.mainwindow.paint_new_data()
         self._update_document_name()
@@ -144,14 +145,10 @@ class LayerEditor:
                 self.cfg.data_dir, "Json Files (*.json)")
         if in_file:
             #self.main_window.release_data(cls.diagram_id())
-            self.geo_data = GeometryData()
-            self.geo_data.curr_file = in_file
+            self.le_data = LEData(in_file)
             self.cfg.update_current_workdir(in_file)
-            if self.geo_data.curr_file is not None:
-                try:
-                    self.geo_data.curr_file_timestamp = os.path.getmtime(in_file)
-                except OSError:
-                    pass
+            scene = self.le_data.blocks[0].diagram_scene
+            self.mainwindow.diagramView.setScene(scene)
 
             self.geo_data.load(in_file)
             #cls.main_window.refresh_all()
@@ -180,37 +177,37 @@ class LayerEditor:
     #     dlg = MakeMeshDlg(self.mainwindow)
     #     dlg.exec()
     #
-    # def open_recent(self, action):
-    #     """open recent file menu action"""
-    #     if action.data() == cfg.curr_file:
-    #         return
-    #     if not self.save_old_file():
-    #         return
-    #     cfg.open_recent_file(action.data())
-    #     self.mainwindow.update_recent_files()
-    #     self._update_document_name()
-    #     self._restore_backup()
-    #     self.mainwindow.show_status_message("File '" + action.data() + "' is opened")
+    def open_recent(self, action):
+        """open recent file menu action"""
+        if action.data() == self.le_data.curr_file:
+            return
+        if not self.save_old_file():
+            return
+        self.cfg.open_recent_file(action.data())
+        self.mainwindow.update_recent_files()
+        self._update_document_name()
+        self._restore_backup()
+        self.mainwindow.show_status_message("File '" + action.data() + "' is opened")
     #
     def save_file(self):
         """save file menu action"""
-        if self.cfg.curr_file is None:
+        if self.le_data.curr_file is None:
             return self.save_as()
-        if self.cfg.confront_file_timestamp():
+        if self.le_data.confront_file_timestamp():
             return
-        self.geo_data.save_file()
-        self.cfg.add_recent_file(self.geo_data.curr_file)
+        self.le_data.save_file()
+        self.cfg.add_recent_file(self.le_data.curr_file)
         self.autosave.delete_backup()
         self.mainwindow.show_status_message("File is saved")
 
     def save_as(self):
         """save file menu action"""
-        if self.geo_data.confront_file_timestamp():
+        if self.le_data.confront_file_timestamp():
             return
-        if self.geo_data.curr_file is None:
-            new_file = self.cfg.data_dir + os.path.sep + "NewFile.json"
+        if self.le_data.curr_file is None:
+            new_file = self.cfg.current_workdir + os.path.sep + "NewFile.json"
         else:
-            new_file = self.geo_data.curr_file
+            new_file = self.le_data.curr_file
         dialog = QtWidgets.QFileDialog(self.mainwindow, 'Save as JSON Geometry File', new_file,
                                        "JSON Files (*.json)")
         dialog.setDefaultSuffix('.json')
@@ -221,7 +218,7 @@ class LayerEditor:
         if dialog.exec_():
             self.autosave.delete_backup()
             file_name = dialog.selectedFiles()[0]
-            self.geo_data.save_file(file_name)
+            self.le_data.save_file(file_name)
             self.cfg.add_recent_file(file_name)
             self.mainwindow.update_recent_files()
             self._update_document_name()
@@ -235,7 +232,7 @@ class LayerEditor:
 
         return: False if action have to be aborted
         """
-        if self.cfg.changed():
+        if self.le_data.changed():
             msg_box = QtWidgets.QMessageBox()
             msg_box.setWindowTitle("Confirmation")
             msg_box.setIcon(QtWidgets.QMessageBox.Question)
@@ -262,10 +259,10 @@ class LayerEditor:
     def _update_document_name(self):
         """Update document title (add file name)"""
         title = "GeoMop Layer Editor"
-        if self.cfg.curr_file is None:
+        if self.le_data.curr_file is None:
             title += " - New File"
         else:
-            title += " - " + self.cfg.curr_file
+            title += " - " + self.le_data.curr_file
         self.mainwindow.setWindowTitle(title)
 
 

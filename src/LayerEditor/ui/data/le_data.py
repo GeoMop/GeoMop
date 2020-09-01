@@ -3,71 +3,85 @@
 .. codeauthor:: Pavel Richter <pavel.richter@tul.cz>
 """
 
-import logging
 import os
-from copy import deepcopy
 
 from PyQt5.QtCore import QObject
 
-import gm_base.config as cfg
-from gm_base.geomop_shortcuts import shortcuts
-from LayerEditor.helpers import keyboard_shortcuts_definition as shortcuts_definition
-from gm_base.geomop_util.logging import LOGGER_PREFIX
-from gm_base.geomop_util import Serializable
-from gm_base.geomop_dialogs import GMErrorDialog
-from gm_base.geomop_analysis import Analysis, InvalidAnalysis
-from LayerEditor.data.le_serializer import LESerializer
+from LayerEditor.ui.data.block import Block
+from LayerEditor.data.geometry_model import LayerGeometryModel
+from LayerEditor.ui.data.regions import Regions
+from LayerEditor.ui.diagram_editor.diagram_view import DiagramView
 
 
+class LEData(QObject):
+    """Main data class for Layer Editor"""
 
-class GeometryData(QObject):
-    """Main data class representing geometry data file"""
-    diagrams = []
-    """List of diagram data"""
-    history = None
-    """History for current geometry data"""
-    layers = None
-    """Layers structure"""
-    curr_diagram =  None
-    """Current diagram data"""
-    le_serializer = None
-    """Data from geometry file"""
-    curr_file = None
-    """Name of open file"""
-    curr_file_timestamp = None
-    """    
-    Timestamp of opened file, if editor text is 
-    imported or new timestamp is None
-    """
-    #path = None
-    """Current geometry data file path"""
-    geomop_root = os.path.dirname(os.path.dirname(
-                  os.path.dirname(os.path.realpath(__file__))))
-    """Path to the root directory of the GeoMop installation."""
-    layer_heads = None
-    # Data model for Regions panel.
+    # diagrams = []
+    # """List of diagram data"""
+    # history = None
+    # """History for current geometry data"""
+    # blocks = []
+    # """Blocks structure"""
+    # regions = None
+    # """Structure for managing regions"""
+    # curr_diagram =  None
+    # """Current diagram data"""
+    # le_serializer = None
+    # """Data from geometry file"""
+    # curr_file = None
+    # """Name of open file"""
+    # curr_file_timestamp = None
+    # """
+    # Timestamp of opened file, if editor text is
+    # imported or new timestamp is None
+    # """
+    # #path = None
+    # """Current geometry data file path"""
+    # geomop_root = os.path.dirname(os.path.dirname(
+    #               os.path.dirname(os.path.realpath(__file__))))
+    # """Path to the root directory of the GeoMop installation."""
+    # layer_heads = None
+    # # Data model for Regions panel.
 
-    def __init__(self):
-        self.init()
+    def __init__(self, in_file=None):
+        super(LEData, self).__init__()
+    #     # self.history = GlobalHistory(cls)
+    #     # cls.layers = le_data.Layers(cls.history)
+    #     # cls.reinit()
+    #     self.regions = Regions()
+        self.curr_file = in_file
+        """Current file (culd be moved to config?)."""
+        self.diagram_view = DiagramView()
+        """View is common for all layers and blocks."""
+        self.regions = Regions()
+        """Manages regions."""
+        if self.curr_file is None:
+            self.curr_file_timestamp = None
+        else:
+            try:
+                self.curr_file_timestamp = os.path.getmtime(in_file)
+            except OSError:
+                self.curr_file_timestamp = None
 
-    def init(self):
-        """Init class with static method"""
-        #cls.history = le_data.GlobalHistory(cls)
-        #cls.layers = le_data.Layers(cls.history)
-        #cls.reinit()
-        self.le_serializer = LESerializer(self)
+        """Timestamp is used for detecting file changes while file is loaded in LE."""
 
-    def reset_data(self):
-        #self.reinit()
-        self.diagrams = []
-        #self.layers.delete()
-        self.diagram = None
+        geo_model = LayerGeometryModel(in_file)
+        """Access to LayerGeometry."""
+        if in_file is None:
+            geo_model.set_default_data()
+        self.blocks = []
+        for top_idx, top in enumerate(geo_model.get_topologies()):
+            self.blocks.append(Block(top_idx, self))
 
-    # def reinit(self):
-    #     """Release all diagram data"""
-    #     self.layer_heads = regions.LayerHeads(self)
-    #     le_data.Diagram.reinit(self.layer_heads, self.history)
+        for layer in geo_model.get_layers():
+            top_idx = geo_model.get_gl_topology(layer)
+            self.blocks[top_idx].init_add_layer(layer, geo_model)
 
+    # # def reinit(self):
+    # #     """Release all diagram data"""
+    # #     self.layer_heads = regions.LayerHeads(self)
+    # #     le_data.Diagram.reinit(self.layer_heads, self.history)
+    #
     def confront_file_timestamp(self):
         """
         Compare file timestamp with file time and if is diferent
@@ -86,7 +100,7 @@ class GeometryData(QObject):
                     msg.setStandardButtons( QtWidgets.QMessageBox.Ignore | \
                         QtWidgets.QMessageBox.Reset)
                     msg.button(QtWidgets.QMessageBox.Reset).setText("Reload")
-                    msg.setDefaultButton(QtWidgets.QMessageBox.Ignore);
+                    msg.setDefaultButton(QtWidgets.QMessageBox.Ignore)
                     ret = msg.exec_()
                     if ret==QtWidgets.QMessageBox.Reset:
                         with open(self.curr_file, 'r') as file_d:
@@ -96,6 +110,10 @@ class GeometryData(QObject):
             except OSError:
                 pass
         return False
+
+    # def add_region(self, color, name, reg_id, dim, step, boundary=False, not_used=False):
+    #     """Add region"""
+    #     self.regions.add_region(color, name, reg_id, dim, step, boundary, not_used)
 
     # @classmethod
     # def reload_surfaces(cls, id=None):
@@ -109,11 +127,11 @@ class GeometryData(QObject):
     #     return  cls.main_window.wg_surface_panel.get_surface_id()
     #
     #
-    # @classmethod
-    # def changed(cls):
-    #     """is file changed"""
-    #     return cls.history.is_changes()
-    #
+    def changed(cls):
+        """is file changed"""
+        return False
+        #return cls.history.is_changes()
+
     # @classmethod
     # def add_region(cls, color, name, dim, step,  boundary, not_used):
     #     """Add region"""
@@ -222,8 +240,12 @@ class GeometryData(QObject):
         """save to json file"""
         if file is None:
             file = self.curr_file
-        self.le_serializer.save(self, file)
-        self.history.saved()
+
+        geo_model = LayerGeometryModel()
+        for block in self.blocks:
+            block.save(geo_model)
+        geo_model.save(self, file)
+        #self.history.saved()
 
         self.curr_file = file
         try:

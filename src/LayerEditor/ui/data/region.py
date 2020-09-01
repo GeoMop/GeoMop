@@ -27,4 +27,3 @@ class Region:
 
 # Special instances
 Region.none = Region(0, "grey", "NONE", -1)
-

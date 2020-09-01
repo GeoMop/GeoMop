@@ -13,40 +13,42 @@ class _Config:
     __serializable__ = Serializable(
         excluded=['observers']
     )
-
-    DEBUG_MODE = False
-    """debug mode changes the behaviour"""
-
+    #
+    # DEBUG_MODE = False
+    # """debug mode changes the behaviour"""
+    #
     SERIAL_FILE = "LayerEditorData"
     """Serialize class file"""
 
     COUNT_RECENT_FILES = 5
     """Count of recent files"""
 
-    CONTEXT_NAME = 'OldLayerEditor'
-
-    CONFIG_DIR = os.path.join(cfg.__config_dir__, 'OldLayerEditor')
+    # CONTEXT_NAME = 'LayerEditor'
+    #
+    CONFIG_DIR = os.path.join(cfg.__config_dir__, 'LayerEditor')
 
     def __init__(self, **kwargs):
 
-
-        self.observers = []
-        """objects to be notified of changes"""
-        self._analysis = None
-        self._workspace = None
-
-        self._analysis = kwargs.get('_analysis', None)
+        # self.observers = []
+        # """objects to be notified of changes"""
+        # self._analysis = None
+        # self._workspace = None
+        #
+        # self._analysis = kwargs.get('_analysis', None)
         self._workspace = kwargs.get('_workspace', None)
         self.show_init_area = kwargs.get('show_init_area', True)
 
+
+        # self.show_init_area = kwargs.get('show_init_area', True)
+        #
         self.current_workdir = os.getcwd()
         """directory of the most recently opened data file"""
         self.recent_files = kwargs.get('recent_files', [])
         """a list of recently opened files"""
-
-        self.shortcuts = kwargs.get('shortcuts',
-                                   deepcopy(shortcuts_definition.DEFAULT_USER_SHORTCUTS))
-        """user customizable keyboard shortcuts"""
+        #
+        # self.shortcuts = kwargs.get('shortcuts',
+        #                            deepcopy(shortcuts_definition.DEFAULT_USER_SHORTCUTS))
+        # """user customizable keyboard shortcuts"""
 
     def save(self):
         """Save config data"""
@@ -126,29 +128,29 @@ class _Config:
             self.analysis = None
         self._workspace = value
 
-    @property
-    def analysis(self):
-        """name of the analysis in the workspace"""
-        return self._analysis
+    # @property
+    # def analysis(self):
+    #     """name of the analysis in the workspace"""
+    #     return self._analysis
 
-    @analysis.setter
-    def analysis(self, value):
-        if value == '' or value is None:
-            self._analysis = None
-            Analysis.current = None
-        else:
-            self._analysis = value
-            try:
-                analysis = Analysis.open(self._workspace, self._analysis)
-            except InvalidAnalysis:
-                self._analysis = None
-            else:
-                Analysis.current = analysis
-        self.notify_all()
+    # @analysis.setter
+    # def analysis(self, value):
+    #     if value == '' or value is None:
+    #         self._analysis = None
+    #         Analysis.current = None
+    #     else:
+    #         self._analysis = value
+    #         try:
+    #             analysis = Analysis.open(self._workspace, self._analysis)
+    #         except InvalidAnalysis:
+    #             self._analysis = None
+    #         else:
+    #             Analysis.current = analysis
+    #     self.notify_all()
 
-    def notify_all(self):
-        """Notify all observers about changes."""
-        for observer in self.observers:
-            observer.config_changed()
+    # def notify_all(self):
+    #     """Notify all observers about changes."""
+    #     for observer in self.observers:
+    #         observer.config_changed()
 
 

@@ -55,8 +55,10 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # scene
 
-        self.diagramView = DiagramView(self._hsplitter)
-        self.diagramScene = self.diagramView._scene
+        self.diagramView = self._layer_editor.le_data.diagram_view
+        scene = self._layer_editor.le_data.blocks[0].diagram_scene
+        self.diagramView.setScene(scene)
+        """scene is set here only temporarily untill there will be more scenes  """
         self._hsplitter.addWidget(self.diagramView)
 
         self._hsplitter.setSizes([300, 760])
@@ -288,10 +290,10 @@ class MainWindow(QtWidgets.QMainWindow):
     #         cfg.layer_heads.select_regions(dict(regions_of_layers))
     #
     #
-    def config_changed(self):
-        """Handle changes of config."""
-        analysis = cfg.analysis or '(No Analysis)'
-        self._analysis_label.setText(analysis)
+    # def config_changed(self):
+    #     """Handle changes of config."""
+    #     analysis = cfg.analysis or '(No Analysis)'
+    #     self._analysis_label.setText(analysis)
     #
     # def _region_changed(self):
     #     """Region in regions panel was changed."""
