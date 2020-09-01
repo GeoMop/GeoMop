@@ -26,6 +26,7 @@ class Diagram(QtWidgets.QGraphicsScene):
         self.points = {}
         self.segments = {}
         self.polygons = {}
+        """Maps to all graphical objects grouped by type {id:QGraphicsItem}"""
 
         self.regions = Regions(self)
 
@@ -317,13 +318,13 @@ class Diagram(QtWidgets.QGraphicsScene):
         elif type(shape) is GsPolygon:
             return 3, shape.polygon_data.id
 
-    def undo(self):
-        undo.stack().undo()
-        self.update_scene()
-
-    def redo(self):
-        undo.stack().redo()
-        self.update_scene()
+    # def undo(self):
+    #     undo.stack().undo()
+    #     self.update_scene()
+    #
+    # def redo(self):
+    #     undo.stack().redo()
+    #     self.update_scene()
 
     # Modified from previous diagram
 
