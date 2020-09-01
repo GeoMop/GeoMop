@@ -57,10 +57,8 @@ class GsSegment(QtWidgets.QGraphicsLineItem):
 
         color = Region.none.color
         if self.scene():
-            regions = self.scene().regions
-            key = (2, self.segment.id)
-            reg_id = regions.get_shape_region(key)
-            color = regions.regions[reg_id].color
+            key = (1, self.segment.id)
+            color = self.scene().get_shape_color(key)
         self.region_pen, self.region_selected_pen  = GsSegment.pen_table(color)
 
         super().update()

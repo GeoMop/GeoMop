@@ -1,10 +1,9 @@
 from PyQt5 import QtWidgets, QtCore, QtGui
 from PyQt5.QtCore import Qt
 
+from LayerEditor.ui.data.region import Region
 from LayerEditor.ui.data.regions import Regions
 from LayerEditor.ui.tools.cursor import Cursor
-from LayerEditor.ui.tools.selection import Selection
-
 
 from bgem.polygons.polygons import PolygonDecomposition
 from bgem.external import undo
@@ -14,37 +13,58 @@ from LayerEditor.ui.diagram_editor.graphics_items.gs_polygon import GsPolygon
 from LayerEditor.ui.diagram_editor.graphics_items.gs_segment import GsSegment
 
 
-class Diagram(QtWidgets.QGraphicsScene):
+class DiagramScene(QtWidgets.QGraphicsScene):
     selection_changed = QtCore.pyqtSignal()
     # selection has changed
 
     regionsUpdateRequired = QtCore.pyqtSignal()
 
-    def __init__(self, parent):
+    def __init__(self, selection, regions, decomp, parent=None):
         rect = QtCore.QRectF(-622500, 1128600, 400, 500)
         super().__init__(rect, parent)
+
+        self.selection = selection
+        self.regions = regions
+
         self.points = {}
         self.segments = {}
         self.polygons = {}
 
-        self.regions = Regions(self)
+        self.regions = Regions()
 
         self.last_point = None
         self.aux_pt, self.aux_seg = self.create_aux_segment()
         self.hide_aux_line()
 
         self._zoom_value = 1.0
-        self.selection = Selection(self)
         self._press_screen_pos = QtCore.QPoint()
 
         # polygons
-        self.decomposition = PolygonDecomposition()
+        self.decomposition = decomp
         res = self.decomposition.get_last_polygon_changes()
         #assert res[0] == PolygonChange.add
         self.outer_id = res[1]
         """Decomposition of the a plane into polygons."""
-
+        self.update_scene()
         self.pixmap_item = None
+
+    def get_shape_color(self, shape_key):
+        dim, shape_id = shape_key
+        region_id = self.decomposition.decomp.shapes[dim][shape_id].attr
+
+        if region_id is None:
+            region_id = Region.none.id
+
+        return self.regions.regions[region_id].color
+
+    def get_shape_region(self, shape_key):
+        dim, shape_id = shape_key
+        region_id = self.decomposition.decomp.shapes[dim][shape_id].attr
+
+        if region_id is None:
+            region_id = Region.none.id
+
+        return region_id
 
     def create_aux_segment(self):
         pt_size = GsPoint.SIZE
@@ -90,7 +110,7 @@ class Diagram(QtWidgets.QGraphicsScene):
             if pt.id in self.points:
                 gpt = self.points[pt.id]
             else:
-                gpt = GsPoint(pt)
+                gpt = GsPoint(pt, )
                 #self.points.append(pt)
                 self.points[pt.id] = gpt
                 self.addItem(gpt)
@@ -278,6 +298,8 @@ class Diagram(QtWidgets.QGraphicsScene):
                 gpol = GsPolygon(polygon)
                 self.polygons[polygon_id] = gpol
                 self.addItem(gpol)
+
+        self.update()
 
     def delete_selected(self):
         # segments

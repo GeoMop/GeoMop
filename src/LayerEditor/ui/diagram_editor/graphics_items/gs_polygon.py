@@ -55,10 +55,8 @@ class GsPolygon(QtWidgets.QGraphicsPolygonItem):
         color = Qt.gray
         color = Region.none.color
         if self.scene():
-            regions = self.scene().regions
-            key = (3, self.polygon_data.id)
-            reg_id = regions.get_shape_region(key)
-            color = regions.regions[reg_id].color
+            key = (2, self.polygon_data.id)
+            color = self.scene().get_shape_color(key)
         self.region_brush = GsPolygon.brush_table(color)
 
         self.depth = self.polygon_data.depth()

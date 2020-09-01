@@ -1,19 +1,13 @@
 from PyQt5 import QtGui, QtWidgets, QtCore
 
-from LayerEditor.ui.diagram_editor.diagram import Diagram
-
 
 class DiagramView(QtWidgets.QGraphicsView):
-    def __init__(self, parent=None):
+    def __init__(self):
 
         super(DiagramView, self).__init__()
-        print(self)
-
 
         self._zoom = 0
         self._empty = True
-        self._scene = Diagram(self)
-        self.setScene(self._scene)
 
         self.setTransformationAnchor(QtWidgets.QGraphicsView.AnchorUnderMouse)
         self.setResizeAnchor(QtWidgets.QGraphicsView.AnchorUnderMouse)

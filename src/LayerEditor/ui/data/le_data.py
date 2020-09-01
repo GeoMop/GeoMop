@@ -294,22 +294,3 @@ class LEData(QObject):
     #             raise err
     #     return False
     #
-    # @classmethod
-    # def get_shortcut(cls, name):
-    #     """Locate a keyboard shortcut by its action name.
-    #
-    #     :param str name: name of the shortcut
-    #     :return: the assigned shortcut
-    #     :rtype: :py:class:`helpers.keyboard_shortcuts.KeyboardShortcut` or ``None``
-    #     """
-    #     shortcut = None
-    #     if name in shortcuts_definition.SYSTEM_SHORTCUTS:
-    #         shortcut = shortcuts_definition.SYSTEM_SHORTCUTS[name]
-    #     elif name in shortcuts_definition.DEFAULT_USER_SHORTCUTS:
-    #         shortcut = shortcuts_definition.DEFAULT_USER_SHORTCUTS[name]
-    #     if shortcut:
-    #         return shortcuts.get_shortcut(shortcut)
-    #     return None
-
-    def load(self, filename):
-        self.le_serializer.load(self, filename)

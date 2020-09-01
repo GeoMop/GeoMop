@@ -4,9 +4,9 @@ Start script that inicialize main window
 import sys
 import os
 import signal
-import argparse
 
-from LayerEditor.data.geo_data import GeometryData
+from LayerEditor.ui.data.le_data import LEData
+from LayerEditor.ui.tools.cursor import Cursor
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 
@@ -19,7 +19,7 @@ from LayerEditor.data.config import _Config
 
 
 class LayerEditor:
-    """Analyzis editor main class"""
+    """Layer Editor editor main class"""
 
     def __init__(self, args=None):
         self.qapp_setup()
@@ -150,7 +150,6 @@ class LayerEditor:
             scene = self.le_data.blocks[0].diagram_scene
             self.mainwindow.diagramView.setScene(scene)
 
-            self.geo_data.load(in_file)
             #cls.main_window.refresh_all()
             self.cfg.add_recent_file(in_file)
             self._update_document_name()

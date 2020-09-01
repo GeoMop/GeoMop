@@ -133,7 +133,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # self.wg_surface_panel.show_grid.connect(self._show_grid)
 
         # initialize components
-        self.config_changed()
+        #self.config_changed()
 
     # def release_data(self, diagram):
     #     """Release all diagram graphic object"""
@@ -182,9 +182,9 @@ class MainWindow(QtWidgets.QMainWindow):
     #
     #     self.diagramScene.blink_start(rect)
     #
-    # def update_recent_files(self, from_row=1):
-    #     """Update recently opened files."""
-    #     self._file_menu.update_recent_files(from_row)
+    def update_recent_files(self, from_row=1):
+        """Update recently opened files."""
+        self._file_menu.update_recent_files(from_row)
     #
     # def refresh_view_data(self, i):
     #     """Propagate new views (static, not edited diagrams)

@@ -30,7 +30,7 @@ class GsPoint(QtWidgets.QGraphicsEllipseItem):
     def __init__(self, pt):
         self.pt = pt
         # pt.gpt = self
-        super().__init__(-self.SIZE, -self.SIZE, 2 * self.SIZE, 2 * self.SIZE, )
+        super().__init__(-self.SIZE, -self.SIZE, 2 * self.SIZE, 2 * self.SIZE)
         self.setFlag(QtWidgets.QGraphicsItem.ItemIgnoresTransformations, True)
         # do not scale points whenzooming
         self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, True)
@@ -65,10 +65,8 @@ class GsPoint(QtWidgets.QGraphicsEllipseItem):
         color = Qt.gray
         color = Region.none.color
         if self.scene():
-            regions = self.scene().regions
-            key = (1, self.pt.id)
-            reg_id = regions.get_shape_region(key)
-            color = regions.regions[reg_id].color
+            key = (0, self.pt.id)
+            color = self.scene().get_shape_color(key)
         self.region_brush, self.region_pen = GsPoint.pen_table(color)
 
         self.setZValue(self.STD_ZVALUE)

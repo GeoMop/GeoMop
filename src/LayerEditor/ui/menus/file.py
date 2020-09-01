@@ -1,7 +1,8 @@
 """Module contains file menu widget.
 """
 from PyQt5.QtWidgets import QMenu, QAction, QActionGroup, qApp
-
+from LayerEditor.data import cfg
+from LayerEditor.ui.dialogs.LE_help import LE_help_dialog
 
 from gm_base.geomop_dialogs import GMAboutDialog
 
@@ -49,10 +50,10 @@ class MainFileMenu(QMenu):
 
         self.addSeparator()
 
-        self._import_file_action = QAction('&Add Shape File ...', self)
-        self._import_file_action.setStatusTip('Add shape file')
-        self._import_file_action.triggered.connect(self._layer_editor.add_shape_file)
-        self.addAction(self._import_file_action)
+        # self._import_file_action = QAction('&Add Shape File ...', self)
+        # self._import_file_action.setStatusTip('Add shape file')
+        # self._import_file_action.triggered.connect(self._layer_editor.add_shape_file)
+        # self.addAction(self._import_file_action)
 
         self.addSeparator()
 
@@ -80,13 +81,13 @@ class MainFileMenu(QMenu):
             self._recent_file_signal_connect = False
         for action in self._recent_group.actions():
             self._recent_group.removeAction(action)
-        if len(cfg.config.recent_files) < from_row+1:
+        if len(cfg.recent_files) < from_row+1:
             self._recent.setEnabled(False)
             return
         self._recent.setEnabled(True)
-        for i in range(from_row, len(cfg.config.recent_files)):
-            action = QAction(cfg.config.recent_files[i], self, checkable=True)
-            action.setData(cfg.config.recent_files[i])            
+        for i in range(from_row, len(cfg.recent_files)):
+            action = QAction(cfg.recent_files[i], self, checkable=True)
+            action.setData(cfg.recent_files[i])
             reaction = self._recent_group.addAction(action)
             self._recent.addAction(reaction)
         self._recent_group.triggered.connect(self._layer_editor.open_recent)

@@ -5,10 +5,11 @@ from gm_base.geomop_util import Serializable
 import gm_base.config as cfg
 from LayerEditor.helpers import keyboard_shortcuts_definition as shortcuts_definition
 from gm_base.geomop_analysis import Analysis, InvalidAnalysis
+from gm_base.geomop_shortcuts import shortcuts
 
 
 class _Config:
-    """Class for Analyzis serialization"""
+    """Class for all persistent data which will be saved to config file"""
 
     __serializable__ = Serializable(
         excluded=['observers']
@@ -36,7 +37,6 @@ class _Config:
         #
         # self._analysis = kwargs.get('_analysis', None)
         self._workspace = kwargs.get('_workspace', None)
-        self.show_init_area = kwargs.get('show_init_area', True)
 
 
         # self.show_init_area = kwargs.get('show_init_area', True)
@@ -153,4 +153,18 @@ class _Config:
     #     for observer in self.observers:
     #         observer.config_changed()
 
+    def get_shortcut(self, name):
+        """Locate a keyboard shortcut by its action name.
 
+        :param str name: name of the shortcut
+        :return: the assigned shortcut
+        :rtype: :py:class:`helpers.keyboard_shortcuts.KeyboardShortcut` or ``None``
+        """
+        shortcut = None
+        if name in shortcuts_definition.SYSTEM_SHORTCUTS:
+            shortcut = shortcuts_definition.SYSTEM_SHORTCUTS[name]
+        elif name in shortcuts_definition.DEFAULT_USER_SHORTCUTS:
+            shortcut = shortcuts_definition.DEFAULT_USER_SHORTCUTS[name]
+        if shortcut:
+            return shortcuts.get_shortcut(shortcut)
+        return None

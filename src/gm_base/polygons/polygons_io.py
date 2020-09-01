@@ -1,11 +1,12 @@
+from bgem.polygons import polygons
+
 import gm_base.geometry_files.format_last as gs
-import gm_base.polygons.polygons as polygons
 
-
-from gm_base.polygons.decomp import Point
 """
 TODO: Try to remove dependency on `decomp` module.
 """
+# TODO: ^ seems to be done.
+# TODO: Maybe put those methods somewhere close to decomposition (for example DiagramScene)
 
 
 def set_indices(decomp):
@@ -66,11 +67,11 @@ def deserialize(nodes, topology):
     are set to their indices in the input file lists, counting from 0.
     """
     polydec = polygons.PolygonDecomposition()
+    polygons.disable_undo()
     decomp = polydec.decomp
 
     for id, node in enumerate(nodes):
-        point = polydec._add_point(node, poly=polydec.outer_polygon, id=id)
-        point.index = id
+        polydec._add_point(node, poly=polydec.outer_polygon)
 
     if len(topology.polygons) == 0 or len(topology.polygons[0].segment_ids) > 0:
         reconstruction_from_old_input(polydec, topology)
@@ -91,6 +92,7 @@ def deserialize(nodes, topology):
     polydec.set_wire_parents()
 
     decomp.check_consistency()
+    polygons.enable_undo()
     return polydec
 
 
