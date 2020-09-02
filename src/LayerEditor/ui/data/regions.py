@@ -32,8 +32,8 @@ class Regions:
 
         return attr
 
-    def get_common_region(self):
-        selected = self._diagram.selection._selected
+    def get_common_region(self, selection):
+        selected = selection._selected
         r_id = Region.none.id
         if selected:
             r_id = self.get_shape_region(self._diagram.get_shape_key(selected[0]))

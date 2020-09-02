@@ -10,7 +10,7 @@ class Selection():
 
         self._diagram.selection_changed.emit()
 
-    def select_add_item(self, item):
+    def select_toggle_item(self, item):
         if item in self._selected:
             self._selected.remove(item)
         else:
