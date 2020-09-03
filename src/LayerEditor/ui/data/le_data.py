@@ -236,15 +236,18 @@ class LEData(QObject):
     #                 err_dialog.open_error_dialog("Can't open shapefile", err)
     #     return False
 
+    def make_geo_model(self):
+        geo_model = LayerGeometryModel()
+        for block in self.blocks:
+            block.save(geo_model)
+        return geo_model
+
     def save_file(self, file=None):
         """save to json file"""
         if file is None:
             file = self.curr_file
 
-        geo_model = LayerGeometryModel()
-        for block in self.blocks:
-            block.save(geo_model)
-        geo_model.save(self, file)
+        self.make_geo_model().save(file)
         #self.history.saved()
 
         self.curr_file = file
@@ -294,3 +297,6 @@ class LEData(QObject):
     #             raise err
     #     return False
     #
+
+    def save_to_string(self):
+        return self.make_geo_model().save()

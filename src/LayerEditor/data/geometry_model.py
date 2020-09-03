@@ -297,7 +297,7 @@ class LayerGeometryModel:
     #     shp['file'] = self.make_rel_path(shp['file'])
     #     self.geometry.supplement.shps.append(shp.copy())
     #
-    def save(self, geo_data, path=""):
+    def save(self, path=""):
         errors = self.check_file_consistency()
         if len(errors) > 0:
             raise DataInconsistentException("Some file consistency errors occure", errors)

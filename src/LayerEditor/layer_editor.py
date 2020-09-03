@@ -15,7 +15,7 @@ import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtCore as QtCore
 import gm_base.icon as icon
 from gm_base.geomop_util_qt import Autosave
-from LayerEditor.data.config import _Config
+from LayerEditor.data import cfg
 
 
 class LayerEditor:
@@ -27,24 +27,21 @@ class LayerEditor:
         #if args:
         #    self.parse_args(args)
 
-
-        self.le_data = LEData()
-        self.cfg = _Config.open()
+        self._le_data = LEData()
 
         self.mainwindow = MainWindow(self)
         self.exit = False
 
-        save_fn = lambda c=self.le_data: self.le_data.le_serializer.save(c)
-        self.autosave = Autosave(self.cfg.current_workdir, lambda: self.le_data.curr_file, save_fn)
+        save_fn = lambda: self.le_data.save_to_string()
+        self.autosave = Autosave(cfg.current_workdir, lambda: self.le_data.curr_file, save_fn)
         self._restore_backup()
 
         # show
         self.mainwindow.show()
         #self.mainwindow.paint_new_data()
         #self._update_document_name()
-        #self.autosave.start_autosave()
+        self.autosave.start_autosave()
         #self.mainwindow.diagramScene.regionsUpdateRequired.connect(self.autosave.on_content_change)
-
 
     def qapp_setup(self):
         """Setup application."""
@@ -54,6 +51,16 @@ class LayerEditor:
 
         # enable Ctrl+C from console to kill the application
         signal.signal(signal.SIGINT, signal.SIG_DFL)
+
+    @property
+    def le_data(self):
+        return self._le_data
+
+    @le_data.setter
+    def le_data(self, le_data):
+        self._le_data = le_data
+        self.autosave.update_content()
+
 
     # def parse_args(self, args):
     #     """
@@ -106,12 +113,13 @@ class LayerEditor:
         """recover file from backup file if it exists and if user wishes so"""
         restored = self.autosave.restore_backup()
         if restored:
-            #self.cfg.main_window.release_data(self.cfg.diagram_id())
-            #self.cfg.history.remove_all()
-            self.le_data = LEData(self.autosave.backup_filename())
-            #self.cfg.main_window.refresh_all()
-            #self.cfg.history.last_save_labels = -1
-        self.autosave.autosave_timer.stop()
+            #cfg.main_window.release_data(cfg.diagram_id())
+            #cfg.history.remove_all()
+            self.load_file(self.autosave.backup_filename())
+            self.le_data.curr_file = None
+            self.le_data.curr_file_timestamp = None
+            #cfg.main_window.refresh_all()
+            #cfg.history.last_save_labels = -1
         return restored
 
     def new_file(self):
@@ -123,13 +131,20 @@ class LayerEditor:
             return
 
         #self.mainwindow.release_data(cls.diagram_id())
-        self.le_data = LEData()
+        self.load_file()
 
-        self.le_data.curr_diagram.area.set_area([(0, 0), (100, 0), (100, 100), (0, 100)])
+        #self.le_data.curr_diagram.area.set_area([(0, 0), (100, 0), (100, 100), (0, 100)])
         #self.mainwindow.refresh_all()
         #self.mainwindow.paint_new_data()
-        self._update_document_name()
+
         return True
+
+    def load_file(self, in_file=None):
+        """Loads in_file and sets the new scene to be visible. If in_file is None it will cr"""
+        self.le_data = LEData(in_file)
+        scene = self.le_data.blocks[0].diagram_scene
+        self.mainwindow.diagramView.setScene(scene)
+        self._update_document_name()
 
     def open_file(self, in_file=None):
         """
@@ -142,17 +157,15 @@ class LayerEditor:
         if in_file is None:
             in_file, _ = QtWidgets.QFileDialog.getOpenFileName(
                 self.mainwindow, "Choose Json Geometry File",
-                self.cfg.data_dir, "Json Files (*.json)")
+                cfg.data_dir, "Json Files (*.json)")
         if in_file:
             #self.main_window.release_data(cls.diagram_id())
-            self.le_data = LEData(in_file)
-            self.cfg.update_current_workdir(in_file)
-            scene = self.le_data.blocks[0].diagram_scene
-            self.mainwindow.diagramView.setScene(scene)
+            self.load_file(in_file)
+            cfg.update_current_workdir(in_file)
 
             #cls.main_window.refresh_all()
-            self.cfg.add_recent_file(in_file)
-            self._update_document_name()
+            cfg.add_recent_file(in_file)
+            cfg.current_workdir = os.path.dirname(in_file)
             self._restore_backup()
             self.mainwindow.show_status_message("File {} is opened".format(in_file))
             return True
@@ -182,7 +195,8 @@ class LayerEditor:
             return
         if not self.save_old_file():
             return
-        self.cfg.open_recent_file(action.data())
+        self.load_file(action.data())
+        cfg.add_recent_file(action.data())
         self.mainwindow.update_recent_files()
         self._update_document_name()
         self._restore_backup()
@@ -195,7 +209,7 @@ class LayerEditor:
         if self.le_data.confront_file_timestamp():
             return
         self.le_data.save_file()
-        self.cfg.add_recent_file(self.le_data.curr_file)
+        cfg.add_recent_file(self.le_data.curr_file)
         self.autosave.delete_backup()
         self.mainwindow.show_status_message("File is saved")
 
@@ -204,7 +218,7 @@ class LayerEditor:
         if self.le_data.confront_file_timestamp():
             return
         if self.le_data.curr_file is None:
-            new_file = self.cfg.current_workdir + os.path.sep + "NewFile.json"
+            new_file = cfg.current_workdir + os.path.sep + "NewFile.json"
         else:
             new_file = self.le_data.curr_file
         dialog = QtWidgets.QFileDialog(self.mainwindow, 'Save as JSON Geometry File', new_file,
@@ -217,8 +231,9 @@ class LayerEditor:
         if dialog.exec_():
             self.autosave.delete_backup()
             file_name = dialog.selectedFiles()[0]
+            cfg.current_workdir = os.path.dirname(file_name)
             self.le_data.save_file(file_name)
-            self.cfg.add_recent_file(file_name)
+            cfg.add_recent_file(file_name)
             self.mainwindow.update_recent_files()
             self._update_document_name()
             self.mainwindow.show_status_message("File is saved")
@@ -243,7 +258,7 @@ class LayerEditor:
             if reply == QtWidgets.QMessageBox.Abort:
                 return False
             if reply == QtWidgets.QMessageBox.Yes:
-                if self.cfg.curr_file is None:
+                if cfg.curr_file is None:
                     return self.save_as()
                 else:
                     self.save_file()

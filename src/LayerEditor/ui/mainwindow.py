@@ -88,7 +88,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # self._analysis_menu = AnalysisMenu(self, cfg.config)
         # self._settings_menu = MainSettingsMenu(self, self._layer_editor)
         # self._mesh_menu = MeshMenu(self, self._layer_editor)
-        # self.update_recent_files(0)
+        self.update_recent_files(0)
 
         self._menu.addMenu(self._file_menu)
         # self._menu.addMenu(self._edit_menu)

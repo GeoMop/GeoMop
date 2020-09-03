@@ -2,7 +2,7 @@ import os
 from copy import deepcopy
 
 from gm_base.geomop_util import Serializable
-import gm_base.config as cfg
+import gm_base.config as base_cfg
 from LayerEditor.helpers import keyboard_shortcuts_definition as shortcuts_definition
 from gm_base.geomop_analysis import Analysis, InvalidAnalysis
 from gm_base.geomop_shortcuts import shortcuts
@@ -26,7 +26,7 @@ class _Config:
 
     # CONTEXT_NAME = 'LayerEditor'
     #
-    CONFIG_DIR = os.path.join(cfg.__config_dir__, 'LayerEditor')
+    CONFIG_DIR = os.path.join(base_cfg.__config_dir__, 'LayerEditor')
 
     def __init__(self, **kwargs):
 
@@ -41,7 +41,7 @@ class _Config:
 
         # self.show_init_area = kwargs.get('show_init_area', True)
         #
-        self.current_workdir = os.getcwd()
+        self.current_workdir = kwargs.get('current_workdir', os.getcwd())
         """directory of the most recently opened data file"""
         self.recent_files = kwargs.get('recent_files', [])
         """a list of recently opened files"""
@@ -52,13 +52,13 @@ class _Config:
 
     def save(self):
         """Save config data"""
-        cfg.save_config_file(self.__class__.SERIAL_FILE, self, self.CONFIG_DIR)
+        base_cfg.save_config_file(self.__class__.SERIAL_FILE, self, self.CONFIG_DIR)
 
     @staticmethod
     def open():
         """Open config from saved file (if exists)."""
-        config = cfg.get_config_file(_Config.SERIAL_FILE,
-                                     _Config.CONFIG_DIR, cls=_Config)
+        config = base_cfg.get_config_file(_Config.SERIAL_FILE,
+                                          _Config.CONFIG_DIR, cls=_Config)
         if config is None:
             config = _Config()
         return config
