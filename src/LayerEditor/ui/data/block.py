@@ -21,11 +21,12 @@ class Block:
         """Reference to object which manages regions."""
         self.layers = []
         """list of layer in this block"""
-        self.selection = Selection(self)
-        """Selection is common for all layers in this block."""
 
         self.diagram_scene = None
         """Graphics scene is bound to ns_idx (for one node set there is one graphics scene)."""
+
+        self.selection = Selection()
+        """Selection is common for all layers in this block."""
 
     def init_scene(self, nodes, topology):
         """Initial setup of scene and PolygonDecomposition."""
@@ -34,6 +35,8 @@ class Block:
                                           self.regions,
                                           decomp,
                                           self.le_data.diagram_view)
+
+        self.selection.set_diagram(self.diagram_scene)
 
 
     def init_add_layer(self, layer_data, geo_model):

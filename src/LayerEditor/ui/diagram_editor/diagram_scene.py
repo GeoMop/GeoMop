@@ -37,7 +37,6 @@ class DiagramScene(QtWidgets.QGraphicsScene):
         self.aux_pt, self.aux_seg = self.create_aux_segment()
         self.hide_aux_line()
 
-        self._zoom_value = 1.0
         self._press_screen_pos = QtCore.QPoint()
 
         # polygons
@@ -162,7 +161,6 @@ class DiagramScene(QtWidgets.QGraphicsScene):
         return below_item
 
     def update_zoom(self, value):
-        self._zoom_value = value
 
         for g_seg in self.segments.values():
             g_seg.update_zoom(value)
@@ -216,7 +214,7 @@ class DiagramScene(QtWidgets.QGraphicsScene):
 
             if event.modifiers() & Qt.ShiftModifier:
                 if item is not None:
-                    self.selection.select_add_item(item)
+                    self.selection.select_toggle_item(item)
             else:
                 if item is not None:
                     self.selection.select_item(item)
@@ -277,7 +275,8 @@ class DiagramScene(QtWidgets.QGraphicsScene):
                 self.segments[segment_id].update()
             else:
                 gseg = GsSegment(segment)
-                gseg.update_zoom(self._zoom_value)
+                parent = self.parent()
+                gseg.update_zoom(self.parent()._zoom)
                 self.segments[segment_id] = gseg
                 self.addItem(gseg)
 
