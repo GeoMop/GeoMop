@@ -142,7 +142,7 @@ class LayerEditor:
     def load_file(self, in_file=None):
         """Loads in_file and sets the new scene to be visible. If in_file is None it will cr"""
         self.le_data = LEData(in_file)
-        scene = self.le_data.blocks[0].diagram_scene
+        scene = self.le_data.diagram_view.scenes[0]
         self.mainwindow.diagramView.setScene(scene)
         self._update_document_name()
 

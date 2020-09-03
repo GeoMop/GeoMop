@@ -11,7 +11,7 @@ from gm_base.geometry_files.bspline_io import bs_zsurface_read, bs_zsurface_writ
 from gm_base.polygons import polygons_io
 
 
-class LayerGeometryModel:
+class LayerGeometrySerializer:
     """This class wraps data in LayerGeometry and provides methods for reading/modifying it"""
 
     def __init__(self, filename=None):

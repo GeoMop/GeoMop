@@ -8,6 +8,7 @@ class DiagramView(QtWidgets.QGraphicsView):
 
         self._zoom = 1
         self._empty = True
+        self.scenes = []
 
         self.setTransformationAnchor(QtWidgets.QGraphicsView.AnchorUnderMouse)
         self.setResizeAnchor(QtWidgets.QGraphicsView.AnchorUnderMouse)

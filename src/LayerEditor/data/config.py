@@ -7,7 +7,7 @@ from LayerEditor.helpers import keyboard_shortcuts_definition as shortcuts_defin
 from gm_base.geomop_analysis import Analysis, InvalidAnalysis
 from gm_base.geomop_shortcuts import shortcuts
 
-
+# TODO: refactor config and use JsonData
 class _Config:
     """Class for all persistent data which will be saved to config file"""
 

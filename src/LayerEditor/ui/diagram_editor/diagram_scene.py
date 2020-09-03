@@ -19,12 +19,14 @@ class DiagramScene(QtWidgets.QGraphicsScene):
 
     regionsUpdateRequired = QtCore.pyqtSignal()
 
-    def __init__(self, selection, regions, decomp, parent=None):
+    def __init__(self, regions, block, parent=None):
         rect = QtCore.QRectF(-622500, 1128600, 400, 500)
         super().__init__(rect, parent)
 
-        self.selection = selection
+        self.selection = block.selection
         self.regions = regions
+        #self.block = block
+
 
         self.points = {}
         self.segments = {}
@@ -40,7 +42,7 @@ class DiagramScene(QtWidgets.QGraphicsScene):
         self._press_screen_pos = QtCore.QPoint()
 
         # polygons
-        self.decomposition = decomp
+        self.decomposition = block.decomposition
         res = self.decomposition.get_last_polygon_changes()
         #assert res[0] == PolygonChange.add
         self.outer_id = res[1]
@@ -57,14 +59,14 @@ class DiagramScene(QtWidgets.QGraphicsScene):
 
         return self.regions.regions[region_id].color
 
-    def get_shape_region(self, shape_key):
-        dim, shape_id = shape_key
-        region_id = self.decomposition.decomp.shapes[dim][shape_id].attr
-
-        if region_id is None:
-            region_id = Region.none.id
-
-        return region_id
+    # def get_shape_region(self, shape_key):
+    #     dim, shape_id = shape_key
+    #     region_id = self.decomposition.decomp.shapes[dim][shape_id].attr
+    #
+    #     if region_id is None:
+    #         region_id = Region.none.id
+    #
+    #     return region_id
 
     def create_aux_segment(self):
         pt_size = GsPoint.SIZE
@@ -110,7 +112,7 @@ class DiagramScene(QtWidgets.QGraphicsScene):
             if pt.id in self.points:
                 gpt = self.points[pt.id]
             else:
-                gpt = GsPoint(pt, )
+                gpt = GsPoint(pt)
                 #self.points.append(pt)
                 self.points[pt.id] = gpt
                 self.addItem(gpt)
