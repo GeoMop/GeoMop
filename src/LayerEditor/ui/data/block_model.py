@@ -1,5 +1,5 @@
 from LayerEditor.data.geometry_model import LayerGeometryModel
-from LayerEditor.ui.data.layer import Layer
+from LayerEditor.ui.data.layer_model import LayerModel
 
 from LayerEditor.ui.diagram_editor.diagram_scene import DiagramScene
 from LayerEditor.ui.tools.selection import Selection
@@ -8,7 +8,7 @@ import gm_base.polygons.polygons_io as polygons_io
 from gm_base.geometry_files.format_last import InterfaceNodeSet
 
 
-class Block:
+class BlockModel:
     """Holds common data for a block of layers"""
     def __init__(self, top_idx, le_data):
         self.le_data = le_data
@@ -51,7 +51,7 @@ class Block:
                 # TODO: Finish later when needed
                 raise NotImplemented("Not sure how InterpolatedNodeSet works")
 
-        self.layers.append(Layer(layer_data))
+        self.layers.append(LayerModel(layer_data))
         self.ns_idx = layer_data.top.nodeset_id
 
     def save(self, geo_model: LayerGeometryModel):

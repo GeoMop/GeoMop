@@ -2,7 +2,7 @@ from PyQt5 import QtWidgets, QtCore, QtGui
 from PyQt5.QtCore import Qt
 
 from LayerEditor.ui.data.region import Region
-from LayerEditor.ui.data.regions import Regions
+from LayerEditor.ui.data.regions_model import RegionsModel
 from LayerEditor.ui.tools.cursor import Cursor
 
 from bgem.polygons.polygons import PolygonDecomposition
@@ -31,7 +31,7 @@ class DiagramScene(QtWidgets.QGraphicsScene):
         self.polygons = {}
         """Maps to all graphical objects grouped by type {id:QGraphicsItem}"""
 
-        self.regions = Regions()
+        self.regions = RegionsModel()
 
         self.last_point = None
         self.aux_pt, self.aux_seg = self.create_aux_segment()

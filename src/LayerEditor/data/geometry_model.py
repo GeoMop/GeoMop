@@ -1,4 +1,4 @@
-"""Structures for Layer Geometry File"""
+"""Model for Layer Geometry File"""
 import json
 import os
 

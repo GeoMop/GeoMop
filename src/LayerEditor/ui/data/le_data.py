@@ -7,9 +7,9 @@ import os
 
 from PyQt5.QtCore import QObject
 
-from LayerEditor.ui.data.block import Block
+from LayerEditor.ui.data.block_model import BlockModel
 from LayerEditor.data.geometry_model import LayerGeometryModel
-from LayerEditor.ui.data.regions import Regions
+from LayerEditor.ui.data.regions_model import RegionsModel
 from LayerEditor.ui.diagram_editor.diagram_view import DiagramView
 
 
@@ -53,7 +53,7 @@ class LEData(QObject):
         """Current file (culd be moved to config?)."""
         self.diagram_view = DiagramView()
         """View is common for all layers and blocks."""
-        self.regions = Regions()
+        self.regions = RegionsModel()
         """Manages regions."""
         if self.curr_file is None:
             self.curr_file_timestamp = None
@@ -71,7 +71,7 @@ class LEData(QObject):
             geo_model.set_default_data()
         self.blocks = []
         for top_idx, top in enumerate(geo_model.get_topologies()):
-            self.blocks.append(Block(top_idx, self))
+            self.blocks.append(BlockModel(top_idx, self))
 
         for layer in geo_model.get_layers():
             top_idx = geo_model.get_gl_topology(layer)

@@ -1,7 +1,8 @@
 from LayerEditor.ui.data.region import Region
 
 
-class Regions:
+class RegionsModel:
+    """Class for managing all regions"""
     def __init__(self):
         self.regions = {Region.none.id: Region.none}
 

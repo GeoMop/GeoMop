@@ -2,7 +2,7 @@ import PyQt5.QtCore as QtCore
 import PyQt5.QtGui as QtGui
 from .shp_structures import ShpFiles
 from .history import DiagramHistory
-from .region_structures import Regions
+from ._region_structures import Regions
 from .polygon_operation import PolygonOperation
 
 __next_id__ = 1
