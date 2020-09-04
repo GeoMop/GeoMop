@@ -7,11 +7,12 @@ import psutil
 import codecs
 import time
 from PyQt5 import QtCore, QtWidgets
+from LayerEditor.data import cfg
 
 
 class Autosave:
 
-    AUTOSAVE_INTERVAL = 1000
+    AUTOSAVE_INTERVAL = 5000
     # in miliseconds
     DEFAULT_FILENAME = "Untitled.yaml"
 
@@ -23,7 +24,7 @@ class Autosave:
         """
         self.curr_filename_fnc = curr_filename_fnc
         self.text = string_to_save_fnc
-        self.content_hash = None
+        self.content_hash = hash(self.text())
         self.autosave_timer = QtCore.QTimer()
         """timer for periodical saving"""
         #self.autosave_timer.setSingleShot(True)
@@ -49,6 +50,7 @@ class Autosave:
 
     def _autosave(self):
         """Periodically saves specified string (current file)."""
+        cfg.save()
         content = self.text()
         content_hash = hash(content)
         if self.content_hash != content_hash:
@@ -88,3 +90,6 @@ class Autosave:
 
     def start_autosave(self):
         self.autosave_timer.start(self.AUTOSAVE_INTERVAL)
+
+    def update_content(self):
+        self.content_hash = hash(self.text())

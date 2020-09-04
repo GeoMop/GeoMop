@@ -1,11 +1,14 @@
 class Selection():
-    def __init__(self, diagram):
-        self._diagram = diagram
+    def __init__(self):
+        self._diagram = None
         self._selected = []
+
+    def set_diagram(self, diagram):
+        self._diagram = diagram
 
     def select_item(self, item):
         self._selected.clear()
-        self.select_add_item(item)
+        self.select_toggle_item(item)
         self._diagram.update()
 
         self._diagram.selection_changed.emit()

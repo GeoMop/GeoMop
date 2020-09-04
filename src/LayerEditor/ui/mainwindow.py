@@ -5,7 +5,7 @@
 import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtCore as QtCore
 import PyQt5.QtGui as QtGui
-#from LayerEditor.data import cfg
+from LayerEditor.data import cfg
 #from . import panels
 from LayerEditor.ui.tools.cursor import Cursor
 from LayerEditor.ui.diagram_editor.diagram_view import DiagramView
@@ -17,7 +17,7 @@ from LayerEditor.ui.diagram_editor.diagram_view import DiagramView
 import gm_base.icon as icon
 # from .panels.new_diagram.diagram_view import DiagramView
 # from .panels.new_diagram.tools import Cursor
-#from LayerEditor.ui.menus.file import MainFileMenu
+from LayerEditor.ui.menus.file import MainFileMenu
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -55,8 +55,10 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # scene
 
-        self.diagramView = DiagramView(self._hsplitter)
-        self.diagramScene = self.diagramView._scene
+        self.diagramView = self._layer_editor.le_data.diagram_view
+        scene = self.diagramView.scenes[0]
+        self.diagramView.setScene(scene)
+        """scene is set here only temporarily untill there will be more scenes  """
         self._hsplitter.addWidget(self.diagramView)
 
         self._hsplitter.setSizes([300, 760])
@@ -82,13 +84,13 @@ class MainWindow(QtWidgets.QMainWindow):
         # Menu bar
         self._menu = self.menuBar()
         # self._edit_menu = EditMenu(self, self.diagramScene)
-        #self._file_menu = MainFileMenu(self, self._layer_editor)
+        self._file_menu = MainFileMenu(self, self._layer_editor)
         # self._analysis_menu = AnalysisMenu(self, cfg.config)
         # self._settings_menu = MainSettingsMenu(self, self._layer_editor)
         # self._mesh_menu = MeshMenu(self, self._layer_editor)
-        # self.update_recent_files(0)
+        self.update_recent_files(0)
 
-        #self._menu.addMenu(self._file_menu)
+        self._menu.addMenu(self._file_menu)
         # self._menu.addMenu(self._edit_menu)
         # self._menu.addMenu(self._analysis_menu)
         # self._menu.addMenu(self._settings_menu)
@@ -180,9 +182,9 @@ class MainWindow(QtWidgets.QMainWindow):
     #
     #     self.diagramScene.blink_start(rect)
     #
-    # def update_recent_files(self, from_row=1):
-    #     """Update recently opened files."""
-    #     self._file_menu.update_recent_files(from_row)
+    def update_recent_files(self, from_row=1):
+        """Update recently opened files."""
+        self._file_menu.update_recent_files(from_row)
     #
     # def refresh_view_data(self, i):
     #     """Propagate new views (static, not edited diagrams)
@@ -327,3 +329,4 @@ class MainWindow(QtWidgets.QMainWindow):
     def show_status_message(self, message, duration=5000):
         """Show a message in status bar for the given duration (in ms)."""
         self._status.showMessage(message, duration)
+

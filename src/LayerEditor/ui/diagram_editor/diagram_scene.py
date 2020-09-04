@@ -1,10 +1,9 @@
 from PyQt5 import QtWidgets, QtCore, QtGui
 from PyQt5.QtCore import Qt
 
-from LayerEditor.ui.data.regions import Regions
+from LayerEditor.ui.data.region import Region
+from LayerEditor.ui.data.regions_model import RegionsModel
 from LayerEditor.ui.tools.cursor import Cursor
-from LayerEditor.ui.tools.selection import Selection
-
 
 from bgem.polygons.polygons import PolygonDecomposition
 from bgem.external import undo
@@ -14,38 +13,60 @@ from LayerEditor.ui.diagram_editor.graphics_items.gs_polygon import GsPolygon
 from LayerEditor.ui.diagram_editor.graphics_items.gs_segment import GsSegment
 
 
-class Diagram(QtWidgets.QGraphicsScene):
+class DiagramScene(QtWidgets.QGraphicsScene):
     selection_changed = QtCore.pyqtSignal()
     # selection has changed
 
     regionsUpdateRequired = QtCore.pyqtSignal()
 
-    def __init__(self, parent):
+    def __init__(self, regions, block, parent=None):
         rect = QtCore.QRectF(-622500, 1128600, 400, 500)
         super().__init__(rect, parent)
+
+        self.selection = block.selection
+        self.regions = regions
+        #self.block = block
+
+
         self.points = {}
         self.segments = {}
         self.polygons = {}
         """Maps to all graphical objects grouped by type {id:QGraphicsItem}"""
 
-        self.regions = Regions(self)
+        self.regions = RegionsModel()
 
         self.last_point = None
         self.aux_pt, self.aux_seg = self.create_aux_segment()
         self.hide_aux_line()
 
-        self._zoom_value = 1.0
-        self.selection = Selection(self)
         self._press_screen_pos = QtCore.QPoint()
 
         # polygons
-        self.decomposition = PolygonDecomposition()
+        self.decomposition = block.decomposition
         res = self.decomposition.get_last_polygon_changes()
         #assert res[0] == PolygonChange.add
         self.outer_id = res[1]
         """Decomposition of the a plane into polygons."""
-
+        self.update_scene()
         self.pixmap_item = None
+
+    def get_shape_color(self, shape_key):
+        dim, shape_id = shape_key
+        region_id = self.decomposition.decomp.shapes[dim][shape_id].attr
+
+        if region_id is None:
+            region_id = Region.none.id
+
+        return self.regions.regions[region_id].color
+
+    # def get_shape_region(self, shape_key):
+    #     dim, shape_id = shape_key
+    #     region_id = self.decomposition.decomp.shapes[dim][shape_id].attr
+    #
+    #     if region_id is None:
+    #         region_id = Region.none.id
+    #
+    #     return region_id
 
     def create_aux_segment(self):
         pt_size = GsPoint.SIZE
@@ -142,7 +163,6 @@ class Diagram(QtWidgets.QGraphicsScene):
         return below_item
 
     def update_zoom(self, value):
-        self._zoom_value = value
 
         for g_seg in self.segments.values():
             g_seg.update_zoom(value)
@@ -196,7 +216,7 @@ class Diagram(QtWidgets.QGraphicsScene):
 
             if event.modifiers() & Qt.ShiftModifier:
                 if item is not None:
-                    self.selection.select_add_item(item)
+                    self.selection.select_toggle_item(item)
             else:
                 if item is not None:
                     self.selection.select_item(item)
@@ -257,7 +277,8 @@ class Diagram(QtWidgets.QGraphicsScene):
                 self.segments[segment_id].update()
             else:
                 gseg = GsSegment(segment)
-                gseg.update_zoom(self._zoom_value)
+                parent = self.parent()
+                gseg.update_zoom(self.parent()._zoom)
                 self.segments[segment_id] = gseg
                 self.addItem(gseg)
 
@@ -279,6 +300,8 @@ class Diagram(QtWidgets.QGraphicsScene):
                 gpol = GsPolygon(polygon)
                 self.polygons[polygon_id] = gpol
                 self.addItem(gpol)
+
+        self.update()
 
     def delete_selected(self):
         # segments
