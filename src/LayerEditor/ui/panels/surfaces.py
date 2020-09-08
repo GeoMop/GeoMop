@@ -80,6 +80,10 @@ class SurfFormData(GL.Surface):
         except:
             return None
 
+        self.update_from_z_surf()
+
+        self._changed_forms = False
+
         return self
 
     def init_from_file(self, file):
@@ -502,6 +506,7 @@ class Surfaces(QtWidgets.QWidget):
         if new_idx is not None:
             self.data = SurfFormData.init_from_surface(self.layers.surfaces[new_idx], new_idx)
         self._fill_forms()
+        self.show_grid.emit(self.wg_view_button.isChecked())
 
     def rm_surface(self):
         assert self.data._idx != -1
@@ -515,8 +520,8 @@ class Surfaces(QtWidgets.QWidget):
             return None
 
         # propose new idx
-        new_idx = min(idx, len(self.layers.surfaces) - 1)
-        self.data.init_from_surface(self.wg_surf_combo.get_surface(new_idx), new_idx)
+        #new_idx = min(idx, len(self.layers.surfaces) - 1)
+        #self.data.init_from_surface(self.wg_surf_combo.get_surface(new_idx), new_idx)
         self._fill_forms()
 
 
@@ -681,6 +686,7 @@ class Surfaces(QtWidgets.QWidget):
         if self.data.name == "":
             # Empty form
             self.wg_view_button.setEnabled(False)
+            self.wg_surf_combo.clear()
             self.wg_surf_combo.setEnabled(False)
             self.wg_file_le.setText("")
             self.wg_file_le.setEnabled(False)
@@ -748,12 +754,16 @@ class Surfaces(QtWidgets.QWidget):
         else:
             self._set_message("")
 
+    def refresh(self, layers):
+        """
+        Refresh after open or new file.
+        :param layers: Layers data object
+        :return:
+        """
+        self.layers = layers
+        if layers.surfaces:
+            self.data = SurfFormData.init_from_surface(self.layers.surfaces[0], 0)
+        else:
+            self.data = SurfFormData()
 
-
-
-
-
-
-
-
-
+        self._fill_forms()

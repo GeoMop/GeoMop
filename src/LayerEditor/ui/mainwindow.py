@@ -156,6 +156,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self._refresh_area()
         if not cfg.diagram.position_set():
             self.display_area()
+        self.wg_surface_panel.refresh(cfg.layers)
 
     def paint_new_data(self):
         """Propagate new diagram scene to canvas"""
