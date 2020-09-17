@@ -1,5 +1,5 @@
 from PyQt5 import QtWidgets, QtCore, QtGui
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QPoint
 
 from LayerEditor.ui.data.region import Region
 from LayerEditor.ui.data.regions_model import RegionsModel
@@ -18,22 +18,19 @@ class DiagramScene(QtWidgets.QGraphicsScene):
     # selection has changed
 
     regionsUpdateRequired = QtCore.pyqtSignal()
+    TOLERANCE = 0.01
 
-    def __init__(self, regions, block, parent=None):
-        rect = QtCore.QRectF(-622500, 1128600, 400, 500)
+    def __init__(self, block, parent):
+        rect = QtCore.QRectF(QPoint(-100000, -100000), QPoint(100000, 100000))
         super().__init__(rect, parent)
-
         self.selection = block.selection
-        self.regions = regions
-        #self.block = block
-
-
+        self.block = block
         self.points = {}
         self.segments = {}
         self.polygons = {}
         """Maps to all graphical objects grouped by type {id:QGraphicsItem}"""
 
-        self.regions = RegionsModel()
+        self.regions_model = block.regions_model
 
         self.last_point = None
         self.aux_pt, self.aux_seg = self.create_aux_segment()
@@ -51,13 +48,14 @@ class DiagramScene(QtWidgets.QGraphicsScene):
         self.pixmap_item = None
 
     def get_shape_color(self, shape_key):
+        if self.block.gui_selected_layer is None:
+            return "black"
         dim, shape_id = shape_key
-        region_id = self.decomposition.decomp.shapes[dim][shape_id].attr
+        region = self.block.gui_selected_layer.shape_regions[dim][shape_id]
 
-        if region_id is None:
-            region_id = Region.none.id
-
-        return self.regions.regions[region_id].color
+        if region is None:
+            region = Region.none
+        return region.color
 
     # def get_shape_region(self, shape_key):
     #     dim, shape_id = shape_key
@@ -94,12 +92,12 @@ class DiagramScene(QtWidgets.QGraphicsScene):
         if origin is None:
             origin = self.aux_seg.line().p1()
         self.aux_seg.setLine(QtCore.QLineF(origin, tip))
+        if origin.x() == tip.x() and origin.y() == tip.y():
+            self.aux_seg.hide()
 
     def hide_aux_line(self):
         self.aux_pt.hide()
         self.aux_seg.hide()
-
-
 
     def add_point(self, pos, gitem):
         if type(gitem) == GsPoint:
@@ -112,7 +110,7 @@ class DiagramScene(QtWidgets.QGraphicsScene):
             if pt.id in self.points:
                 gpt = self.points[pt.id]
             else:
-                gpt = GsPoint(pt)
+                gpt = GsPoint(pt, self.block)
                 #self.points.append(pt)
                 self.points[pt.id] = gpt
                 self.addItem(gpt)
@@ -155,7 +153,7 @@ class DiagramScene(QtWidgets.QGraphicsScene):
 
     def below_item(self, scene_pos):
         below_item = None
-        for item in self.items(scene_pos, deviceTransform=self.parent().transform()):
+        for item in self.items(scene_pos, deviceTransform=self.parent().viewportTransform()):
             if (item is self.aux_pt) or (item is self.aux_seg):
                 continue
             below_item = item
@@ -163,7 +161,7 @@ class DiagramScene(QtWidgets.QGraphicsScene):
         return below_item
 
     def update_zoom(self, value):
-
+        self.decomposition.set_tolerance(self.TOLERANCE/value)
         for g_seg in self.segments.values():
             g_seg.update_zoom(value)
 
@@ -259,7 +257,7 @@ class DiagramScene(QtWidgets.QGraphicsScene):
             if point_id in self.points:
                 self.points[point_id].update()
             else:
-                gpt = GsPoint(point)
+                gpt = GsPoint(point, self.block)
                 self.points[point_id] = gpt
                 self.addItem(gpt)
 
@@ -276,7 +274,7 @@ class DiagramScene(QtWidgets.QGraphicsScene):
             if segment_id in self.segments:
                 self.segments[segment_id].update()
             else:
-                gseg = GsSegment(segment)
+                gseg = GsSegment(segment, self.block)
                 parent = self.parent()
                 gseg.update_zoom(self.parent()._zoom)
                 self.segments[segment_id] = gseg
@@ -297,7 +295,7 @@ class DiagramScene(QtWidgets.QGraphicsScene):
             if polygon_id in self.polygons:
                 self.polygons[polygon_id].update()
             else:
-                gpol = GsPolygon(polygon)
+                gpol = GsPolygon(polygon, self.block)
                 self.polygons[polygon_id] = gpol
                 self.addItem(gpol)
 
@@ -350,40 +348,40 @@ class DiagramScene(QtWidgets.QGraphicsScene):
     #     self.update_scene()
 
     # Modified from previous diagram
-
-    def set_data(self):
-        """set new shapes data"""
-        for line in cfg.diagram.lines:
-            l = GsSegment(line)
-            self.add_graphical_object(l)
-        for point in cfg.diagram.points:
-            p = GsPoint(point)
-            self.add_graphical_object(p)
-        for polygon in cfg.diagram.polygons:
-            if polygon.object is None:
-                p = GsPolygon(polygon)
-                self.add_graphical_object(p)
-        #self._add_polygons()
-
-    def add_graphical_object(self, obj):
-        self.addItem(obj)
-        # update the regions panel in case some region gets in use and therefore cannot be deleted.
-        self.regionsUpdateRequired.emit()
-
-    # Copied from previous diagram
-    def release_data(self, old_diagram):
-        """release all shapes data"""
-        for line in cfg.diagrams[old_diagram].lines:
-            obj = line.object
-            obj.release_line()
-            self.remove_graphical_object(obj)
-        for point in cfg.diagrams[old_diagram].points:
-            obj = point.object
-            obj.release_point()
-            self.remove_graphical_object(obj)
-        for polygon in cfg.diagrams[old_diagram].polygons:
-            obj = polygon.object
-            obj.release_polygon()
-            self.remove_graphical_object(obj)
-
-
+    #
+    # def set_data(self):
+    #     """set new shapes data"""
+    #     for line in cfg.diagram.lines:
+    #         l = GsSegment(line, self.block)
+    #         self.add_graphical_object(l)
+    #     for point in cfg.diagram.points:
+    #         p = GsPoint(point, self.block)
+    #         self.add_graphical_object(p)
+    #     for polygon in cfg.diagram.polygons:
+    #         if polygon.object is None:
+    #             p = GsPolygon(polygon, self.block)
+    #             self.add_graphical_object(p)
+    #     #self._add_polygons()
+    #
+    # def add_graphical_object(self, obj):
+    #     self.addItem(obj)
+    #     # update the regions panel in case some region gets in use and therefore cannot be deleted.
+    #     self.regionsUpdateRequired.emit()
+    #
+    # # Copied from previous diagram
+    # def release_data(self, old_diagram):
+    #     """release all shapes data"""
+    #     for line in cfg.diagrams[old_diagram].lines:
+    #         obj = line.object
+    #         obj.release_line()
+    #         self.remove_graphical_object(obj)
+    #     for point in cfg.diagrams[old_diagram].points:
+    #         obj = point.object
+    #         obj.release_point()
+    #         self.remove_graphical_object(obj)
+    #     for polygon in cfg.diagrams[old_diagram].polygons:
+    #         obj = polygon.object
+    #         obj.release_polygon()
+    #         self.remove_graphical_object(obj)
+    #
+    #

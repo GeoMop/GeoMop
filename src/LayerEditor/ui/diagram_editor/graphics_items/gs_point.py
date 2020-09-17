@@ -3,6 +3,7 @@ from PyQt5.QtCore import Qt
 import numpy as np
 
 from LayerEditor.ui.data.region import Region
+from LayerEditor.ui.data.regions_model import RegionsModel
 from LayerEditor.ui.tools.cursor import Cursor
 
 
@@ -15,6 +16,7 @@ class GsPoint(QtWidgets.QGraphicsEllipseItem):
     no_brush = QtGui.QBrush(QtCore.Qt.NoBrush)
     no_pen = QtGui.QPen(QtCore.Qt.NoPen)
     add_brush = QtGui.QBrush(QtCore.Qt.darkGreen, QtCore.Qt.SolidPattern)
+    dim = 0
 
     @classmethod
     def make_pen(cls, color):
@@ -27,8 +29,11 @@ class GsPoint(QtWidgets.QGraphicsEllipseItem):
         brush_pen = cls.__pen_table.setdefault(color, cls.make_pen(QtGui.QColor(color)))
         return brush_pen
 
-    def __init__(self, pt):
+    def __init__(self, pt, block):
+        """ Initialize graphics point from data in pt.
+            Calls fnc_init_attr to initialize pt.attr."""
         self.pt = pt
+        self.init_regions(block)
         # pt.gpt = self
         super().__init__(-self.SIZE, -self.SIZE, 2 * self.SIZE, 2 * self.SIZE)
         self.setFlag(QtWidgets.QGraphicsItem.ItemIgnoresTransformations, True)
@@ -46,9 +51,22 @@ class GsPoint(QtWidgets.QGraphicsEllipseItem):
         self.setAcceptedMouseButtons(QtCore.Qt.LeftButton | QtCore.Qt.RightButton)
         self.update()
 
+    def init_regions(self, block):
+        for layer in block.layers:
+            if self.pt.id in layer.shape_regions[self.dim]:
+                return
+            else:
+                region = layer.gui_selected_region
+                dim = self.dim
+                if not layer.is_fracture:
+                    dim += 1
+                if region.dim == dim:
+                    layer.shape_regions[self.dim][self.pt.id] = layer.gui_selected_region
+                else:
+                    layer.shape_regions[self.dim][self.pt.id] = Region.none
+
     def paint(self, painter, option, widget):
         # print("option: ", option.state)
-        # if option.state & QtWidgets.QStyle.State_Selected:
         if self.scene().selection.is_selected(self):
             painter.setBrush(GsPoint.no_brush)
             painter.setPen(self.region_pen)
@@ -58,11 +76,11 @@ class GsPoint(QtWidgets.QGraphicsEllipseItem):
         painter.drawEllipse(self.rect())
 
     def update(self):
+        self.prepareGeometryChange()
         self.setFlag(QtWidgets.QGraphicsItem.ItemSendsGeometryChanges, False)
         self.setPos(self.pt.xy[0], -self.pt.xy[1])
         self.setFlag(QtWidgets.QGraphicsItem.ItemSendsGeometryChanges)
 
-        color = Qt.gray
         color = Region.none.color
         if self.scene():
             key = (0, self.pt.id)
@@ -115,3 +133,8 @@ class GsPoint(QtWidgets.QGraphicsEllipseItem):
     # def mouseReleaseEvent(self, event):
     #     self.update()
     #     super().mouseReleaseEvent(event)
+
+    def update_color(self, layer_id: int, regions: RegionsModel):
+        brush, pen = self.pen_table(regions.regions[self.pt.attr].color)
+        self.setPen(pen)
+        self.setBrush(brush)

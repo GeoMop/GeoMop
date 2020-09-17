@@ -46,7 +46,7 @@ class LayerGeometrySerializer:
         lname = "Layer_1"
         self.set_default()
 
-        regions = ([], [], [])  # No node, segment, polygon or regions.
+        regions = ([], [], [0])  # No node, segment, polygon or regions.
         ns_top = InterfaceNodeSet(dict( nodeset_id=0, interface_id=self.add_interface_plane(0.0) ))
         ns_bot = self.make_interpolated_ns(0, 0, self.add_interface_plane(-100.0))
         self.add_GL(lname, LayerType.stratum, regions,
@@ -58,7 +58,7 @@ class LayerGeometrySerializer:
 
     def set_default(self):
         default_regions = [                                                                                # Stratum layer
-            Region(dict(color="##", name="NONE", not_used=True, dim=RegionDim.none))         # TopologyDim.polygon
+            Region(dict(color="gray", name="NONE", not_used=True, dim=RegionDim.none))         # TopologyDim.polygon
         ]
         for reg in default_regions:
             self.geometry.regions.append(reg)
@@ -67,10 +67,10 @@ class LayerGeometrySerializer:
         """Add new topology and return its idx"""
         self.geometry.topologies.append( topology)
         return len(self.geometry.topologies)-1
-    #
-    # def get_regions(self):
-    #     """Get list of regions"""
-    #     return self.geometry.regions
+
+    def get_regions(self):
+        """Get list of regions"""
+        return self.geometry.regions
 
     # def load_surfaces(self):
     #     """Generator for surfaces of the LayerGeometry."""
@@ -197,14 +197,15 @@ class LayerGeometrySerializer:
 
     def copy_GL(self, layer):
         layer_data = layer.layer_data
-        if isinstance(layer_data, StratumLayer):
+        if layer.is_stratum:
             type = LayerType.stratum
-            bottom_top = layer_data.bottom
-            if isinstance(layer_data.bottom, InterfaceNodeSet):
+            bottom_top = layer.bottom
+            #TODO: this seems to be obsolete, because in format_last bottom_type and top_type are commented
+            if isinstance(layer.bottom, InterfaceNodeSet):
                 bottom_type = TopologyType.given
             else:
                 bottom_type = TopologyType.interpolated
-        elif isinstance(layer_data, FractureLayer):
+        elif layer.is_fracture:
             type = LayerType.fracture
             bottom_type = None
             bottom_top = None

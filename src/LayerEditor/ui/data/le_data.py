@@ -49,10 +49,10 @@ class LEData(QObject):
     #     self.regions = Regions()
         self.curr_file = in_file
         """Current file (could be moved to config?)."""
+        self.blocks = {}  # {topology_id: BlockModel}
+        """dict of all blocks in geometry"""
         self.diagram_view = DiagramView()
         """View is common for all layers and blocks."""
-        self.regions = RegionsModel()
-        """Manages regions."""
         if self.curr_file is None:
             self.curr_file_timestamp = None
         else:
@@ -60,44 +60,41 @@ class LEData(QObject):
                 self.curr_file_timestamp = os.path.getmtime(in_file)
             except OSError:
                 self.curr_file_timestamp = None
-
         """Timestamp is used for detecting file changes while file is loaded in LE."""
 
         geo_model = LayerGeometrySerializer(in_file)
         """Access to LayerGeometry."""
+
         if in_file is None:
             geo_model.set_default_data()
 
+        self.regions = RegionsModel(self, geo_model.get_regions())
+        """Manages regions."""
+
         self.init_blocks(geo_model)
 
-
     def init_blocks(self, geo_model):
-        blocks = {}
-        scenes = {}
         for top_idx, top in enumerate(geo_model.get_topologies()):
-            blocks[top_idx] = BlockModel(self)
+            self.blocks[top_idx] = BlockModel(self)
 
         for layer in geo_model.get_layers():
             if isinstance(layer.top, InterfaceNodeSet):
                 ns_idx = layer.top.nodeset_id
                 node_set = geo_model.get_node_set(ns_idx)
-                if node_set.topology_id not in scenes:
+                if node_set.topology_id not in self.diagram_view.scenes:
                     topology = geo_model.get_topologies()[node_set.topology_id]
-
                     decomp = polygons_io.deserialize(node_set.nodes, topology)
-                    blocks[node_set.topology_id].decomposition = decomp
+                    self.blocks[node_set.topology_id].decomposition = decomp
 
-                    diagram_scene = DiagramScene(self.regions,
-                                                 blocks[node_set.topology_id],
+                    diagram_scene = DiagramScene(self.blocks[node_set.topology_id],
                                                  self.diagram_view)
 
-                    blocks[node_set.topology_id].selection.set_diagram(diagram_scene)
-                    scenes[node_set.topology_id] = diagram_scene
+                    self.blocks[node_set.topology_id].selection.set_diagram(diagram_scene)
+                    self.diagram_view.scenes[node_set.topology_id] = diagram_scene
 
             top_idx = geo_model.get_gl_topology(layer)
-            blocks[top_idx].init_add_layer(layer, geo_model)
-        self.blocks = list(blocks.values())
-        self.diagram_view.scenes = list(scenes.values())
+            self.blocks[top_idx].init_add_layer(layer)
+
 
     # # def reinit(self):
     # #     """Release all diagram data"""
@@ -260,8 +257,11 @@ class LEData(QObject):
 
     def make_geo_model(self):
         geo_model = LayerGeometrySerializer()
-        for block in self.blocks:
-            block.save(geo_model)
+        region_id_to_idx = self.regions.save(geo_model)
+        for block in self.blocks.values():
+            block.save(geo_model, region_id_to_idx)
+
+
         return geo_model
 
     def save_file(self, file=None):

@@ -58,7 +58,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.diagramView = self._layer_editor.le_data.diagram_view
         scene = self.diagramView.scenes[0]
         self.diagramView.setScene(scene)
-        """scene is set here only temporarily untill there will be more scenes  """
+        """scene is set here only temporarily until there will be more scenes  """
         self._hsplitter.addWidget(self.diagramView)
 
         self._hsplitter.setSizes([300, 760])
