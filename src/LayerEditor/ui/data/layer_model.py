@@ -16,7 +16,7 @@ class LayerModel(IdObject):
         self.bottom_top = layer_data.__dict__.get("bottom")
         """Bottom topology if layer is fracture always None"""
         self.shape_regions = [{}, {}, {}]
-        """[{point_id: region_id}, {seg_id: region_id}, {poly_id: region_id}]"""
+        """[{point_id: region_object}, {seg_id: region_object}, {poly_id: region_object}]"""
         """Regions of shapes grouped by dimension"""
         self._init_regions_ids(layer_data, regions_dict)
 
