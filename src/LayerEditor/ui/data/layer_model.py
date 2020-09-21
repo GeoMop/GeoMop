@@ -1,13 +1,18 @@
 from LayerEditor.data.layer_geometry_serializer import LayerGeometrySerializer
 from LayerEditor.ui.data.region import Region
+from LayerEditor.ui.diagram_editor.graphics_items.gs_point import GsPoint
+from LayerEditor.ui.diagram_editor.graphics_items.gs_polygon import GsPolygon
+from LayerEditor.ui.diagram_editor.graphics_items.gs_segment import GsSegment
 from LayerEditor.ui.tools.id_map import IdObject
 from gm_base.geometry_files.format_last import StratumLayer, LayerType, FractureLayer, TopologyType, InterfaceNodeSet
 
 
 class LayerModel(IdObject):
     """Data about one geological layer"""
-    def __init__(self, decomposition, regions_dict, layer_data=None):
-        self.decomposition = decomposition
+    def __init__(self, block, regions_dict, layer_data=None):
+        self.block = block
+        """This layer is part of this block"""
+        self.decomposition = block.decomposition
         """Decomposition of this layer. For now each layer in the same block has the same decomposition"""
         self.name = layer_data.name
         """Layer name"""
@@ -84,3 +89,19 @@ class LayerModel(IdObject):
                     self.top_top,
                     bottom_type,
                     bottom_top)
+
+    def set_region_to_selected_shapes(self, region: Region):
+        """Sets regions of shapes only in this layer."""
+        for g_item in self.block.selection._selected:
+            dim = g_item.dim
+            if self.is_stratum:
+                dim += 1
+            if dim == region.dim or region.dim == -1:
+                self.set_region_to_shape(g_item, region)
+
+    def get_shape_region(self, g_item: [GsPoint, GsSegment, GsPolygon]) -> Region:
+        return self.shape_regions[g_item.dim][g_item.shape_id]
+
+    # TODO: set undoable, maybe?
+    def set_region_to_shape(self, g_item, region):
+        self.shape_regions[g_item.dim][g_item.shape_id] = region

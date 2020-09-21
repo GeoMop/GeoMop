@@ -68,10 +68,14 @@ class LEData(QObject):
         if in_file is None:
             geo_model.set_default_data()
 
-        self.regions = RegionsModel(self, geo_model.get_regions())
+        self.regions_model = RegionsModel(self, geo_model.get_regions())
         """Manages regions."""
 
         self.init_blocks(geo_model)
+        self.diagram_view.setScene(self.diagram_view.scenes[0])
+
+        self.gui_curr_block = list(self.blocks.values())[0]
+        """helper atribute, holds currently active block"""
 
     def init_blocks(self, geo_model):
         for top_idx, top in enumerate(geo_model.get_topologies()):
@@ -257,7 +261,7 @@ class LEData(QObject):
 
     def make_geo_model(self):
         geo_model = LayerGeometrySerializer()
-        region_id_to_idx = self.regions.save(geo_model)
+        region_id_to_idx = self.regions_model.save(geo_model)
         for block in self.blocks.values():
             block.save(geo_model, region_id_to_idx)
 

@@ -6,6 +6,8 @@ import os
 import signal
 
 from LayerEditor.ui.data.le_data import LEData
+from LayerEditor.ui.diagram_editor.diagram_view import DiagramView
+from LayerEditor.ui.panels import RegionsPanel
 from LayerEditor.ui.tools.cursor import Cursor
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))

@@ -11,9 +11,9 @@ class Region(IdObject):
     colors = [ QtGui.QColor(col) for col in _cols]
     id_next = 1
 
-    def __init__(self, color=None, name="", dim=-1, step=0.0, boundary=False):
+    def __init__(self, id_map, color=None, name="", dim=-1, step=0.0, boundary=False):
         super(Region, self).__init__()
-
+        id_map.add(self)
         if color is None:
             color = Region.colors[self.id % len(Region.colors)].name()
         self.color = color
@@ -40,3 +40,15 @@ class Region(IdObject):
                                     "dim": region_data.dim,
                                     "mesh_step": region_data.mesh_step,
                                     "boundary": region_data.boundary})
+
+    # TODO: Make undoable, maybe?
+    def set_color(self, color_name: str):
+        self.color = color_name
+
+    # TODO: Make undoable, maybe?
+    def set_boundary(self, boundary: bool):
+        self.boundary = boundary
+
+    # TODO: Make undoable, maybe?
+    def set_region_mesh_step(self, mesh_step):
+        self.mesh_step = mesh_step

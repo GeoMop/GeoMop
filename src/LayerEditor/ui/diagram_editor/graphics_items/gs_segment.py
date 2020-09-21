@@ -10,7 +10,7 @@ from LayerEditor.ui.tools.cursor import Cursor
 class GsSegment(QtWidgets.QGraphicsLineItem):
     __pen_table={}
 
-    WIDTH = 3.0
+    WIDTH = 4.0
     STD_ZVALUE = 10
     SELECTED_ZVALUE = 11
     no_pen = QtGui.QPen(QtCore.Qt.NoPen)
@@ -48,6 +48,10 @@ class GsSegment(QtWidgets.QGraphicsLineItem):
         self.setAcceptedMouseButtons(QtCore.Qt.LeftButton | QtCore.Qt.RightButton)
         self.setZValue(self.STD_ZVALUE)
         self.update()
+
+    @property
+    def shape_id(self):
+        return self.segment.id
 
     def init_regions(self, block):
         for layer in block.layers:
@@ -115,7 +119,7 @@ class GsSegment(QtWidgets.QGraphicsLineItem):
 
     def update_zoom(self, value):
         pen = QtGui.QPen()
-        pen.setWidthF(self.WIDTH / value)
+        pen.setWidthF(self.WIDTH * 2 / value)
         self.setPen(pen)
 
 

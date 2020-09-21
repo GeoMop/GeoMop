@@ -51,6 +51,10 @@ class GsPoint(QtWidgets.QGraphicsEllipseItem):
         self.setAcceptedMouseButtons(QtCore.Qt.LeftButton | QtCore.Qt.RightButton)
         self.update()
 
+    @property
+    def shape_id(self):
+        return self.pt.id
+
     def init_regions(self, block):
         for layer in block.layers:
             if self.pt.id in layer.shape_regions[self.dim]:

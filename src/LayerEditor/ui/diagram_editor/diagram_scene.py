@@ -14,9 +14,6 @@ from LayerEditor.ui.diagram_editor.graphics_items.gs_segment import GsSegment
 
 
 class DiagramScene(QtWidgets.QGraphicsScene):
-    selection_changed = QtCore.pyqtSignal()
-    # selection has changed
-
     regionsUpdateRequired = QtCore.pyqtSignal()
     TOLERANCE = 0.01
 

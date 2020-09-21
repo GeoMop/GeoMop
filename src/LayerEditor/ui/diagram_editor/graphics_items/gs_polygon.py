@@ -46,6 +46,10 @@ class GsPolygon(QtWidgets.QGraphicsPolygonItem):
         self.setAcceptedMouseButtons(QtCore.Qt.LeftButton | QtCore.Qt.RightButton)
         self.update()
 
+    @property
+    def shape_id(self):
+        return self.polygon_data.id
+
     def init_regions(self, block):
         for layer in block.layers:
             if self.polygon_data.id in layer.shape_regions[self.dim]:
