@@ -99,8 +99,6 @@ class GsPoint(QtWidgets.QGraphicsEllipseItem):
         displacement = np.array([x - self.pt.xy[0], -y - self.pt.xy[1]])
         if self.scene().decomposition.check_displacment([self.pt], displacement):
             self.scene().decomposition.move_points([self.pt], displacement)
-        else:
-            return False
 
         # for gseg in self.pt.g_segments():
         #     gseg.update()
@@ -121,8 +119,7 @@ class GsPoint(QtWidgets.QGraphicsEllipseItem):
         # print("change: ", change, "val: ", value)
         if change == QtWidgets.QGraphicsItem.ItemPositionHasChanged:
             # self.pt.set_xy(value.x(), value.y())
-            if not self.move_to(value.x(), value.y()):
-                return super(GsPoint, self).itemChange(change, self.pos())
+            self.move_to(value.x(), value.y())
         if change == QtWidgets.QGraphicsItem.ItemSelectedChange:
             if self.isSelected():
                 self.setZValue(self.SELECTED_ZVALUE)

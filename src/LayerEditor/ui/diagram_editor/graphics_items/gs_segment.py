@@ -97,7 +97,8 @@ class GsSegment(QtWidgets.QGraphicsLineItem):
         displacement = np.array([x - self.pos().x(), -y + self.pos().y()])
         if self.scene().decomposition.check_displacment([self.segment.vtxs[0], self.segment.vtxs[1]], displacement):
             self.scene().decomposition.move_points([self.segment.vtxs[0], self.segment.vtxs[1]], displacement)
-
+        else:
+            return self.pos()
         # for gseg in self.pt.g_segments():
         #     gseg.update()
         if self.scene():
@@ -110,6 +111,7 @@ class GsSegment(QtWidgets.QGraphicsLineItem):
         #print("change: ", change, "val: ", value)
         if change == QtWidgets.QGraphicsItem.ItemPositionChange:
             self.move_to(value.x(), value.y())
+            return self.pos()
         if change == QtWidgets.QGraphicsItem.ItemSelectedChange:
             if self.isSelected():
                 self.setZValue(self.SELECTED_ZVALUE)
