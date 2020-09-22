@@ -28,7 +28,7 @@ class MainWindow(QtWidgets.QMainWindow):
         """Initialize the class."""
         super(MainWindow, self).__init__()
         self._layer_editor = layer_editor
-        self.make_widgets()
+        self.make_widgets(True)
 
     @property
     def curr_scene(self):
@@ -38,7 +38,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def diagramView(self):
         return self._layer_editor.le_data.diagram_view
 
-    def make_widgets(self):
+    def make_widgets(self, first=False):
         self.wg_regions_panel = RegionsPanel(self._layer_editor.le_data, self)
 
         self.setMinimumSize(1060, 660)
@@ -96,12 +96,12 @@ class MainWindow(QtWidgets.QMainWindow):
         # self._settings_menu = MainSettingsMenu(self, self._layer_editor)
         # self._mesh_menu = MeshMenu(self, self._layer_editor)
         self.update_recent_files(0)
-
-        self._menu.addMenu(self._file_menu)
-        # self._menu.addMenu(self._edit_menu)
-        # self._menu.addMenu(self._analysis_menu)
-        # self._menu.addMenu(self._settings_menu)
-        # self._menu.addMenu(self._mesh_menu)
+        if first:
+            self._menu.addMenu(self._file_menu)
+            # self._menu.addMenu(self._edit_menu)
+            # self._menu.addMenu(self._analysis_menu)
+            # self._menu.addMenu(self._settings_menu)
+            # self._menu.addMenu(self._mesh_menu)
 
         # status bar
         self._column = QtWidgets.QLabel(self)

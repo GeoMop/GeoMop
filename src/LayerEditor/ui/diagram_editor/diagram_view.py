@@ -46,3 +46,7 @@ class DiagramView(QtWidgets.QGraphicsView):
         self._scene.addItem(map)
         map.setCursor(QtCore.Qt.CrossCursor)
     """
+
+    def setScene(self, scene: DiagramScene) -> None:
+        super(DiagramView, self).setScene(scene)
+        scene.update_scene()
