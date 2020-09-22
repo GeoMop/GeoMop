@@ -41,7 +41,7 @@ class GsPolygon(QtWidgets.QGraphicsPolygonItem):
         self.setFlag(QtWidgets.QGraphicsItem.ItemSendsGeometryChanges)
         #self.setCacheMode(QtWidgets.QGraphicsItem.DeviceCoordinateCache)
         # if enabled QGraphicsScene.update() don't repaint
-
+        self.setPen(self.no_pen)
         self.setCursor(Cursor.polygon)
         self.setAcceptedMouseButtons(QtCore.Qt.LeftButton | QtCore.Qt.RightButton)
         self.update()
@@ -144,7 +144,3 @@ class GsPolygon(QtWidgets.QGraphicsPolygonItem):
         for inner_wire in polygon.outer_wire.childs:
             self._add_to_painter_path(complex_path, inner_wire)
         return complex_path
-
-    def update_color(self, layer_id: int, regions: RegionsModel):
-        brush = self.brush_table(regions.regions[self.polygon_data.attr].color)
-        self.region_brush = brush

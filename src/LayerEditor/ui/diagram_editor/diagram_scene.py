@@ -150,7 +150,7 @@ class DiagramScene(QtWidgets.QGraphicsScene):
 
     def below_item(self, scene_pos):
         below_item = None
-        for item in self.items(scene_pos, deviceTransform=self.parent().viewportTransform()):
+        for item in self.items(scene_pos, deviceTransform=self.parent().transform()):
             if (item is self.aux_pt) or (item is self.aux_seg):
                 continue
             below_item = item
