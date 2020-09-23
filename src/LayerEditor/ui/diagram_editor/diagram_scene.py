@@ -5,8 +5,8 @@ from LayerEditor.ui.data.region import Region
 from LayerEditor.ui.data.regions_model import RegionsModel
 from LayerEditor.ui.tools.cursor import Cursor
 
-from bgem.polygons.polygons import PolygonDecomposition
-from bgem.external import undo
+from bgem.polygons import polygons
+
 
 from LayerEditor.ui.diagram_editor.graphics_items.gs_point import GsPoint
 from LayerEditor.ui.diagram_editor.graphics_items.gs_polygon import GsPolygon
@@ -15,7 +15,7 @@ from LayerEditor.ui.diagram_editor.graphics_items.gs_segment import GsSegment
 
 class DiagramScene(QtWidgets.QGraphicsScene):
     regionsUpdateRequired = QtCore.pyqtSignal()
-    TOLERANCE = 0.01
+    TOLERANCE = 5
 
     def __init__(self, block, parent):
         rect = QtCore.QRectF(QPoint(-100000, -100000), QPoint(100000, 100000))
@@ -38,6 +38,7 @@ class DiagramScene(QtWidgets.QGraphicsScene):
         # polygons
         self.decomposition = block.decomposition
         res = self.decomposition.get_last_polygon_changes()
+        self.decomposition.set_tolerance(self.TOLERANCE)
         #assert res[0] == PolygonChange.add
         self.outer_id = res[1]
         """Decomposition of the a plane into polygons."""
@@ -235,13 +236,12 @@ class DiagramScene(QtWidgets.QGraphicsScene):
             self.delete_selected()
         elif event.key() == QtCore.Qt.Key_A and event.modifiers() & Qt.ControlModifier:
             self.selection.select_all()
-        elif event.key() == QtCore.Qt.Key_Z and event.modifiers() & Qt.ControlModifier and not event.modifiers() & Qt.ShiftModifier:
-            self.undo()
-        elif event.key() == QtCore.Qt.Key_Z and event.modifiers() & Qt.ControlModifier and event.modifiers() & Qt.ShiftModifier:
-            self.redo()
+        else:
+            super(DiagramScene, self).keyPressEvent(event)
 
     def update_scene(self):
         # points
+        polygons.disable_undo()
         to_remove = []
         de_points = self.decomposition.points
         for point_id in self.points:
@@ -297,6 +297,7 @@ class DiagramScene(QtWidgets.QGraphicsScene):
                 self.addItem(gpol)
 
         self.update()
+        polygons.enable_undo()
 
     def delete_selected(self):
         # segments
