@@ -21,6 +21,7 @@ class RegionsModel:
                 region_data.name,
                 region_data.dim,
                 region_data.mesh_step,
+                region_data.not_used,
                 region_data.boundary)
 
     #TODO: Make undoable, maybe?

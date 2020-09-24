@@ -431,7 +431,7 @@ class RegionLayerTab(QtWidgets.QWidget):
 
         self.wg_dims.setText(AddRegionDlg.REGION_DESCRIPTION_DIM[region.dim])
         self.wg_boundary.setChecked(region.boundary)
-        self.wg_notused.setChecked(not region_used)
+        self.wg_notused.setChecked(region.not_used)
         self.wg_mesh_step_edit.setText("{:8.4g}".format(region.mesh_step).replace(" ", ""))
 
         none_widgets = [self.wg_boundary, self.wg_color_button, self.wg_name, self.wg_notused, self.wg_mesh_step_edit]
@@ -503,9 +503,7 @@ class RegionLayerTab(QtWidgets.QWidget):
         Region not used property is changed
         TODO: possibly make as region type : [regular, boundary, not used]
         """
-        assert False, "Not refactored"
-        self.layer_heads.regions_model.set_region_not_used(self.curr_region, self.wg_notused.isChecked(),
-                                                           True, "Set region usage")
+        self.curr_region.set_not_used(self.wg_notused.isChecked())
 
     def _set_mesh_step(self):
         step_value = float(self.wg_mesh_step_edit.text())
