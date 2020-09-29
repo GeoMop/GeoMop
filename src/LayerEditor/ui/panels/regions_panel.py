@@ -2,6 +2,8 @@ from contextlib import contextmanager
 import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtGui as QtGui
 import PyQt5.QtCore as QtCore
+from bgem.external import undo
+
 import gm_base.icon as icon
 from gm_base.geomop_dialogs import GMErrorDialog
 from ..data.region import Region
@@ -61,9 +63,9 @@ class BlockLayerHeads(QtCore.QObject):
 
     def add_region(self, name, dim):
         """ Add new region according to the provided data from the current tab and select it."""
-        reg = self.regions_model.add_region(name, dim)
-        self.block.gui_selected_layer.gui_selected_region = reg
-        self.block.set_region_to_selected_shapes(reg)
+        with undo.group("Add new region"):
+            reg = self.regions_model.add_region(name, dim)
+            self.block.gui_selected_layer.set_gui_selected_region(reg)
         self.region_list_changed.emit()
         self.region_changed.emit()
         return reg
@@ -466,13 +468,18 @@ class RegionLayerTab(QtWidgets.QWidget):
         :return:
         """
         new_name = self.wg_name.text().strip()
-        if  new_name in self.layer_heads.region_names and new_name != self.curr_region.name:
+        if new_name == self.curr_region.name:
+            return
+        elif  new_name in self.layer_heads.region_names:
             error = "Region name already exist"
         elif not new_name:
             error = "Region name is empty"
         else:
             error = None
-            self.curr_region.name = new_name
+            with undo.group("Set Name"):
+                self.curr_region.set_name(new_name)
+                self.layer.set_gui_selected_region(self.curr_region)
+
 
         if error:
             err_dialog = GMErrorDialog(self)
@@ -489,22 +496,32 @@ class RegionLayerTab(QtWidgets.QWidget):
         selected_color = color_dialog.getColor()
 
         if selected_color.isValid():
-            self.curr_region.set_color(selected_color.name())
+            with undo.group("Set Color"):
+                self.curr_region.set_color(selected_color.name())
+                self.layer.set_gui_selected_region(self.curr_region)
 
         self._update_region_content()
         self._parent.update_tabs()
         self._parent.regions_changed.emit()
 
     def _boundary_changed(self):
-        self.curr_region.set_boundary(self.wg_boundary.isChecked())
+        with undo.group("Change regions boundary setting"):
+            self.curr_region.set_boundary(self.wg_boundary.isChecked())
+            self.layer.set_gui_selected_region(self.curr_region)
 
     def _not_used_checked(self):
         """
         Region not used property is changed
         TODO: possibly make as region type : [regular, boundary, not used]
         """
-        self.curr_region.set_not_used(self.wg_notused.isChecked())
+        with undo.group("Change regions not used setting"):
+            self.curr_region.set_not_used(self.wg_notused.isChecked())
+            self.layer.set_gui_selected_region(self.curr_region)
 
     def _set_mesh_step(self):
         step_value = float(self.wg_mesh_step_edit.text())
-        self.curr_region.set_region_mesh_step(step_value)
+        if step_value != self.curr_region.mesh_step:
+            with undo.group("Set Mesh Step"):
+                self.curr_region.set_region_mesh_step(step_value)
+                self.layer.set_gui_selected_region(self.curr_region)
+

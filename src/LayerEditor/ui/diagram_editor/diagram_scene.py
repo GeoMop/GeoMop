@@ -3,9 +3,11 @@ from PyQt5.QtCore import Qt, QPoint
 
 from LayerEditor.ui.data.region import Region
 from LayerEditor.ui.data.regions_model import RegionsModel
+from LayerEditor.ui.tools import better_undo
 from LayerEditor.ui.tools.cursor import Cursor
 
 from bgem.polygons import polygons
+from bgem.external import undo
 
 
 from LayerEditor.ui.diagram_editor.graphics_items.gs_point import GsPoint
@@ -127,9 +129,11 @@ class DiagramScene(QtWidgets.QGraphicsScene):
 
     def new_point(self, pos, gitem, close = False):
         #print("below: ", gitem)
-        new_g_point = self.add_point(pos, gitem)
-        if self.last_point is not None:
-            self.add_segment(self.last_point, new_g_point)
+        with better_undo.group("New point"):
+            new_g_point = self.add_point(pos, gitem)
+            if self.last_point is not None:
+                self.add_segment(self.last_point, new_g_point)
+
         if not close:
             self.last_point = new_g_point
             pt = new_g_point.pos()
@@ -227,11 +231,14 @@ class DiagramScene(QtWidgets.QGraphicsScene):
             self.move_aux_segment(event.scenePos())
         super().mouseMoveEvent(event)
 
+    def hide_aux_point_and_seg(self):
+        self.last_point = None
+        self.hide_aux_line()
+
     def keyPressEvent(self, event):
         """Standart key press event"""
         if event.key() == QtCore.Qt.Key_Escape:
-            self.last_point = None
-            self.hide_aux_line()
+            self.hide_aux_point_and_seg()
         elif event.key() == QtCore.Qt.Key_Delete:
             self.delete_selected()
         elif event.key() == QtCore.Qt.Key_A and event.modifiers() & Qt.ControlModifier:
@@ -241,7 +248,6 @@ class DiagramScene(QtWidgets.QGraphicsScene):
 
     def update_scene(self):
         # points
-        polygons.disable_undo()
         to_remove = []
         de_points = self.decomposition.points
         for point_id in self.points:
@@ -297,7 +303,6 @@ class DiagramScene(QtWidgets.QGraphicsScene):
                 self.addItem(gpol)
 
         self.update()
-        polygons.enable_undo()
 
     def delete_selected(self):
         # segments
@@ -336,14 +341,6 @@ class DiagramScene(QtWidgets.QGraphicsScene):
 
         elif type(shape) is GsPolygon:
             return 3, shape.polygon_data.id
-
-    # def undo(self):
-    #     undo.stack().undo()
-    #     self.update_scene()
-    #
-    # def redo(self):
-    #     undo.stack().redo()
-    #     self.update_scene()
 
     # Modified from previous diagram
     #

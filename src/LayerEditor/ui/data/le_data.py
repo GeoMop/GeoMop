@@ -7,6 +7,7 @@ from LayerEditor.data.layer_geometry_serializer import LayerGeometrySerializer
 from LayerEditor.ui.data.regions_model import RegionsModel
 from LayerEditor.ui.diagram_editor.diagram_scene import DiagramScene
 from LayerEditor.ui.diagram_editor.diagram_view import DiagramView
+from LayerEditor.ui.tools.id_map import IdMap
 from gm_base.geometry_files.format_last import InterfaceNodeSet
 from gm_base.polygons import polygons_io
 
@@ -49,7 +50,7 @@ class LEData(QObject):
     #     self.regions = Regions()
         self.curr_file = in_file
         """Current file (could be moved to config?)."""
-        self.blocks = {}  # {topology_id: BlockModel}
+        self.blocks = IdMap()  # {topology_id: BlockModel}
         """dict of all blocks in geometry"""
         self.diagram_view = DiagramView()
         """View is common for all layers and blocks."""
@@ -78,8 +79,8 @@ class LEData(QObject):
         """helper atribute, holds currently active block"""
 
     def init_blocks(self, geo_model):
-        for top_idx, top in enumerate(geo_model.get_topologies()):
-            self.blocks[top_idx] = BlockModel(self)
+        for top in geo_model.get_topologies():
+            self.blocks.add(BlockModel(self))
 
         for layer in geo_model.get_layers():
             if isinstance(layer.top, InterfaceNodeSet):
@@ -88,16 +89,16 @@ class LEData(QObject):
                 if node_set.topology_id not in self.diagram_view.scenes:
                     topology = geo_model.get_topologies()[node_set.topology_id]
                     decomp = polygons_io.deserialize(node_set.nodes, topology)
-                    self.blocks[node_set.topology_id].decomposition = decomp
+                    curr_block = self.blocks.get(node_set.topology_id)
+                    curr_block.decomposition = decomp
 
-                    diagram_scene = DiagramScene(self.blocks[node_set.topology_id],
-                                                 self.diagram_view)
+                    diagram_scene = DiagramScene(curr_block, self.diagram_view)
 
-                    self.blocks[node_set.topology_id].selection.set_diagram(diagram_scene)
+                    curr_block.selection.set_diagram(diagram_scene)
                     self.diagram_view.scenes[node_set.topology_id] = diagram_scene
 
             top_idx = geo_model.get_gl_topology(layer)
-            self.blocks[top_idx].init_add_layer(layer)
+            self.blocks.get(top_idx).init_add_layer(layer)
 
 
     # # def reinit(self):
