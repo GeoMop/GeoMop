@@ -83,6 +83,8 @@ class LEData(QObject):
             self.blocks.add(BlockModel(self))
 
         for layer in geo_model.get_layers():
+            top_idx = geo_model.get_gl_topology(layer)
+            self.blocks.get(top_idx).init_add_layer(layer)
             if isinstance(layer.top, InterfaceNodeSet):
                 ns_idx = layer.top.nodeset_id
                 node_set = geo_model.get_node_set(ns_idx)
@@ -97,8 +99,7 @@ class LEData(QObject):
                     curr_block.selection.set_diagram(diagram_scene)
                     self.diagram_view.scenes[node_set.topology_id] = diagram_scene
 
-            top_idx = geo_model.get_gl_topology(layer)
-            self.blocks.get(top_idx).init_add_layer(layer)
+
 
 
     # # def reinit(self):
@@ -151,11 +152,6 @@ class LEData(QObject):
     #     return  cls.main_window.wg_surface_panel.get_surface_id()
     #
     #
-    def changed(cls):
-        """is file changed"""
-        return False
-        #return cls.history.is_changes()
-
     # @classmethod
     # def add_region(cls, color, name, dim, step,  boundary, not_used):
     #     """Add region"""

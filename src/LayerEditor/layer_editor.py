@@ -5,9 +5,12 @@ import sys
 import os
 import signal
 
+from bgem.external import undo
+
 from LayerEditor.ui.data.le_data import LEData
 from LayerEditor.ui.diagram_editor.diagram_view import DiagramView
 from LayerEditor.ui.panels import RegionsPanel
+from LayerEditor.ui.tools import better_undo
 from LayerEditor.ui.tools.cursor import Cursor
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
@@ -206,17 +209,24 @@ class LayerEditor:
         self._update_document_name()
         self._restore_backup()
         self.mainwindow.show_status_message("File '" + action.data() + "' is opened")
-    #
+
+    def save(self, filename=None):
+        """Common code for saving file (used by save_file and save_as)"""
+        self.le_data.save_file(filename)
+        cfg.add_recent_file(self.le_data.curr_file)
+        self.autosave.delete_backup()
+        self.mainwindow.show_status_message("File is saved")
+        self.mainwindow.update_recent_files()
+        self._update_document_name()
+        better_undo.savepoint()
+
     def save_file(self):
         """save file menu action"""
         if self.le_data.curr_file is None:
             return self.save_as()
         if self.le_data.confront_file_timestamp():
             return
-        self.le_data.save_file()
-        cfg.add_recent_file(self.le_data.curr_file)
-        self.autosave.delete_backup()
-        self.mainwindow.show_status_message("File is saved")
+        self.save()
 
     def save_as(self):
         """save file menu action"""
@@ -234,14 +244,9 @@ class LayerEditor:
         dialog.setOption(QtWidgets.QFileDialog.DontConfirmOverwrite, False)
         dialog.setViewMode(QtWidgets.QFileDialog.Detail)
         if dialog.exec_():
-            self.autosave.delete_backup()
             file_name = dialog.selectedFiles()[0]
             cfg.current_workdir = os.path.dirname(file_name)
-            self.le_data.save_file(file_name)
-            cfg.add_recent_file(file_name)
-            self.mainwindow.update_recent_files()
-            self._update_document_name()
-            self.mainwindow.show_status_message("File is saved")
+            self.save(file_name)
             return True
         return False
 
@@ -251,7 +256,7 @@ class LayerEditor:
 
         return: False if action have to be aborted
         """
-        if self.le_data.changed():
+        if better_undo.has_changed():
             msg_box = QtWidgets.QMessageBox()
             msg_box.setWindowTitle("Confirmation")
             msg_box.setIcon(QtWidgets.QMessageBox.Question)

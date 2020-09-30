@@ -56,10 +56,9 @@ class BlockLayerHeads(QtCore.QObject):
         self._selected_regions.update(region_dict)
         self.region_changed.emit()
 
-    def select_layer(self, layer_id):
+    def select_layer(self, layer):
         """ Select actual layer tab."""
-        assert False, "Not refactored"
-        self.block.gui_selected_layers[self.current_topology_id] = layer_id
+        self.block.gui_selected_layer = layer
 
     def add_region(self, name, dim):
         """ Add new region according to the provided data from the current tab and select it."""
@@ -93,12 +92,6 @@ class BlockLayerHeads(QtCore.QObject):
     def regions_model(self):
         """ Regions object. """
         return self.block.regions_model
-
-    @property
-    def current_topology_id(self):
-        assert False, "Not refactored"
-        return self.block.diagram.topology_idx
-
 
     @property
     def selected_region(self):
@@ -234,8 +227,7 @@ class RegionsPanel(QtWidgets.QToolBox):
 
     def _layer_changed(self):
         """item Changed handler"""
-        assert False, "Not refactored"
-        self.layer_heads.select_layer(self.current_tab.layer_id)
+        self.layer_heads.select_layer(self.current_tab.layer)
         self.regions_changed.emit()
 
     def selection_changed(self):

@@ -323,16 +323,16 @@ class MainWindow(QtWidgets.QMainWindow):
     #     #   self.diagramScene.init_area.reload()
     #     pass
     #
-    # def closeEvent(self, event):
-    #     """Performs actions before app is closed."""
-    #     # prompt user to save changes (if any)
-    #     if not self._layer_editor.save_old_file():
-    #         return event.ignore()
-    #     super(MainWindow, self).closeEvent(event)
+    def closeEvent(self, event):
+        """Performs actions before app is closed."""
+        # prompt user to save changes (if any)
+        if not self._layer_editor.save_old_file():
+            return event.ignore()
+        super(MainWindow, self).closeEvent(event)
 
     def undo(self):
         self._layer_editor.le_data.gui_curr_block.selection.deselect_all()
-        """Deselect because selected region can change and that could create wrong behaviour"""
+        # Deselect because selected region can change and that could create wrong behaviour #
         self.curr_scene.hide_aux_point_and_seg()
         undo.stack().undo()
         self.curr_scene.update_scene()
@@ -340,6 +340,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def redo(self):
         self._layer_editor.le_data.gui_curr_block.selection.deselect_all()
+        # the same reason as in undo
         self.curr_scene.hide_aux_point_and_seg()
         undo.stack().redo()
         self.curr_scene.update_scene()
