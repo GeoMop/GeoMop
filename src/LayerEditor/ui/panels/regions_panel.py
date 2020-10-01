@@ -8,6 +8,7 @@ import gm_base.icon as icon
 from gm_base.geomop_dialogs import GMErrorDialog
 from ..data.region import Region
 from ..dialogs.regions import AddRegionDlg
+from ..helpers.combo_box import ComboBox
 
 
 @contextmanager
@@ -294,7 +295,7 @@ class RegionLayerTab(QtWidgets.QWidget):
         """
         grid = QtWidgets.QGridLayout()
 
-        self.wg_region_combo = QtWidgets.QComboBox()
+        self.wg_region_combo = ComboBox()
         self.wg_region_combo.currentIndexChanged.connect(self._combo_set_region)
         grid.addWidget(self.wg_region_combo, 0, 0)
 

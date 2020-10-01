@@ -47,6 +47,16 @@ class DiagramScene(QtWidgets.QGraphicsScene):
         self.update_scene()
         self.pixmap_item = None
 
+    def get_shape(self, dim, shape_id) -> [GsPoint, GsSegment, GsPolygon]:
+        """Get g_item defined by dimension and id"""
+        if dim == 0:
+            return self.points[shape_id]
+        if dim == 1:
+            return self.segments[shape_id]
+        if dim == 2:
+            return self.polygons[shape_id]
+
+
     def get_shape_color(self, shape_key):
         if self.block.gui_selected_layer is None:
             return "black"
@@ -129,10 +139,9 @@ class DiagramScene(QtWidgets.QGraphicsScene):
 
     def new_point(self, pos, gitem, close = False):
         #print("below: ", gitem)
-        with better_undo.group("New point"):
-            new_g_point = self.add_point(pos, gitem)
-            if self.last_point is not None:
-                self.add_segment(self.last_point, new_g_point)
+        new_g_point = self.add_point(pos, gitem)
+        if self.last_point is not None:
+            self.add_segment(self.last_point, new_g_point)
 
         if not close:
             self.last_point = new_g_point
@@ -141,17 +150,32 @@ class DiagramScene(QtWidgets.QGraphicsScene):
         else:
             self.last_point = None
             self.hide_aux_line()
+        return self.decomposition.last_split_shapes
 
     def mouse_create_event(self, event):
         #transform = self.parent().transform()
         #below_item = self.itemAt(event.scenePos(), transform)
         below_item = self.below_item(event.scenePos())
         close = event.modifiers() & Qt.ControlModifier
-        self.new_point(event.scenePos(), below_item, close)
-        event.accept()
+        with better_undo.group("New point"):
+            split_items = self.new_point(event.scenePos(), below_item, close)
+            event.accept()
 
-        self.selection._selected.clear()
-        self.update_scene()
+            self.selection._selected.clear()
+            self.update_scene()
+            # update scene so new shapes would habe g_item for next step
+            for item in split_items:
+                # if some shape was splited then copy region to the new shape
+                if item[0] == 2 and item[1] == 0:
+                    continue
+                g_old_item = self.get_shape(item[0], item[1])
+                g_new_item = self.get_shape(item[0], item[2])
+                for layer in self.block.layers:
+                    region1 = layer.get_shape_region(g_new_item)
+                    region = layer.get_shape_region(g_old_item)
+                    layer.set_region_to_shape(g_new_item, region)
+            self.update_scene()
+            # update again because colors may have changed
 
     def below_item(self, scene_pos):
         below_item = None
@@ -305,31 +329,20 @@ class DiagramScene(QtWidgets.QGraphicsScene):
         self.update()
 
     def delete_selected(self):
-        # segments
-        for item in self.selection._selected:
-            if type(item) is GsSegment:
-                self.decomposition.delete_segment(item.segment)
-
-        # points
-        for item in self.selection._selected:
-            if type(item) is GsPoint:
-                self.decomposition.delete_point(item.pt)
-
-        self.selection._selected.clear()
-
-        self.update_scene()
-
-    def region_panel_changed(self, region_id):
-        if self.selection._selected:
-            remove = []
+        with better_undo.group("Delete selected"):
+            # segments
             for item in self.selection._selected:
-                key = self.get_shape_key(item)
-                if not self.regions.set_region(key[0], key[1], region_id):
-                    remove.append(item)
-            for item in remove:
-                self.selection._selected.remove(item)
+                if type(item) is GsSegment:
+                    self.decomposition.delete_segment(item.segment)
 
-        self.update_scene()
+            # points
+            for item in self.selection._selected:
+                if type(item) is GsPoint:
+                    self.decomposition.delete_point(item.pt)
+
+            self.selection._selected.clear()
+
+            self.update_scene()
 
     @staticmethod
     def get_shape_key(shape):

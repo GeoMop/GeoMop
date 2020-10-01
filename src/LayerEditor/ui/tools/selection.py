@@ -54,3 +54,7 @@ class Selection(QObject):
             return max([ g_item.dim for g_item in self._selected])
         else:
             return 0
+
+    def deselect_item_if_exists(self, g_item):
+        if g_item in self._selected:
+            self._selected.remove(g_item)
