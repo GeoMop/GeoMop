@@ -132,8 +132,3 @@ class GsPoint(QtWidgets.QGraphicsEllipseItem):
     # def mouseReleaseEvent(self, event):
     #     self.update()
     #     super().mouseReleaseEvent(event)
-
-    def update_color(self, layer_id: int, regions: RegionsModel):
-        brush, pen = self.pen_table(regions.regions[self.pt.attr].color)
-        self.setPen(pen)
-        self.setBrush(brush)

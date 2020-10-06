@@ -7,7 +7,7 @@ import signal
 
 from bgem.external import undo
 
-from LayerEditor.ui.data.le_data import LEData
+from LayerEditor.ui.data.le_model import LEModel
 from LayerEditor.ui.diagram_editor.diagram_view import DiagramView
 from LayerEditor.ui.panels import RegionsPanel
 from LayerEditor.ui.tools import better_undo
@@ -32,7 +32,7 @@ class LayerEditor:
         #if args:
         #    self.parse_args(args)
 
-        self._le_data = LEData()
+        self._le_data = LEModel()
 
         self.mainwindow = MainWindow(self)
         self.exit = False
@@ -145,7 +145,7 @@ class LayerEditor:
 
     def load_file(self, in_file=None, from_backup=False):
         """Loads in_file and sets the new scene to be visible. If in_file is None it will cr"""
-        le_data = LEData(in_file)
+        le_data = LEModel(in_file)
         if from_backup:
             le_data.curr_file = None
             le_data.curr_file_timestamp = None

@@ -121,8 +121,3 @@ class GsSegment(QtWidgets.QGraphicsLineItem):
         pen = QtGui.QPen()
         pen.setWidthF(self.WIDTH * 2 / value)
         self.setPen(pen)
-
-
-    def update_color(self, layer_id: int, regions: RegionsModel):
-        pen, selected_pen = self.pen_table(regions.regions[self.segment.attr].color)
-        self.setPen(pen)

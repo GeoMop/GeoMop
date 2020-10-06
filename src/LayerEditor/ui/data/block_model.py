@@ -12,11 +12,10 @@ from gm_base.geometry_files.format_last import InterfaceNodeSet
 
 class BlockModel(IdObject):
     """Holds common data for a block of layers"""
-    def __init__(self, le_data):
+    def __init__(self, regions_model):
         super(BlockModel, self).__init__()
-        self.le_data = le_data
         """Reference for LEData."""
-        self.regions_model = self.le_data.regions_model
+        self.regions_model = regions_model
         """Reference to object which manages regions."""
         self.layers = []
         """list of layer in this block"""
@@ -36,8 +35,7 @@ class BlockModel(IdObject):
     def decomposition(self):
         return self._decomposition
 
-    @decomposition.setter
-    def decomposition(self, decomp):
+    def init_decomposition(self, decomp):
         self._decomposition = decomp
         for layer in self.layers:
             layer.decomposition = decomp

@@ -12,7 +12,7 @@ from gm_base.geometry_files.format_last import InterfaceNodeSet
 from gm_base.polygons import polygons_io
 
 
-class LEData(QObject):
+class LEModel(QObject):
     """Main data class for Layer Editor"""
 
     # diagrams = []
@@ -43,7 +43,7 @@ class LEData(QObject):
     # # Data model for Regions panel.
 
     def __init__(self, in_file=None):
-        super(LEData, self).__init__()
+        super(LEModel, self).__init__()
     #     # self.history = GlobalHistory(cls)
     #     # cls.layers = le_data.Layers(cls.history)
     #     # cls.reinit()
@@ -80,7 +80,7 @@ class LEData(QObject):
 
     def init_blocks(self, geo_model):
         for top in geo_model.get_topologies():
-            self.blocks.add(BlockModel(self))
+            self.blocks.add(BlockModel(self.regions_model))
 
         for layer in geo_model.get_layers():
             top_idx = geo_model.get_gl_topology(layer)
@@ -92,14 +92,13 @@ class LEData(QObject):
                     topology = geo_model.get_topologies()[node_set.topology_id]
                     decomp = polygons_io.deserialize(node_set.nodes, topology)
                     curr_block = self.blocks.get(node_set.topology_id)
-                    curr_block.decomposition = decomp
+                    curr_block.init_decomposition(decomp)
 
-                    diagram_scene = DiagramScene(curr_block, self.diagram_view)
+        for block in self.blocks.values():
+            diagram_scene = DiagramScene(block, self.diagram_view)
 
-                    curr_block.selection.set_diagram(diagram_scene)
-                    self.diagram_view.scenes[node_set.topology_id] = diagram_scene
-
-
+            block.selection.set_diagram(diagram_scene)
+            self.diagram_view.scenes[block.id] = diagram_scene
 
 
     # # def reinit(self):
@@ -256,12 +255,11 @@ class LEData(QObject):
     #                 err_dialog.open_error_dialog("Can't open shapefile", err)
     #     return False
 
-    def make_geo_model(self):
+    def save(self):
         geo_model = LayerGeometrySerializer()
         region_id_to_idx = self.regions_model.save(geo_model)
         for block in self.blocks.values():
             block.save(geo_model, region_id_to_idx)
-
 
         return geo_model
 
@@ -270,7 +268,7 @@ class LEData(QObject):
         if file is None:
             file = self.curr_file
 
-        self.make_geo_model().save(file)
+        self.save().save(file)
         #self.history.saved()
 
         self.curr_file = file
@@ -322,4 +320,4 @@ class LEData(QObject):
     #
 
     def save_to_string(self):
-        return self.make_geo_model().save()
+        return self.save().save()
