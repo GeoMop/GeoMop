@@ -144,7 +144,8 @@ class LayerEditor:
         return True
 
     def load_file(self, in_file=None, from_backup=False):
-        """Loads in_file and sets the new scene to be visible. If in_file is None it will cr"""
+        """Loads in_file and sets the new scene to be visible. If in_file is None it will create default model"""
+        better_undo.clear()
         le_data = LEModel(in_file)
         if from_backup:
             le_data.curr_file = None

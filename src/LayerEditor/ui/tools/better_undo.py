@@ -18,7 +18,9 @@ __savepoint = None
 
 def savepoint():
     global __savepoint
-    __savepoint = undo.stack()._undos[-1]
+    if undo.stack().undocount() > 0:
+        __savepoint = undo.stack()._undos[-1]
+    else: __savepoint = None
 
 
 def has_changed():
@@ -26,6 +28,11 @@ def has_changed():
         if __savepoint is None:
             return True
         else:
-            return __savepoint is undo.stack()._undos[-1]
+            return __savepoint is not undo.stack()._undos[-1]
     else:
         return False
+
+def clear():
+    global __savepoint
+    undo.stack().clear()
+    __savepoint = None
