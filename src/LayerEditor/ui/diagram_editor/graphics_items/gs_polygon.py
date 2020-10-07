@@ -2,7 +2,7 @@ from PyQt5 import QtWidgets, QtGui, QtCore
 from PyQt5.QtCore import Qt
 import numpy as np
 
-from LayerEditor.ui.data.region import Region
+from LayerEditor.ui.data.region_item import RegionItem
 from LayerEditor.ui.data.regions_model import RegionsModel
 from LayerEditor.ui.tools.cursor import Cursor
 
@@ -63,7 +63,7 @@ class GsPolygon(QtWidgets.QGraphicsPolygonItem):
                 if region.dim == dim:
                     layer.set_region_to_shape(self, layer.gui_selected_region)
                 else:
-                    layer.set_region_to_shape(self, Region.none)
+                    layer.set_region_to_shape(self, RegionItem.none)
 
     def update(self):
         self.prepareGeometryChange()

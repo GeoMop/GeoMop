@@ -6,7 +6,7 @@ from bgem.external import undo
 
 import gm_base.icon as icon
 from gm_base.geomop_dialogs import GMErrorDialog
-from ..data.region import Region
+from ..data.region_item import RegionItem
 from ..dialogs.regions import AddRegionDlg
 from ..helpers.combo_box import ComboBox
 
@@ -244,7 +244,7 @@ class RegionsPanel(QtWidgets.QToolBox):
                 if is_region_same:
                     layer.gui_selected_region = region
                 else:
-                    layer.gui_selected_region = Region.none
+                    layer.gui_selected_region = RegionItem.none
             self.update_tabs()
 
 
@@ -269,7 +269,7 @@ class RegionLayerTab(QtWidgets.QWidget):
         # Layer to which this Tab is related.
         self._layer_name = None
         # Name of the layer.
-        self._combo_id_to_idx = {Region.none.id: 0}
+        self._combo_id_to_idx = {RegionItem.none.id: 0}
         # auxiliary map from region ID to index in the combo box.
 
         self.layer_heads.region_changed.connect(self._update_region_content)
@@ -404,7 +404,7 @@ class RegionLayerTab(QtWidgets.QWidget):
         region = self.curr_region
 
         region_used = self.layer_heads.regions_model.is_region_used(self.curr_region)
-        is_default = self.curr_region == Region.none
+        is_default = self.curr_region == RegionItem.none
         if is_default:
             self.wg_remove_button.setEnabled(False)
             self.wg_remove_button.setToolTip('Default region cannot be removed!')

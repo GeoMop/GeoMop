@@ -1,6 +1,6 @@
 from LayerEditor.data.layer_geometry_serializer import LayerGeometrySerializer
 from LayerEditor.ui.data.layer_model import LayerModel
-from LayerEditor.ui.data.region import Region
+from LayerEditor.ui.data.region_item import RegionItem
 
 from LayerEditor.ui.diagram_editor.diagram_scene import DiagramScene
 from LayerEditor.ui.tools.id_map import IdMap, IdObject

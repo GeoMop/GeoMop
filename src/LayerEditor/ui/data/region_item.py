@@ -5,7 +5,7 @@ from LayerEditor.ui.tools.id_map import IdObject
 from gm_base.geometry_files import format_last
 
 
-class Region(IdObject):
+class RegionItem(IdObject):
     _cols = ["cyan", "magenta", "darkRed", "darkCyan", "darkMagenta",
              "darkBlue", "yellow","blue"]
     # red and green is used for cut tool resp. cloud pixmap
@@ -13,10 +13,10 @@ class Region(IdObject):
     id_next = 1
 
     def __init__(self, id_map, color=None, name="", dim=-1, step=0.0, not_used=False, boundary=False):
-        super(Region, self).__init__()
+        super(RegionItem, self).__init__()
         id_map.add(self)
         if color is None:
-            color = Region.colors[self.id % len(Region.colors)].name()
+            color = RegionItem.colors[self.id % len(RegionItem.colors)].name()
         self.color = color
 
         self.name = name
