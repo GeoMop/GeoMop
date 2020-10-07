@@ -2,7 +2,7 @@ import sys
 
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QPen, QFont
-from PyQt5.QtWidgets import QWidget, QGridLayout, QLabel, QApplication, QCheckBox, QHBoxLayout
+from PyQt5.QtWidgets import QWidget, QGridLayout, QLabel, QApplication, QCheckBox, QHBoxLayout, QButtonGroup
 
 from LayerEditor.ui.layers_panel.wg_interface import WGInterface, InterfaceType
 from LayerEditor.ui.layers_panel.joiner import Joiner
@@ -31,28 +31,52 @@ class LayerPanel(QWidget):
         super(LayerPanel, self).__init__(parent)
         self.main_layout = QGridLayout()
         self.main_layout.setAlignment(Qt.AlignCenter)
+        self.button_group = QButtonGroup()
 
         self.main_layout.addLayout(add_margins_around_widget(QLabel("View"), 5, 0, 5, 0), 0, 0)
         self.main_layout.addLayout(add_margins_around_widget(QLabel("Edit"), 5, 0, 5, 0), 0, 1)
         self.main_layout.addLayout(add_margins_around_widget(QLabel("Layer"), 5, 0, 5, 0), 0, 2)
         self.main_layout.addLayout(add_margins_around_widget(QLabel("Elevation"), 5, 0, 5, 0), 0, 4)
-        self.main_layout.addLayout(add_margins_around_widget(QCheckBox(), 5, 0, 5, 0), 1, 0, Qt.AlignCenter)
-        self.main_layout.addWidget(RadioButton(self), 1, 1)
+
+        self.main_layout.addLayout(add_margins_around_widget(QCheckBox(), 5, 0, 5, 0), 1, 0)
+        radio_button = RadioButton(self)
+        self.button_group.addButton(radio_button.radio_button)
+        self.main_layout.addWidget(radio_button, 1, 1)
         self.main_layout.addWidget(WGInterface(self, None, InterfaceType.TOP), 1, 2)
+
         self.main_layout.addWidget(WGLayer(self, "Layer_1"), 2, 2)
+
         self.main_layout.addWidget(WGInterface(self, None), 3, 2)
+
         self.main_layout.addWidget(WGLayer(self, "Layer_1"), 4, 2)
+
         top = WGInterface(self, None, InterfaceType.BOTTOM)
         self.main_layout.addWidget(top, 5, 2)
+
+        self.main_layout.addLayout(add_margins_around_widget(QCheckBox(), 5, 0, 5, 0), 6, 0)
+        radio_button = RadioButton(self)
+        self.button_group.addButton(radio_button.radio_button)
+        self.main_layout.addWidget(radio_button, 6, 1)
         middle = WGInterface(self, "Fracture_3", InterfaceType.NONE)
         self.main_layout.addWidget(middle, 6, 2)
+
+        self.main_layout.addLayout(add_margins_around_widget(QCheckBox(), 5, 0, 5, 0), 7, 0)
+        radio_button = RadioButton(self)
+        self.button_group.addButton(radio_button.radio_button)
+        self.main_layout.addWidget(radio_button, 7, 1)
         bottom = WGInterface(self, None, InterfaceType.TOP)
         self.main_layout.addWidget(bottom, 7, 2)
+
         self.main_layout.addWidget(Joiner(self, top, bottom, middle), 5, 3, 3, 1)
+
         self.main_layout.addWidget(WGLayer(self, "Layer_1"), 8, 2)
+
         self.main_layout.addWidget(WGInterface(self, "Interface"), 9, 2)
+
         self.main_layout.addWidget(WGLayer(self, "Layer_1"), 10, 2)
+
         self.main_layout.addWidget(WGInterface(self, "Interface", InterfaceType.BOTTOM), 11, 2)
+
         self.setLayout(self.main_layout)
         self.main_layout.setHorizontalSpacing(0)
         self.main_layout.setVerticalSpacing(0)

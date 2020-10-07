@@ -8,7 +8,7 @@ class RadioButton(QWidget):
     """Acts as QRadioButton, but has a line going from the edge of radio button to the right side of this widget."""
     def __init__(self, parent):
         super(RadioButton, self).__init__(parent)
-        self.radio_button = QRadioButton(self)
+        self.radio_button = QRadioButton(parent)
         layout = QHBoxLayout()
         layout.addWidget(self.radio_button, alignment=Qt.AlignCenter)
         layout.setContentsMargins(5,0,5,0)
