@@ -12,7 +12,7 @@ class WGLayer(QWidget):
         layout = QHBoxLayout()
         layout.addWidget(self.name, alignment=Qt.AlignCenter)
         self.setLayout(layout)
-        layout.setContentsMargins(5, 3, 5, 3)
+        layout.setContentsMargins(5, 0, 5, 0)
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
 
     def paintEvent(self, a0: QtGui.QPaintEvent) -> None:

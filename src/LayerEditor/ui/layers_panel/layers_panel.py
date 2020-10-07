@@ -4,9 +4,9 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QPen, QFont
 from PyQt5.QtWidgets import QWidget, QGridLayout, QLabel, QApplication, QCheckBox, QHBoxLayout
 
-from LayerEditor.ui.layers_panel.wginterface import WGInterface, InterfaceType
+from LayerEditor.ui.layers_panel.wg_interface import WGInterface, InterfaceType
 from LayerEditor.ui.layers_panel.joiner import Joiner
-from LayerEditor.ui.layers_panel.wglayer import WGLayer
+from LayerEditor.ui.layers_panel.wg_layer import WGLayer
 from LayerEditor.ui.layers_panel.radio_button import RadioButton
 
 
