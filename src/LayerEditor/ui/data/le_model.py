@@ -1,14 +1,17 @@
 import os
 
-from PyQt5.QtCore import QObject
+from PyQt5.QtCore import QObject, QPointF
+from PyQt5.QtGui import QPolygonF
 
+from LayerEditor.exceptions.data_inconsistent_exception import DataInconsistentException
 from LayerEditor.ui.data.block_model import BlockModel
-from LayerEditor.data.layer_geometry_serializer import LayerGeometrySerializer
 from LayerEditor.ui.data.regions_model import RegionsModel
 from LayerEditor.ui.diagram_editor.diagram_scene import DiagramScene
 from LayerEditor.ui.diagram_editor.diagram_view import DiagramView
 from LayerEditor.ui.tools.id_map import IdMap
-from gm_base.geometry_files.format_last import InterfaceNodeSet
+from gm_base.geometry_files import layers_io
+from gm_base.geometry_files.format_last import InterfaceNodeSet, LayerGeometry, NodeSet, Region, RegionDim, Interface, \
+    InterpolatedNodeSet, StratumLayer, Topology
 from gm_base.polygons import polygons_io
 
 
@@ -52,8 +55,6 @@ class LEModel(QObject):
         """Current file (could be moved to config?)."""
         self.blocks = IdMap()  # {topology_id: BlockModel}
         """dict of all blocks in geometry"""
-        self.diagram_view = DiagramView()
-        """View is common for all layers and blocks."""
         if self.curr_file is None:
             self.curr_file_timestamp = None
         else:
@@ -63,42 +64,47 @@ class LEModel(QObject):
                 self.curr_file_timestamp = None
         """Timestamp is used for detecting file changes while file is loaded in LE."""
 
-        geo_model = LayerGeometrySerializer(in_file)
-        """Access to LayerGeometry."""
-
         if in_file is None:
-            geo_model.set_default_data()
+            geo_model = self.make_default_geo_model()
+        else:
+            geo_model = layers_io.read_geometry(in_file)
+            errors = self.check_geo_model_consistency(geo_model)
+            if len(errors) > 0:
+                raise DataInconsistentException(
+                    "Some file consistency errors occure in {0}".format(in_file), errors)
 
-        self.regions_model = RegionsModel(self, geo_model.get_regions())
+        self.init_area = QPolygonF([QPointF(point[0], point[1]) for point in geo_model.supplement.init_area])
+        """Initialization area (polygon x,y coordinates) for scene"""
+        self.init_zoom_pos_data = geo_model.supplement.zoom
+        """Used only for initializing DiagramView after that is None and DiagramView holds those informations"""
+
+        self.regions_model = RegionsModel(self, geo_model.regions)
         """Manages regions."""
 
         self.init_blocks(geo_model)
-        self.diagram_view.setScene(self.diagram_view.scenes[0])
 
         self.gui_curr_block = list(self.blocks.values())[0]
-        """helper atribute, holds currently active block"""
+        """helper attribute, holds currently active block"""
 
     def init_blocks(self, geo_model):
-        for top in geo_model.get_topologies():
+        for top in geo_model.topologies:
             self.blocks.add(BlockModel(self.regions_model))
 
-        for layer in geo_model.get_layers():
-            top_idx = geo_model.get_gl_topology(layer)
-            self.blocks.get(top_idx).init_add_layer(layer)
+        for layer in geo_model.layers:
             if isinstance(layer.top, InterfaceNodeSet):
+                top_id = geo_model.node_sets[layer.top.nodeset_id].topology_id
+                self.blocks.get(top_id).init_add_layer(layer)
                 ns_idx = layer.top.nodeset_id
-                node_set = geo_model.get_node_set(ns_idx)
-                if node_set.topology_id not in self.diagram_view.scenes:
-                    topology = geo_model.get_topologies()[node_set.topology_id]
-                    decomp = polygons_io.deserialize(node_set.nodes, topology)
-                    curr_block = self.blocks.get(node_set.topology_id)
-                    curr_block.init_decomposition(decomp)
+                node_set = geo_model.node_sets[ns_idx]
 
-        for block in self.blocks.values():
-            diagram_scene = DiagramScene(block, self.diagram_view)
+                topology = geo_model.topologies[node_set.topology_id]
+                decomp = polygons_io.deserialize(node_set.nodes, topology)
 
-            block.selection.set_diagram(diagram_scene)
-            self.diagram_view.scenes[block.id] = diagram_scene
+                curr_block = self.blocks.get(node_set.topology_id)
+                curr_block.init_decomposition(decomp)
+            elif isinstance(layer.top, InterpolatedNodeSet):
+                top_id = geo_model.node_sets[layer.top.surf_nodesets[0].nodeset_id].topology_id
+                self.blocks.get(top_id).init_add_layer(layer)
 
 
     # # def reinit(self):
@@ -256,26 +262,17 @@ class LEModel(QObject):
     #     return False
 
     def save(self):
-        geo_model = LayerGeometrySerializer()
-        region_id_to_idx = self.regions_model.save(geo_model)
+        geo_model = LayerGeometry()
+        geo_model.version = [0,5,5]
+        regions_data, region_id_to_idx = self.regions_model.save()
+        geo_model.regions = regions_data
         for block in self.blocks.values():
-            block.save(geo_model, region_id_to_idx)
+            nodes, topology, layers = block.save(region_id_to_idx)
+            geo_model.layers.extend(layers)
+            geo_model.topologies.append(topology)
+            geo_model.node_sets.append(NodeSet(dict(topology_id=len(geo_model.topologies) - 1, nodes=nodes)))
 
         return geo_model
-
-    def save_file(self, file=None):
-        """save to json file"""
-        if file is None:
-            file = self.curr_file
-
-        self.save().save(file)
-        #self.history.saved()
-
-        self.curr_file = file
-        try:
-            self.curr_file_timestamp = os.path.getmtime(file)
-        except OSError:
-            self.curr_file_timestamp = None
 
     @classmethod
     def open_file(cls, file):
@@ -319,5 +316,62 @@ class LEModel(QObject):
     #     return False
     #
 
-    def save_to_string(self):
-        return self.save().save()
+    @staticmethod
+    def check_geo_model_consistency(geo_model):
+        """check created file consistency"""
+        errors =  []
+        for ns_idx in range(0, len(geo_model.node_sets)):
+            ns = geo_model.node_sets[ns_idx]
+            topology_idx = ns.topology_id
+            if topology_idx < 0 or topology_idx >= len(geo_model.topologies):
+                errors.append("Topology {} is out of geometry topologies range 0..{}".format(
+                    topology_idx, len(geo_model.topologies) - 1))
+
+        # topology test
+        curr_top = geo_model.node_sets[0].topology_id
+        used_top = [curr_top]
+        for ns in geo_model.node_sets:
+            if curr_top != ns.topology_id:
+                curr_top = ns.topology_id
+                if curr_top in used_top:
+                    errors.append("Topology {} is in more that one block.".format(curr_top))
+                else:
+                    used_top.append(curr_top)
+        return errors
+
+    @staticmethod
+    def make_default_geo_model():
+        geo_model = LayerGeometry()
+        geo_model.version = [0, 5, 5]
+
+        lname = "Layer_1"
+        default_regions = [  # Stratum layer
+            Region(dict(color="gray", name="NONE", not_used=True, dim=RegionDim.none))  # TopologyDim.polygon
+        ]
+        for reg in default_regions:
+            geo_model.regions.append(reg)
+
+        regions = ([], [], [0])  # No node, segment, polygon or regions.
+        inter = Interface(dict(elevation=0.0, surface_id=None))
+        inter.transform_z = [1.0, 0.0]
+        geo_model.interfaces.append(inter)
+        ns_top = InterfaceNodeSet(dict(nodeset_id=0, interface_id=0))
+
+        inter = Interface(dict(elevation=-100.0, surface_id=None))
+        inter.transform_z = [1.0, 0.0]
+        geo_model.interfaces.append(inter)
+
+        surf_nodesets = (dict(nodeset_id=0, interface_id=1), dict(nodeset_id=0, interface_id=1))
+        #TODO: shouldn't this reference to the top nodeset???
+        ns_bot = InterpolatedNodeSet(dict(surf_nodesets=surf_nodesets, interface_id=1))
+
+        gl = StratumLayer(dict(name=lname, top=ns_top, bottom=ns_bot))
+        gl.node_region_ids = regions[0]
+        gl.segment_region_ids = regions[1]
+        gl.polygon_region_ids = regions[2]
+        geo_model.layers.append(gl)
+
+        geo_model.topologies.append(Topology())
+        geo_model.node_sets.append(NodeSet(dict(topology_id=0, nodes=[])))
+        geo_model.supplement.last_node_set = 0
+        return geo_model
