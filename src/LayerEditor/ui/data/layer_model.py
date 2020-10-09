@@ -2,14 +2,14 @@ from collections import deque
 
 from bgem.external import undo
 
-from LayerEditor.data.layer_geometry_serializer import LayerGeometrySerializer
 from LayerEditor.ui.data.region_item import RegionItem
 from LayerEditor.ui.diagram_editor.graphics_items.gs_point import GsPoint
 from LayerEditor.ui.diagram_editor.graphics_items.gs_polygon import GsPolygon
 from LayerEditor.ui.diagram_editor.graphics_items.gs_segment import GsSegment
 from LayerEditor.ui.tools import better_undo
 from LayerEditor.ui.tools.id_map import IdObject
-from gm_base.geometry_files.format_last import StratumLayer, LayerType, FractureLayer, TopologyType, InterfaceNodeSet
+from gm_base.geometry_files.format_last import StratumLayer, LayerType, FractureLayer, TopologyType, InterfaceNodeSet, \
+    ShadowLayer, InterpolatedNodeSet
 
 
 class LayerModel(IdObject):
@@ -50,50 +50,27 @@ class LayerModel(IdObject):
         for shape_id, region_id in enumerate(layer_data.polygon_region_ids):
             self.shape_regions[2][shape_id] = regions_dict.get(region_id)
 
-    def save(self, geo_model: LayerGeometrySerializer, region_id_to_idx: dict):
+    def save(self, region_id_to_idx: dict):
+        layer_config = dict(name=self.name, top=self.top_top)
         if self.is_stratum:
-            type = LayerType.stratum
-            bottom_top = self.bottom_top
-            # TODO: this seems to be obsolete, because in format_last bottom_type and top_type are commented
-            if isinstance(self.bottom_top, InterfaceNodeSet):
-                bottom_type = TopologyType.given
-            else:
-                bottom_type = TopologyType.interpolated
+            layer_class = StratumLayer
+            layer_config['bottom'] = self.bottom_top
         elif self.is_fracture:
-            type = LayerType.fracture
-            bottom_type = None
-            bottom_top = None
+            layer_class = FractureLayer
         else:
-            type = LayerType.shadow
-            bottom_type = None
-            bottom_top = None
+            layer_class = ShadowLayer
 
         shape_region_idx = ([], [], [])
-        for point in sorted(self.decomposition.points.values(), key=lambda x: x.index):
-            region = self.shape_regions[0][point.id]
-            shape_region_idx[0].append(region_id_to_idx[region.id])
+        for dim in range(3):
+            for shape in sorted(self.decomposition.decomp.shapes[dim].values(), key=lambda x: x.index):
+                region = self.shape_regions[dim][shape.id]
+                shape_region_idx[dim].append(region_id_to_idx[region.id])
 
-        for seg in sorted(self.decomposition.segments.values(), key=lambda x: x.index):
-            region = self.shape_regions[1][seg.id]
-            shape_region_idx[1].append(region_id_to_idx[region.id])
-
-        for poly in sorted(self.decomposition.polygons.values(), key=lambda x: x.index):
-            region = self.shape_regions[2][poly.id]
-            shape_region_idx[2].append(region_id_to_idx[region.id])
-
-
-        if isinstance(self.top_top, InterfaceNodeSet):
-            top_type = TopologyType.given
-        else:
-            top_type = TopologyType.interpolated
-
-        geo_model.add_GL(self.name,
-                    type,
-                    shape_region_idx,
-                    top_type,
-                    self.top_top,
-                    bottom_type,
-                    bottom_top)
+        gl = layer_class(layer_config)
+        gl.node_region_ids = shape_region_idx[0]
+        gl.segment_region_ids = shape_region_idx[1]
+        gl.polygon_region_ids = shape_region_idx[2]
+        return gl
 
     def set_region_to_selected_shapes(self, region: RegionItem):
         """Sets regions of shapes only in this layer."""

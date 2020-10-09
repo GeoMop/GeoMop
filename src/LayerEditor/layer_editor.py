@@ -1,17 +1,20 @@
 """
 Start script that inicialize main window
 """
+import json
 import sys
 import os
 import signal
 
 from bgem.external import undo
 
+from LayerEditor.exceptions.data_inconsistent_exception import DataInconsistentException
 from LayerEditor.ui.data.le_model import LEModel
 from LayerEditor.ui.diagram_editor.diagram_view import DiagramView
 from LayerEditor.ui.panels import RegionsPanel
 from LayerEditor.ui.tools import better_undo
 from LayerEditor.ui.tools.cursor import Cursor
+from gm_base.geometry_files.format_last import UserSupplement
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 
@@ -32,13 +35,13 @@ class LayerEditor:
         #if args:
         #    self.parse_args(args)
 
-        self._le_data = LEModel()
+        self._le_model = LEModel()
 
         self.mainwindow = MainWindow(self)
         self.exit = False
 
-        save_fn = lambda: self.le_data.save_to_string()
-        curr_file_fn = lambda: self.le_data.curr_file
+        save_fn = lambda: self.save_model()
+        curr_file_fn = lambda: self.le_model.curr_file
         self.autosave = Autosave(cfg.current_workdir, curr_file_fn, save_fn)
         self._restore_backup()
 
@@ -58,12 +61,12 @@ class LayerEditor:
         signal.signal(signal.SIGINT, signal.SIG_DFL)
 
     @property
-    def le_data(self):
-        return self._le_data
+    def le_model(self):
+        return self._le_model
 
-    @le_data.setter
-    def le_data(self, le_data):
-        self._le_data = le_data
+    @le_model.setter
+    def le_model(self, le_model):
+        self._le_model = le_model
         self.mainwindow.make_widgets()
         self.autosave.update_content()
 
@@ -150,9 +153,7 @@ class LayerEditor:
         if from_backup:
             le_data.curr_file = None
             le_data.curr_file_timestamp = None
-        self.le_data = le_data
-        scene = self.le_data.diagram_view.scenes[0]
-        self.mainwindow.diagramView.setScene(scene)
+        self.le_model = le_data
         self._update_document_name()
 
     def open_file(self, in_file=None):
@@ -200,7 +201,7 @@ class LayerEditor:
     #
     def open_recent(self, action):
         """open recent file menu action"""
-        if action.data() == self.le_data.curr_file:
+        if action.data() == self.le_model.curr_file:
             return
         if not self.save_old_file():
             return
@@ -211,10 +212,32 @@ class LayerEditor:
         self._restore_backup()
         self.mainwindow.show_status_message("File '" + action.data() + "' is opened")
 
+    def save_model(self, filename=""):
+        geo_model = self.le_model.save()
+        geo_model.supplement = UserSupplement(self.mainwindow.diagram_view.save())
+        errors = LEModel.check_geo_model_consistency(geo_model)
+        if len(errors) > 0:
+            raise DataInconsistentException("Some file consistency errors occure", errors)
+        if filename:
+            with open(filename, 'w') as f:
+                json.dump(geo_model.serialize(), f, indent=4, sort_keys=True)
+            return None
+        else:
+            return json.dumps(geo_model.serialize(), indent=4, sort_keys=True)
+
+
     def save(self, filename=None):
         """Common code for saving file (used by save_file and save_as)"""
-        self.le_data.save_file(filename)
-        cfg.add_recent_file(self.le_data.curr_file)
+        if filename is None:
+            filename = self.le_model.curr_file
+        self.save_model(filename)
+        self.le_model.curr_file = filename
+        try:
+            self.le_model.curr_file_timestamp = os.path.getmtime(filename)
+        except OSError:
+            self.le_model.curr_file_timestamp = None
+
+        cfg.add_recent_file(self.le_model.curr_file)
         self.autosave.delete_backup()
         self.mainwindow.show_status_message("File is saved")
         self.mainwindow.update_recent_files()
@@ -223,20 +246,20 @@ class LayerEditor:
 
     def save_file(self):
         """save file menu action"""
-        if self.le_data.curr_file is None:
+        if self.le_model.curr_file is None:
             return self.save_as()
-        if self.le_data.confront_file_timestamp():
+        if self.le_model.confront_file_timestamp():
             return
         self.save()
 
     def save_as(self):
         """save file menu action"""
-        if self.le_data.confront_file_timestamp():
+        if self.le_model.confront_file_timestamp():
             return
-        if self.le_data.curr_file is None:
+        if self.le_model.curr_file is None:
             new_file = cfg.current_workdir + os.path.sep + "NewFile.json"
         else:
-            new_file = self.le_data.curr_file
+            new_file = self.le_model.curr_file
         dialog = QtWidgets.QFileDialog(self.mainwindow, 'Save as JSON Geometry File', new_file,
                                        "JSON Files (*.json)")
         dialog.setDefaultSuffix('.json')
@@ -284,10 +307,10 @@ class LayerEditor:
     def _update_document_name(self):
         """Update document title (add file name)"""
         title = "GeoMop Layer Editor"
-        if self.le_data.curr_file is None:
+        if self.le_model.curr_file is None:
             title += " - New File"
         else:
-            title += " - " + self.le_data.curr_file
+            title += " - " + self.le_model.curr_file
         self.mainwindow.setWindowTitle(title)
 
 

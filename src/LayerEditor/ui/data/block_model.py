@@ -1,4 +1,3 @@
-from LayerEditor.data.layer_geometry_serializer import LayerGeometrySerializer
 from LayerEditor.ui.data.layer_model import LayerModel
 from LayerEditor.ui.data.region_item import RegionItem
 
@@ -7,7 +6,7 @@ from LayerEditor.ui.tools.id_map import IdMap, IdObject
 from LayerEditor.ui.tools.selection import Selection
 
 import gm_base.polygons.polygons_io as polygons_io
-from gm_base.geometry_files.format_last import InterfaceNodeSet
+from gm_base.geometry_files.format_last import InterfaceNodeSet, NodeSet
 
 
 class BlockModel(IdObject):
@@ -53,6 +52,20 @@ class BlockModel(IdObject):
 
         self.gui_selected_layer = self.layers[0]
 
+    def init_regions_for_new_shape(self, shape):
+        for layer in self.layers:
+            if shape.shape_id in layer.shape_regions[shape.dim]:
+                return
+            else:
+                region = layer.gui_selected_region
+                dim = shape.dim
+                if not layer.is_fracture:
+                    dim += 1
+                if region.dim == dim:
+                    layer.set_region_to_shape(shape, layer.gui_selected_region)
+                else:
+                    layer.set_region_to_shape(shape, Region.none)
+
     #TODO: make this undoable
     def insert_layer(self, layer_data, index):
         pass
@@ -75,13 +88,14 @@ class BlockModel(IdObject):
         #
         # self.gui_selected_layer = self.layers[0]
 
-    def save(self, geo_model: LayerGeometrySerializer, region_id_to_idx: dict):
+    def save(self, region_id_to_idx: dict):
         """Save data from this block to LayerGeometryModel"""
         nodes, topology = polygons_io.serialize(self.decomposition)
-        top_idx = geo_model.add_topology(topology)
-        geo_model.add_node_set(top_idx, nodes)
+
+        layers = []
         for layer in self.layers:
-            layer.save(geo_model, region_id_to_idx)
+            layers.append(layer.save(region_id_to_idx))
+        return (nodes, topology, layers)
 
     # def set_region_to_selected_shapes(self, region: Region):
     #     """Sets regions of shapes for all layers in block."""

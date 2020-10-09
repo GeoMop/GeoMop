@@ -27,6 +27,7 @@ class Autosave:
         self.text = string_to_save_fnc
         self.content_hash = hash(self.text())
         self.autosave_timer = QtCore.QTimer()
+        self.savepoint = None
         """timer for periodical saving"""
         #self.autosave_timer.setSingleShot(True)
         self.autosave_timer.timeout.connect(self._autosave)
@@ -51,10 +52,11 @@ class Autosave:
 
     def _autosave(self):
         """Periodically saves specified string (current file)."""
-        if better_undo.has_changed():
+        if better_undo.has_changed(self.savepoint):
             cfg.save()
             content = self.text()
             content_hash = hash(content)
+            self.savepoint = better_undo.undo.stack()._undos[-1]
             if self.content_hash != content_hash:
                 self.content_hash = content_hash
                 with codecs.open(self.backup_filename(), 'w', 'utf-8') as file_d:

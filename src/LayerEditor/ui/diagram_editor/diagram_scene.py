@@ -1,5 +1,7 @@
 from PyQt5 import QtWidgets, QtCore, QtGui
 from PyQt5.QtCore import Qt, QPoint
+from PyQt5.QtGui import QBrush, QPen
+from PyQt5.QtWidgets import QGraphicsRectItem
 
 from LayerEditor.ui.data.region_item import RegionItem
 from LayerEditor.ui.data.regions_model import RegionsModel
@@ -19,9 +21,8 @@ class DiagramScene(QtWidgets.QGraphicsScene):
     regionsUpdateRequired = QtCore.pyqtSignal()
     TOLERANCE = 5
 
-    def __init__(self, block, parent):
-        rect = QtCore.QRectF(QPoint(-100000, -100000), QPoint(100000, 100000))
-        super().__init__(rect, parent)
+    def __init__(self, block, bounding_rect, parent):
+        super().__init__(bounding_rect, parent)
         self.selection = block.selection
         self.block = block
         self.points = {}
@@ -46,6 +47,12 @@ class DiagramScene(QtWidgets.QGraphicsScene):
         """Decomposition of the a plane into polygons."""
         self.update_scene()
         self.pixmap_item = None
+        temp = QGraphicsRectItem(self.sceneRect())
+        temp.setBrush(QBrush(Qt.NoBrush))
+        pen = temp.pen()
+        pen.setCosmetic(True)
+        temp.setPen(pen)
+        self.addItem(temp)
 
     def get_shape(self, dim, shape_id) -> [GsPoint, GsSegment, GsPolygon]:
         """Get g_item defined by dimension and id"""
@@ -303,7 +310,7 @@ class DiagramScene(QtWidgets.QGraphicsScene):
             else:
                 gseg = GsSegment(segment, self.block)
                 parent = self.parent()
-                gseg.update_zoom(self.parent()._zoom)
+                gseg.update_zoom(self.parent().zoom)
                 self.segments[segment_id] = gseg
                 self.addItem(gseg)
 
