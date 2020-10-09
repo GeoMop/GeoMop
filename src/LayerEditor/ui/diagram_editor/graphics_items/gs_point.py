@@ -31,10 +31,10 @@ class GsPoint(QtWidgets.QGraphicsEllipseItem):
 
     def __init__(self, pt, block):
         """ Initialize graphics point from data in pt.
-            Calls fnc_init_attr to initialize pt.attr."""
+            Needs ref to block for updating color and initializing regions"""
         self.pt = pt
         self.block = block
-        self.init_regions()
+        self.block.init_regions_for_new_shape(self)
         # pt.gpt = self
         super().__init__(-self.SIZE, -self.SIZE, 2 * self.SIZE, 2 * self.SIZE)
         self.setFlag(QtWidgets.QGraphicsItem.ItemIgnoresTransformations, True)
@@ -55,20 +55,6 @@ class GsPoint(QtWidgets.QGraphicsEllipseItem):
     @property
     def shape_id(self):
         return self.pt.id
-
-    def init_regions(self):
-        for layer in self.block.layers:
-            if self.pt.id in layer.shape_regions[self.dim]:
-                return
-            else:
-                region = layer.gui_selected_region
-                dim = self.dim
-                if not layer.is_fracture:
-                    dim += 1
-                if region.dim == dim:
-                    layer.set_region_to_shape(self, layer.gui_selected_region)
-                else:
-                    layer.set_region_to_shape(self, Region.none)
 
     def paint(self, painter, option, widget):
         # print("option: ", option.state)
@@ -132,8 +118,3 @@ class GsPoint(QtWidgets.QGraphicsEllipseItem):
     # def mouseReleaseEvent(self, event):
     #     self.update()
     #     super().mouseReleaseEvent(event)
-
-    def update_color(self, layer_id: int, regions: RegionsModel):
-        brush, pen = self.pen_table(regions.regions[self.pt.attr].color)
-        self.setPen(pen)
-        self.setBrush(brush)
