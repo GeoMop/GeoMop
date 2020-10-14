@@ -23,8 +23,8 @@ class DiagramView(QtWidgets.QGraphicsView):
 
         self.el_map = {}
 
-        for block in le_model.blocks.values():
-            diagram_scene = DiagramScene(block, le_model.init_area.boundingRect(), self)
+        for block in le_model.blocks_model.blocks.values():
+            diagram_scene = DiagramScene(block, le_model.init_area, self)
 
             block.selection.set_diagram(diagram_scene)
             self.scenes[block.id] = diagram_scene
@@ -79,7 +79,7 @@ class DiagramView(QtWidgets.QGraphicsView):
     def save(self):
         center = self.mapToScene(self.viewport().rect().center())
 
-        return {"init_area": [(point.x(), point.y()) for point in QPolygonF(self.sceneRect())][:-1],
+        return {"init_area": [(point.x(), -point.y()) for point in QPolygonF(self.sceneRect())][:-1],
                 "zoom": {"zoom": self.zoom,
                          "x": center.x(),
                          "y": -center.y(),

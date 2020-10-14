@@ -80,7 +80,7 @@ class BlockLayerHeads(QtCore.QObject):
         TODO: better check for the fracture layer.
         """
         max_selected_dim = self.block.selection.max_selected_dim()
-        if not self.block.gui_selected_layer.is_fracture:
+        if self.block.gui_selected_layer.is_stratum:
             max_selected_dim += 1
         return max(max_selected_dim, 0)
 

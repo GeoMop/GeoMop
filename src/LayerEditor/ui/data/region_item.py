@@ -12,7 +12,7 @@ class RegionItem(IdObject):
     colors = [ QtGui.QColor(col) for col in _cols]
     id_next = 1
 
-    def __init__(self, id_map, color=None, name="", dim=-1, step=0.0, not_used=False, boundary=False):
+    def __init__(self, id_map, color=None, name="", dim=-1, step=0.0, not_used=False, boundary=False, brep_shape_ids=[]):
         super(RegionItem, self).__init__()
         id_map.add(self)
         if color is None:
@@ -27,14 +27,20 @@ class RegionItem(IdObject):
         """Is boundary region"""
         self.not_used = not_used
         self.mesh_step = float(step)
+        self.brep_shape_ids = []
+        """List of shape indexes - in BREP geometry """
 
-    def convert_to_data(self):
+        self.index = None
+        """Reserved for referencing by index while saving. Should be cleared back to None after saving is finished"""
+
+    def save(self):
         return format_last.Region({ "color": self.color,
                                     "name": self.name,
                                     "dim": self.dim,
                                     "mesh_step": self.mesh_step,
                                     "boundary": self.boundary,
-                                    "not_used": self.not_used})
+                                    "not_used": self.not_used,
+                                    "brep_shape_ids": self.brep_shape_ids})
 
     @undo.undoable
     def set_name(self, name: str):

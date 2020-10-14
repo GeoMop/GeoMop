@@ -24,7 +24,8 @@ class RegionsModel:
                    region_data.dim,
                    region_data.mesh_step,
                    region_data.not_used,
-                   region_data.boundary)
+                   region_data.boundary,
+                   region_data.brep_shape_ids)
 
     @undo.undoable
     def add_region(self, name="", dim=0, color=None):
@@ -84,9 +85,9 @@ class RegionsModel:
 
     def is_region_used(self, reg):
         dim = self.regions[reg].dim
-        for block in self.le_data.blocks.values():
+        for block in self.le_data.blocks_model.blocks.values():
             for layer in block.layers:
-                if not layer.is_fracture:
+                if layer.is_stratum:
                     dim -= 1
                     if dim < 0:
                         continue
@@ -96,9 +97,11 @@ class RegionsModel:
 
     def save(self):
         regions_data = []
-        id_to_idx = {}
         for idx, region in enumerate(self.regions.values()):
-            regions_data.append(region.convert_to_data())
-            id_to_idx[region.id] = idx
-        return (regions_data, id_to_idx)
+            regions_data.append(region.save())
+            region.index = idx
+        return regions_data
 
+    def clear_indexing(self):
+        for region in self.regions.values():
+            region.index = None

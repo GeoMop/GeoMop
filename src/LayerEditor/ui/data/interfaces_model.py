@@ -1,14 +1,20 @@
-from bgem.external import undo
-
 from LayerEditor.ui.data.interface_item import InterfaceItem
-from LayerEditor.ui.tools.id_map import IdMap
-
 
 class InterfacesModel:
-    def __init__(self, interfaces_data: list):
-        self.interfaces = IdMap()
+    def __init__(self, le_model, interfaces_data: list):
+        self.interfaces = []
         for itf in interfaces_data:
-            self.interfaces.add(InterfaceItem(itf))
+            surface = le_model.surfaces_model.surfaces[itf.surface_id] if itf.surface_id is not None else None
+            self.interfaces.append(InterfaceItem(itf.elevation, itf.transform_z, surface,))
 
+    def save(self):
+        interfaces_data = []
+        for idx, interface in enumerate(self.interfaces):
+            interfaces_data.append(interface.save())
+            interface.index = idx
+        return interfaces_data
 
+    def clear_indexing(self):
+        for interface in self.interfaces:
+            interface.index = None
 

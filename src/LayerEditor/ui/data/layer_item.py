@@ -2,74 +2,62 @@ from collections import deque
 
 from bgem.external import undo
 
+from LayerEditor.ui.data.interface_node_set_item import InterfaceNodeSetItem
 from LayerEditor.ui.data.region_item import RegionItem
 from LayerEditor.ui.diagram_editor.graphics_items.gs_point import GsPoint
 from LayerEditor.ui.diagram_editor.graphics_items.gs_polygon import GsPolygon
 from LayerEditor.ui.diagram_editor.graphics_items.gs_segment import GsSegment
 from LayerEditor.ui.tools import better_undo
 from LayerEditor.ui.tools.id_map import IdObject
-from gm_base.geometry_files.format_last import StratumLayer, LayerType, FractureLayer, TopologyType, InterfaceNodeSet, \
-    ShadowLayer, InterpolatedNodeSet
+from gm_base.geometry_files.format_last import StratumLayer, FractureLayer
 
 
-class LayerModel(IdObject):
+class LayerItem(IdObject):
     """Data about one geological layer"""
-    def __init__(self, block, regions_dict, layer_data=None):
+    def __init__(self, block, name, top_top, bottom_top, shape_regions):
         self.block = block
         """This layer is part of this block"""
-        self.decomposition = block.decomposition
-        """Decomposition of this layer. For now each layer in the same block has the same decomposition"""
-        self.name = layer_data.name
+        self.name = name
         """Layer name"""
-        self.top_top = layer_data.top
+        self.top_top = top_top
         """Top topology"""
-        self.bottom_top = layer_data.__dict__.get("bottom")
+        self.bottom_top = bottom_top
         """Bottom topology if layer is fracture always None"""
-        self.shape_regions = [{}, {}, {}]
+        self.shape_regions = shape_regions
         """[{point_id: region_object}, {seg_id: region_object}, {poly_id: region_object}]"""
         """Regions of shapes grouped by dimension"""
-        self._init_regions_ids(layer_data, regions_dict)
 
         ######### Not undoable ########### Not undoable ########## Not undoable ##########
         self.gui_selected_region = RegionItem.none
         """Default region for new objects in diagram. Also used by LayerHeads for RegionsPanel"""
         """Not undoable"""
 
-        self.is_fracture = isinstance(layer_data, FractureLayer)
-        """Is this layer fracture layer?"""
-        self.is_stratum = isinstance(layer_data, StratumLayer)
+        self.is_stratum = self.bottom_top is not None
         """Is this layer stratum layer?"""
 
-    def _init_regions_ids(self, layer_data, regions_dict):
-        for shape_id, region_id in enumerate(layer_data.node_region_ids):
-            self.shape_regions[0][shape_id] = regions_dict.get(region_id)
 
-        for shape_id, region_id in enumerate(layer_data.segment_region_ids):
-            self.shape_regions[1][shape_id] = regions_dict.get(region_id)
-
-        for shape_id, region_id in enumerate(layer_data.polygon_region_ids):
-            self.shape_regions[2][shape_id] = regions_dict.get(region_id)
-
-    def save(self, region_id_to_idx: dict):
-        layer_config = dict(name=self.name, top=self.top_top)
-        if self.is_stratum:
-            layer_class = StratumLayer
-            layer_config['bottom'] = self.bottom_top
-        elif self.is_fracture:
-            layer_class = FractureLayer
-        else:
-            layer_class = ShadowLayer
-
+    def save(self):
+        layer_config = dict(name=self.name, top=self.top_top.save())
         shape_region_idx = ([], [], [])
-        for dim in range(3):
-            for shape in sorted(self.decomposition.decomp.shapes[dim].values(), key=lambda x: x.index):
-                region = self.shape_regions[dim][shape.id]
-                shape_region_idx[dim].append(region_id_to_idx[region.id])
+        if isinstance(self.top_top, InterfaceNodeSetItem):
+            decomp = self.top_top.decomposition
+        else:
+            decomp = self.top_top.top_itf_node_set.decomposition
 
-        gl = layer_class(layer_config)
-        gl.node_region_ids = shape_region_idx[0]
-        gl.segment_region_ids = shape_region_idx[1]
-        gl.polygon_region_ids = shape_region_idx[2]
+        for dim in range(3):
+            for shape in sorted(decomp.decomp.shapes[dim].values(), key=lambda x: x.index):
+                region = self.shape_regions[dim][shape.id]
+                shape_region_idx[dim].append(region.index)
+        layer_config["node_region_ids"] = shape_region_idx[0]
+        layer_config["segment_region_ids"] = shape_region_idx[1]
+        layer_config["polygon_region_ids"] = shape_region_idx[2]
+
+        if self.is_stratum:
+            layer_config['bottom'] = self.bottom_top.save()
+            gl = StratumLayer(layer_config)
+        else:
+            gl = FractureLayer(layer_config)
+
         return gl
 
     def set_region_to_selected_shapes(self, region: RegionItem):
