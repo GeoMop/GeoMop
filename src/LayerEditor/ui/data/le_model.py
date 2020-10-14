@@ -4,15 +4,14 @@ from PyQt5.QtCore import QObject, QPointF
 from PyQt5.QtGui import QPolygonF
 
 from LayerEditor.exceptions.data_inconsistent_exception import DataInconsistentException
-from LayerEditor.ui.data.block_model import BlockModel
+from LayerEditor.ui.data.blocks_model import BlocksModel
+from LayerEditor.ui.data.interfaces_model import InterfacesModel
+from LayerEditor.ui.data.decompositions_model import DecompositionsModel
 from LayerEditor.ui.data.regions_model import RegionsModel
-from LayerEditor.ui.diagram_editor.diagram_scene import DiagramScene
-from LayerEditor.ui.diagram_editor.diagram_view import DiagramView
-from LayerEditor.ui.tools.id_map import IdMap
+from LayerEditor.ui.data.surfaces_model import SurfacesModel
 from gm_base.geometry_files import layers_io
 from gm_base.geometry_files.format_last import InterfaceNodeSet, LayerGeometry, NodeSet, Region, RegionDim, Interface, \
     InterpolatedNodeSet, StratumLayer, Topology
-from gm_base.polygons import polygons_io
 
 
 class LEModel(QObject):
@@ -47,23 +46,31 @@ class LEModel(QObject):
 
     def __init__(self, in_file=None):
         super(LEModel, self).__init__()
-    #     # self.history = GlobalHistory(cls)
-    #     # cls.layers = le_data.Layers(cls.history)
-    #     # cls.reinit()
-    #     self.regions = Regions()
+        geo_model, self.curr_file_timestamp = self.load_geo_model(in_file)
+
         self.curr_file = in_file
         """Current file (could be moved to config?)."""
-        self.blocks = IdMap()  # {topology_id: BlockModel}
-        """dict of all blocks in geometry"""
-        if self.curr_file is None:
-            self.curr_file_timestamp = None
-        else:
-            try:
-                self.curr_file_timestamp = os.path.getmtime(in_file)
-            except OSError:
-                self.curr_file_timestamp = None
-        """Timestamp is used for detecting file changes while file is loaded in LE."""
+        self.decompositions_model = DecompositionsModel(geo_model.node_sets, geo_model.topologies)
+        """Manages decompositions, this is similar to self.node_sets in format last"""
 
+        self.surfaces_model = SurfacesModel(geo_model.surfaces)
+        """Manages surfaces"""
+        self.interfaces_model = InterfacesModel(self, geo_model.interfaces)
+        """Manages interfaces"""
+        self.regions_model = RegionsModel(self, geo_model.regions)
+        """Manages regions."""
+        self.blocks_model = BlocksModel(geo_model, self)
+        """Manages blocks."""
+
+        self.init_area = QPolygonF([QPointF(point[0], -point[1]) for point in geo_model.supplement.init_area]).boundingRect()
+        """Initialization area (polygon x,y coordinates) for scene"""
+        self.init_zoom_pos_data = geo_model.supplement.zoom
+        """Used only for initializing DiagramView after that is None and DiagramView holds those informations"""
+
+        self.gui_curr_block = list(self.blocks_model.blocks.values())[0]
+        """helper attribute, holds currently active block"""
+
+    def load_geo_model(self, in_file=None):
         if in_file is None:
             geo_model = self.make_default_geo_model()
         else:
@@ -73,39 +80,15 @@ class LEModel(QObject):
                 raise DataInconsistentException(
                     "Some file consistency errors occure in {0}".format(in_file), errors)
 
-        self.init_area = QPolygonF([QPointF(point[0], point[1]) for point in geo_model.supplement.init_area])
-        """Initialization area (polygon x,y coordinates) for scene"""
-        self.init_zoom_pos_data = geo_model.supplement.zoom
-        """Used only for initializing DiagramView after that is None and DiagramView holds those informations"""
-
-        self.regions_model = RegionsModel(self, geo_model.regions)
-        """Manages regions."""
-
-        self.init_blocks(geo_model)
-
-        self.gui_curr_block = list(self.blocks.values())[0]
-        """helper attribute, holds currently active block"""
-
-    def init_blocks(self, geo_model):
-        for top in geo_model.topologies:
-            self.blocks.add(BlockModel(self.regions_model))
-
-        for layer in geo_model.layers:
-            if isinstance(layer.top, InterfaceNodeSet):
-                top_id = geo_model.node_sets[layer.top.nodeset_id].topology_id
-                self.blocks.get(top_id).init_add_layer(layer)
-                ns_idx = layer.top.nodeset_id
-                node_set = geo_model.node_sets[ns_idx]
-
-                topology = geo_model.topologies[node_set.topology_id]
-                decomp = polygons_io.deserialize(node_set.nodes, topology)
-
-                curr_block = self.blocks.get(node_set.topology_id)
-                curr_block.init_decomposition(decomp)
-            elif isinstance(layer.top, InterpolatedNodeSet):
-                top_id = geo_model.node_sets[layer.top.surf_nodesets[0].nodeset_id].topology_id
-                self.blocks.get(top_id).init_add_layer(layer)
-
+        if in_file is None:
+            curr_file_timestamp = None
+        else:
+            try:
+                curr_file_timestamp = os.path.getmtime(in_file)
+            except OSError:
+                curr_file_timestamp = None
+        """Timestamp is used for detecting file changes while file is loaded in LE."""
+        return (geo_model, curr_file_timestamp)
 
     # # def reinit(self):
     # #     """Release all diagram data"""
@@ -263,15 +246,24 @@ class LEModel(QObject):
 
     def save(self):
         geo_model = LayerGeometry()
-        geo_model.version = [0,5,5]
-        regions_data, region_id_to_idx = self.regions_model.save()
+        geo_model.version = [0, 5, 5]
+        surfaces = self.surfaces_model.save()
+        geo_model.surfaces = surfaces
+        node_sets, topologies = self.decompositions_model.save()
+        geo_model.topologies = topologies
+        geo_model.node_sets = node_sets
+        regions_data = self.regions_model.save()
         geo_model.regions = regions_data
-        for block in self.blocks.values():
-            nodes, topology, layers = block.save(region_id_to_idx)
-            geo_model.layers.extend(layers)
-            geo_model.topologies.append(topology)
-            geo_model.node_sets.append(NodeSet(dict(topology_id=len(geo_model.topologies) - 1, nodes=nodes)))
+        interfaces_data = self.interfaces_model.save()
+        geo_model.interfaces = interfaces_data
+        geo_model.layers = self.blocks_model.save()
 
+
+
+        self.surfaces_model.clear_indexing()
+        self.decompositions_model.clear_indexing()
+        self.regions_model.clear_indexing()
+        self.interfaces_model.clear_indexing()
         return geo_model
 
     @classmethod

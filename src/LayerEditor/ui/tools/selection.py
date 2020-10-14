@@ -1,6 +1,6 @@
 from PyQt5.QtCore import pyqtSignal, QObject
 
-from LayerEditor.ui.data.region import Region
+from LayerEditor.ui.data.region_item import RegionItem
 
 
 class Selection(QObject):

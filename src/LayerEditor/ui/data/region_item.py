@@ -5,18 +5,18 @@ from LayerEditor.ui.tools.id_map import IdObject
 from gm_base.geometry_files import format_last
 
 
-class Region(IdObject):
+class RegionItem(IdObject):
     _cols = ["cyan", "magenta", "darkRed", "darkCyan", "darkMagenta",
              "darkBlue", "yellow","blue"]
     # red and green is used for cut tool resp. cloud pixmap
     colors = [ QtGui.QColor(col) for col in _cols]
     id_next = 1
 
-    def __init__(self, id_map, color=None, name="", dim=-1, step=0.0, not_used=False, boundary=False):
-        super(Region, self).__init__()
+    def __init__(self, id_map, color=None, name="", dim=-1, step=0.0, not_used=False, boundary=False, brep_shape_ids=[]):
+        super(RegionItem, self).__init__()
         id_map.add(self)
         if color is None:
-            color = Region.colors[self.id % len(Region.colors)].name()
+            color = RegionItem.colors[self.id % len(RegionItem.colors)].name()
         self.color = color
 
         self.name = name
@@ -27,14 +27,20 @@ class Region(IdObject):
         """Is boundary region"""
         self.not_used = not_used
         self.mesh_step = float(step)
+        self.brep_shape_ids = []
+        """List of shape indexes - in BREP geometry """
 
-    def convert_to_data(self):
+        self.index = None
+        """Reserved for referencing by index while saving. Should be cleared back to None after saving is finished"""
+
+    def save(self):
         return format_last.Region({ "color": self.color,
                                     "name": self.name,
                                     "dim": self.dim,
                                     "mesh_step": self.mesh_step,
                                     "boundary": self.boundary,
-                                    "not_used": self.not_used})
+                                    "not_used": self.not_used,
+                                    "brep_shape_ids": self.brep_shape_ids})
 
     @undo.undoable
     def set_name(self, name: str):

@@ -144,8 +144,8 @@ class Segment(JsonData):
         super().__init__(config)
 
     def __eq__(self, other):
-        return self.node_ids == other.node.ids \
-            and self.surface_id == other.surface_id
+        return self.node_ids == other.node_ids \
+            and self.interface_id == other.interface_id
 
 class Polygon(JsonData):
 
@@ -165,7 +165,7 @@ class Polygon(JsonData):
         return self.segment_ids == other.segment_ids \
             and self.holes == other.holes \
             and self.free_points == other.free_points \
-            and self.surface_id == other.surface_id
+            and self.interface_id == other.interface_id
 
 
 class Topology(JsonData):

@@ -1,6 +1,6 @@
 from bgem.external import undo
 
-from LayerEditor.ui.data.region import Region
+from LayerEditor.ui.data.region_item import RegionItem
 from LayerEditor.ui.tools.id_map import IdMap
 
 
@@ -15,25 +15,26 @@ class RegionsModel:
 
         for data in regions_data:
             self.add_region_from_data(data)
-        Region.none = self.regions.get(0)
+        RegionItem.none = self.regions.get(0)
 
     def add_region_from_data(self, region_data):
-        Region( self.regions,
-                region_data.color,
-                region_data.name,
-                region_data.dim,
-                region_data.mesh_step,
-                region_data.not_used,
-                region_data.boundary)
+        RegionItem(self.regions,
+                   region_data.color,
+                   region_data.name,
+                   region_data.dim,
+                   region_data.mesh_step,
+                   region_data.not_used,
+                   region_data.boundary,
+                   region_data.brep_shape_ids)
 
     @undo.undoable
     def add_region(self, name="", dim=0, color=None):
-        reg = Region(self.regions, color=color, name=name, dim=dim)
+        reg = RegionItem(self.regions, color=color, name=name, dim=dim)
         yield "Add new Region", reg
         self.delete_region(reg)
 
     @undo.undoable
-    def delete_region(self, reg: Region):
+    def delete_region(self, reg: RegionItem):
         record = {}     # {block_id:[layer_id]}
         """Record of layers which had deleted region selected"""
 
@@ -42,7 +43,7 @@ class RegionsModel:
             for layer in block.layers:
                 if layer.gui_selected_region == reg:
                     record[block].append(layer)
-                    layer.set_gui_selected_region(Region.none)
+                    layer.set_gui_selected_region(RegionItem.none)
         del self.regions[reg]
         yield "Delete Region"
         self.add_region_from_data(reg)
@@ -84,9 +85,9 @@ class RegionsModel:
 
     def is_region_used(self, reg):
         dim = self.regions[reg].dim
-        for block in self.le_data.blocks.values():
+        for block in self.le_data.blocks_model.blocks.values():
             for layer in block.layers:
-                if not layer.is_fracture:
+                if layer.is_stratum:
                     dim -= 1
                     if dim < 0:
                         continue
@@ -96,9 +97,11 @@ class RegionsModel:
 
     def save(self):
         regions_data = []
-        id_to_idx = {}
         for idx, region in enumerate(self.regions.values()):
-            regions_data.append(region.convert_to_data())
-            id_to_idx[region.id] = idx
-        return (regions_data, id_to_idx)
+            regions_data.append(region.save())
+            region.index = idx
+        return regions_data
 
+    def clear_indexing(self):
+        for region in self.regions.values():
+            region.index = None
