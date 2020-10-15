@@ -1,4 +1,7 @@
+import random
+
 from PyQt5 import QtGui
+from PyQt5.QtGui import QColor
 from bgem.external import undo
 
 from LayerEditor.ui.tools.id_map import IdObject
@@ -6,18 +9,18 @@ from gm_base.geometry_files import format_last
 
 
 class RegionItem(IdObject):
-    _cols = ["cyan", "magenta", "darkRed", "darkCyan", "darkMagenta",
-             "darkBlue", "yellow","blue"]
+    _cols = ["gray", "white"]
     # red and green is used for cut tool resp. cloud pixmap
-    colors = [ QtGui.QColor(col) for col in _cols]
+    used_colors = [ QtGui.QColor(col) for col in _cols]
     id_next = 1
 
     def __init__(self, id_map, color=None, name="", dim=-1, step=0.0, not_used=False, boundary=False, brep_shape_ids=[]):
         super(RegionItem, self).__init__()
         id_map.add(self)
         if color is None:
-            color = RegionItem.colors[self.id % len(RegionItem.colors)].name()
+            color = self.get_distinct_color().name()
         self.color = color
+        RegionItem.used_colors.append(QtGui.QColor(color))
 
         self.name = name
         """Region name"""
@@ -27,11 +30,29 @@ class RegionItem(IdObject):
         """Is boundary region"""
         self.not_used = not_used
         self.mesh_step = float(step)
-        self.brep_shape_ids = []
+        self.brep_shape_ids = brep_shape_ids
         """List of shape indexes - in BREP geometry """
 
         self.index = None
         """Reserved for referencing by index while saving. Should be cleared back to None after saving is finished"""
+
+    def get_distinct_color(self, tries=40):
+        last_dist = 0
+        for y in range(tries):
+            candidate = QColor(random.randint(0, 256), random.randint(0, 256), random.randint(0, 256))
+            dists = []
+            for color in RegionItem.used_colors:
+                c1 = color
+                c2 = candidate
+                r = (c1.red() + c2.red()) / 2
+                dist = (2 + r / 256) * (c1.red() - c2.red()) ** 2 + 4 * (c1.green() - c2.green()) ** 2 + (
+                            2 + (255 - r) / 256) * (c1.blue() - c2.blue()) ** 2
+                dists.append(dist)
+            dist = min(dists)
+            if dist > last_dist:
+                winner = candidate
+                last_dist = dist
+        return winner
 
     def save(self):
         return format_last.Region({ "color": self.color,

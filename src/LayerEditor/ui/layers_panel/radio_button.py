@@ -11,14 +11,14 @@ class RadioButton(QWidget):
         self.radio_button = QRadioButton(parent)
         layout = QHBoxLayout()
         layout.addWidget(self.radio_button, alignment=Qt.AlignCenter)
-        layout.setContentsMargins(5,0,5,0)
+        layout.setContentsMargins(5, 0, 5, 0)
         self.setLayout(layout)
 
     def paintEvent(self, event: QtGui.QPaintEvent) -> None:
-        super(RadioButton, self).paintEvent(event)
         painter = QPainter(self)
         painter.setPen(self.parent().LINE_PEN)
         rb_rect = self.radio_button.rect()
         rect = self.rect()
         center = rect.center()
         painter.drawLine(center.x() + rb_rect.width() / 2, center.y(), rect.right(), center.y())
+        super(RadioButton, self).paintEvent(event)
