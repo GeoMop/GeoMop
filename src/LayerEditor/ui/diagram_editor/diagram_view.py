@@ -1,14 +1,15 @@
 from PyQt5 import QtGui, QtWidgets, QtCore
 
+from LayerEditor.ui.diagram_editor.diagram_scene import DiagramScene
+
 
 class DiagramView(QtWidgets.QGraphicsView):
     def __init__(self):
-
         super(DiagramView, self).__init__()
-
+        self.scenes = {}  # {topology_id: DiagramScene}
+        # dict of all scenes
         self._zoom = 1
         self._empty = True
-        self.scenes = []
 
         self.setTransformationAnchor(QtWidgets.QGraphicsView.AnchorUnderMouse)
         self.setResizeAnchor(QtWidgets.QGraphicsView.AnchorUnderMouse)
@@ -22,12 +23,12 @@ class DiagramView(QtWidgets.QGraphicsView):
 
     def wheelEvent(self, event):
         if event.angleDelta().y() > 0:
-            self._zoom *= 1.25
+            scale = 1.25
         else:
-            self._zoom *= 0.8
-        self.scale(self._zoom, self._zoom)
-
-        self.scene().update_zoom(self.transform().m11())
+            scale = 0.8
+        self.scale(scale, scale)
+        self._zoom = self.transform().m11()
+        self.scene().update_zoom(self._zoom)
 
     """
     def show_map(self):
@@ -45,3 +46,7 @@ class DiagramView(QtWidgets.QGraphicsView):
         self._scene.addItem(map)
         map.setCursor(QtCore.Qt.CrossCursor)
     """
+
+    def setScene(self, scene: DiagramScene) -> None:
+        super(DiagramView, self).setScene(scene)
+        scene.update_scene()

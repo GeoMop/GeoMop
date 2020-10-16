@@ -3,6 +3,7 @@ from PyQt5.QtCore import Qt
 import numpy as np
 
 from LayerEditor.ui.data.region import Region
+from LayerEditor.ui.data.regions_model import RegionsModel
 from LayerEditor.ui.tools.cursor import Cursor
 
 
@@ -13,6 +14,7 @@ class GsSegment(QtWidgets.QGraphicsLineItem):
     STD_ZVALUE = 10
     SELECTED_ZVALUE = 11
     no_pen = QtGui.QPen(QtCore.Qt.NoPen)
+    dim = 1
 
 
     @classmethod
@@ -28,8 +30,11 @@ class GsSegment(QtWidgets.QGraphicsLineItem):
         pens = cls.__pen_table.setdefault(color, cls.make_pen(QtGui.QColor(color)))
         return pens
 
-    def __init__(self, segment):
+    def __init__(self, segment, block):
+        """ Initialize graphics segment from data in segment.
+            Calls fnc_init_attr to initialize segment.attr """
         self.segment = segment
+        self.init_regions(block)
         #segment.g_segment = self
         super().__init__()
         #self.setFlag(QtWidgets.QGraphicsItem.ItemIgnoresTransformations, True)
@@ -44,6 +49,20 @@ class GsSegment(QtWidgets.QGraphicsLineItem):
         self.setZValue(self.STD_ZVALUE)
         self.update()
 
+    def init_regions(self, block):
+        for layer in block.layers:
+            if self.segment.id in layer.shape_regions[self.dim]:
+                return
+            else:
+                region = layer.gui_selected_region
+                dim = self.dim
+                if not layer.is_fracture:
+                    dim += 1
+                if region.dim == dim:
+                    layer.shape_regions[self.dim][self.segment.id] = layer.gui_selected_region
+                else:
+                    layer.shape_regions[self.dim][self.segment.id] = Region.none
+
     def update(self):
         #pt_from, pt_to = self.segment.points
         pt_from, pt_to = self.segment.vtxs[0], self.segment.vtxs[1]
@@ -52,8 +71,6 @@ class GsSegment(QtWidgets.QGraphicsLineItem):
         self.setPos(QtCore.QPointF(pt_from.xy[0], -pt_from.xy[1]))
         self.setFlag(QtWidgets.QGraphicsItem.ItemSendsGeometryChanges)
         self.setLine(0, 0, pt_to.xy[0] - pt_from.xy[0], -pt_to.xy[1] + pt_from.xy[1])
-
-        color = Qt.gray
 
         color = Region.none.color
         if self.scene():
@@ -98,5 +115,10 @@ class GsSegment(QtWidgets.QGraphicsLineItem):
 
     def update_zoom(self, value):
         pen = QtGui.QPen()
-        pen.setWidthF(self.WIDTH * 2 / value)
+        pen.setWidthF(self.WIDTH / value)
+        self.setPen(pen)
+
+
+    def update_color(self, layer_id: int, regions: RegionsModel):
+        pen, selected_pen = self.pen_table(regions.regions[self.segment.attr].color)
         self.setPen(pen)

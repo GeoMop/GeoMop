@@ -3,6 +3,7 @@ from PyQt5.QtCore import Qt
 import numpy as np
 
 from LayerEditor.ui.data.region import Region
+from LayerEditor.ui.data.regions_model import RegionsModel
 from LayerEditor.ui.tools.cursor import Cursor
 
 class GsPolygon(QtWidgets.QGraphicsPolygonItem):
@@ -12,6 +13,7 @@ class GsPolygon(QtWidgets.QGraphicsPolygonItem):
     STD_ZVALUE = 0
     SELECTED_ZVALUE = 1
     no_pen = QtGui.QPen(QtCore.Qt.NoPen)
+    dim = 2
 
 
     @classmethod
@@ -24,8 +26,11 @@ class GsPolygon(QtWidgets.QGraphicsPolygonItem):
         brush = cls.__brush_table.setdefault(color, cls.make_brush(QtGui.QColor(color)))
         return brush
 
-    def __init__(self, polygon):
+    def __init__(self, polygon, block):
+        """ Initialize graphics polygon from data in polygon.
+            Calls fnc_init_attr to initialize polygon.attr """
         self.polygon_data = polygon
+        self.init_regions(block)
         #polygon.g_polygon = self
         self.painter_path = None
         self.depth = 0
@@ -41,7 +46,22 @@ class GsPolygon(QtWidgets.QGraphicsPolygonItem):
         self.setAcceptedMouseButtons(QtCore.Qt.LeftButton | QtCore.Qt.RightButton)
         self.update()
 
+    def init_regions(self, block):
+        for layer in block.layers:
+            if self.polygon_data.id in layer.shape_regions[self.dim]:
+                return
+            else:
+                region = layer.gui_selected_region
+                dim = self.dim
+                if not layer.is_fracture:
+                    dim += 1
+                if region.dim == dim:
+                    layer.shape_regions[self.dim][self.polygon_data.id] = layer.gui_selected_region
+                else:
+                    layer.shape_regions[self.dim][self.polygon_data.id] = Region.none
+
     def update(self):
+        self.prepareGeometryChange()
         points = self.polygon_data.vertices()
         qtpolygon = QtGui.QPolygonF()
         for i in range(len(points)):
@@ -52,7 +72,6 @@ class GsPolygon(QtWidgets.QGraphicsPolygonItem):
 
         self.painter_path = self._get_polygon_draw_path(self.polygon_data)
 
-        color = Qt.gray
         color = Region.none.color
         if self.scene():
             key = (2, self.polygon_data.id)
@@ -121,3 +140,7 @@ class GsPolygon(QtWidgets.QGraphicsPolygonItem):
         for inner_wire in polygon.outer_wire.childs:
             self._add_to_painter_path(complex_path, inner_wire)
         return complex_path
+
+    def update_color(self, layer_id: int, regions: RegionsModel):
+        brush = self.brush_table(regions.regions[self.polygon_data.attr].color)
+        self.region_brush = brush

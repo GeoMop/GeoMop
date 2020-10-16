@@ -1,14 +1,24 @@
 from LayerEditor.ui.data.region import Region
+from LayerEditor.ui.tools.id_map import IdMap
 
 
 class RegionsModel:
     """Class for managing all regions"""
-    def __init__(self):
-        self.regions = {Region.none.id: Region.none}
+    NONE = None
+    def __init__(self, le_data, regions_data):
+        self.regions = IdMap() # {region_id: Region}
+        self.le_data = le_data
+        """Needed for checking if some region is used in any shape in any decomposition"""
 
-    def add_region(self, color=None, name="", dim=0):
-        reg = Region(id=None, color=color, name=name, dim=dim)
-        self.regions[reg.id] = reg
+
+        for data in regions_data:
+            region = Region.make_from_data(data)
+            self.regions.add(region)
+        Region.none = self.regions.get(0)
+
+    def add_region(self, name="", dim=0, color=None):
+        reg = Region(color=color, name=name, dim=dim)
+        self.regions.add(reg)
         return reg.id
 
     def delete_region(self, id):
@@ -44,18 +54,24 @@ class RegionsModel:
     #
     #     return True
 
-    # def is_region_used(self, reg_id):
-    #     dim = self.regions[reg_id].dim
-    #     elements = []
-    #     if dim == 1:
-    #         elements = self._diagram.decomposition.points.values()
-    #     elif dim == 2:
-    #         elements = self._diagram.decomposition.segments.values()
-    #     elif dim == 3:
-    #         elements = self._diagram.decomposition.polygons.values()
-    #
-    #     for el in elements:
-    #         if reg_id == el.attr:
-    #             return True
-    #
-    #     return False
+    def is_region_used(self, reg_id):
+        dim = self.regions[reg_id].dim
+        for block in self.le_data.blocks:
+            for layer in block.layers:
+                if not layer.is_fracture:
+                    dim -= 1
+                    if dim < 0:
+                        continue
+                if reg_id in layer.shape_regions[dim].values():
+                    return True
+        return False
+
+    def save(self, geo_model):
+        regions_data = []
+        id_to_idx = {}
+        for idx, region in enumerate(self.regions.values()):
+            regions_data.append(region.convert_to_data())
+            id_to_idx[region.id] = idx
+        geo_model.geometry.regions = regions_data
+        return id_to_idx
+
