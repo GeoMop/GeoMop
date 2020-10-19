@@ -7,6 +7,7 @@ import PyQt5.QtCore as QtCore
 import PyQt5.QtGui as QtGui
 from LayerEditor.data import cfg
 from LayerEditor.ui.diagram_editor.diagram_scene import DiagramScene
+from LayerEditor.ui.layers_panel.layers_panel import LayerPanel
 from LayerEditor.ui.panels.regions_panel import RegionsPanel
 from LayerEditor.ui.tools.cursor import Cursor
 from LayerEditor.ui.diagram_editor.diagram_view import DiagramView
@@ -52,8 +53,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.scroll_area1 = QtWidgets.QScrollArea()
         # self._scroll_area.setWidgetResizable(True)
-        #self.layers = panels.Layers(self.scroll_area1)
-        #self.scroll_area1.setWidget(self.layers)
+        self.layers = LayerPanel(self._layer_editor.le_model)
+        self.scroll_area1.setWidget(self.layers)
         self._vsplitter1.addWidget(self.scroll_area1)
 
         self._vsplitter1.addWidget(self.wg_regions_panel)

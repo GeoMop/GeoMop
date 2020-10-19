@@ -17,3 +17,11 @@ class InterpolatedNodeSetItem:
         return InterpolatedNodeSet(dict(surf_nodesets=[self.top_itf_node_set.save(),
                                                        self.bottom_itf_node_set.save()],
                                         interface_id=self.interface.index))
+
+    def __eq__(self, other):
+        if     (self.interface == other.interface and
+                isinstance(other, InterpolatedNodeSetItem) and
+                self.top_itf_node_set == other.top_itf_node_set and
+                self.bottom_itf_node_set == other.bottom_itf_node_set):
+            return True
+        return False

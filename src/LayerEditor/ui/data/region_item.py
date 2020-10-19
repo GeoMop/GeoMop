@@ -10,7 +10,6 @@ from gm_base.geometry_files import format_last
 
 class RegionItem(IdObject):
     _cols = ["gray", "white"]
-    # red and green is used for cut tool resp. cloud pixmap
     used_colors = [ QtGui.QColor(col) for col in _cols]
     id_next = 1
 

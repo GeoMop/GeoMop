@@ -22,6 +22,16 @@ class BlocksModel:
         for block in self.blocks.values():
             block.gui_selected_layer = block.layers[0]
 
+    @property
+    def layers(self):
+        layers = []
+        for block in self.blocks.values():
+            layers.extend(block.layers)
+        layers.sort(key=lambda x: (x.top_top.interface.elevation +
+                                   x.bottom_top.interface.elevation) / 2 if x.is_stratum else x.top_top.interface.elevation,
+                    reverse=True)
+        return layers
+
     def save(self):
         layers = []
         for block in self.blocks.values():
