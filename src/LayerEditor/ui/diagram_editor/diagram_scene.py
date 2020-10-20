@@ -178,9 +178,8 @@ class DiagramScene(QtWidgets.QGraphicsScene):
                 g_old_item = self.get_shape(item[0], item[1])
                 g_new_item = self.get_shape(item[0], item[2])
                 for layer in self.block.layers:
-                    region1 = layer.get_shape_region(g_new_item)
-                    region = layer.get_shape_region(g_old_item)
-                    layer.set_region_to_shape(g_new_item, region)
+                    region = layer.get_shape_region(g_old_item.dim, g_old_item.shape_id)
+                    layer.set_region_to_shape(g_new_item.dim, g_new_item.shape_id, region)
             self.update_scene()
             # update again because colors may have changed
 

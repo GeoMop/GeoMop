@@ -124,7 +124,7 @@ class LayerEditor:
         if restored:
             #cfg.main_window.release_data(cfg.diagram_id())
             #cfg.history.remove_all()
-            self.load_file(self.autosave.backup_filename(), True)
+            self.load_file(self.autosave.backup_filename(), from_backup=True)
             #cfg.main_window.refresh_all()
             #cfg.history.last_save_labels = -1
         return restored

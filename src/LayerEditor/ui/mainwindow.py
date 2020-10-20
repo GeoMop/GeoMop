@@ -132,7 +132,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # cfg.layer_heads.region_changed.connect(self._region_changed)
         # cfg.layer_heads.selected_layer_changed.connect(self._region_changed)
         # TODO: This should be wrong, but seems to be same as in the master branch.
-        self.wg_regions_panel.regions_changed.connect(self.curr_scene.update_scene)
+        self._layer_editor.le_model.invalidate_scene.connect(self.curr_scene.update_scene)
 
         # self.wg_surface_panel.show_grid.connect(self._show_grid)
 
@@ -331,14 +331,16 @@ class MainWindow(QtWidgets.QMainWindow):
         # Deselect because selected region can change and that could create wrong behaviour #
         self.curr_scene.hide_aux_point_and_seg()
         undo.stack().undo()
-        self.curr_scene.update_scene()
-        self.wg_regions_panel.update_tabs()
+        self.update_all()
 
     def redo(self):
         self._layer_editor.le_model.gui_curr_block.selection.deselect_all()
         # the same reason as in undo
         self.curr_scene.hide_aux_point_and_seg()
         undo.stack().redo()
+        self.update_all()
+
+    def update_all(self):
         self.curr_scene.update_scene()
         self.wg_regions_panel.update_tabs()
 

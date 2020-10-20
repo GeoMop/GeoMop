@@ -72,7 +72,7 @@ class GsPoint(QtWidgets.QGraphicsEllipseItem):
         self.setPos(self.pt.xy[0], -self.pt.xy[1])
         self.setFlag(QtWidgets.QGraphicsItem.ItemSendsGeometryChanges)
 
-        color = self.block.gui_selected_layer.get_shape_region(self).color
+        color = self.block.gui_selected_layer.get_shape_region(self.dim, self.shape_id).color
         self.region_brush, self.region_pen = GsPoint.pen_table(color)
 
         self.setZValue(self.STD_ZVALUE)
@@ -90,7 +90,6 @@ class GsPoint(QtWidgets.QGraphicsEllipseItem):
             self.scene().update_all_segments()
             self.scene().update_all_polygons()
         self.update()
-        return True
 
     def itemChange(self, change, value):
         """
@@ -102,7 +101,6 @@ class GsPoint(QtWidgets.QGraphicsEllipseItem):
         """
         # print("change: ", change, "val: ", value)
         if change == QtWidgets.QGraphicsItem.ItemPositionHasChanged:
-            # self.pt.set_xy(value.x(), value.y())
             self.move_to(value.x(), value.y())
         if change == QtWidgets.QGraphicsItem.ItemSelectedChange:
             if self.isSelected():

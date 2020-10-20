@@ -1,12 +1,14 @@
 import os
 
-from PyQt5.QtCore import QObject, QPointF
+from PyQt5.QtCore import QObject, QPointF, pyqtSignal
 from PyQt5.QtGui import QPolygonF
+from bgem.external import undo
 
 from LayerEditor.exceptions.data_inconsistent_exception import DataInconsistentException
 from LayerEditor.ui.data.blocks_model import BlocksModel
 from LayerEditor.ui.data.interfaces_model import InterfacesModel
 from LayerEditor.ui.data.decompositions_model import DecompositionsModel
+from LayerEditor.ui.data.region_item import RegionItem
 from LayerEditor.ui.data.regions_model import RegionsModel
 from LayerEditor.ui.data.surfaces_model import SurfacesModel
 from gm_base.geometry_files import layers_io
@@ -17,6 +19,8 @@ from gm_base.geometry_files.format_last import InterfaceNodeSet, LayerGeometry, 
 class LEModel(QObject):
     """Main data class for Layer Editor"""
 
+    region_list_changed = pyqtSignal()
+    invalidate_scene = pyqtSignal()
     # diagrams = []
     # """List of diagram data"""
     # history = None
@@ -57,7 +61,7 @@ class LEModel(QObject):
         """Manages surfaces"""
         self.interfaces_model = InterfacesModel(self, geo_model.interfaces)
         """Manages interfaces"""
-        self.regions_model = RegionsModel(self, geo_model.regions)
+        self.regions_model = RegionsModel(geo_model.regions)
         """Manages regions."""
         self.blocks_model = BlocksModel(geo_model, self)
         """Manages blocks."""
@@ -122,6 +126,40 @@ class LEModel(QObject):
                         return True
             except OSError:
                 pass
+        return False
+
+    def add_region(self, name, dim):
+        """ Add new region according to the provided data from the current tab and select it."""
+        with undo.group("Add new region"):
+            reg = self.regions_model.add_region(name, dim)
+            self.gui_curr_block.gui_selected_layer.set_gui_selected_region(reg)
+        self.region_list_changed.emit()
+        self.invalidate_scene.emit()
+        return reg
+
+    def delete_region(self, reg):
+        with undo.group("Add new region"):
+            self.regions_model.delete_region(reg)
+            for block in self.blocks_model.blocks.values():
+                for layer in block.layers:
+                    if layer.gui_selected_region == reg:
+                        layer.set_gui_selected_region(RegionItem.none)
+        self.region_list_changed.emit()
+        self.invalidate_scene.emit()
+
+    def get_curr_layer_index(self):
+        return self.gui_curr_block.layers.index(self.gui_curr_block.gui_selected_layer)
+
+    def is_region_used(self, reg):
+        dim = self.regions_model.regions[reg].dim
+        for block in self.blocks_model.blocks.values():
+            for layer in block.layers:
+                if layer.is_stratum:
+                    dim -= 1
+                    if dim < 0:
+                        continue
+                if reg in layer.shape_regions[dim].values():
+                    return True
         return False
 
     # def add_region(self, color, name, reg_id, dim, step, boundary=False, not_used=False):

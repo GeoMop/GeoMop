@@ -12,11 +12,10 @@ class RegionItem(IdObject):
     colors = [ QtGui.QColor(col) for col in _cols]
     id_next = 1
 
-    def __init__(self, id_map, color=None, name="", dim=-1, step=0.0, not_used=False, boundary=False, brep_shape_ids=[]):
+    def __init__(self, color=None, name="", dim=-1, step=0.0, not_used=False, boundary=False, brep_shape_ids=[]):
         super(RegionItem, self).__init__()
-        id_map.add(self)
         if color is None:
-            color = RegionItem.colors[self.id % len(RegionItem.colors)].name()
+            color = RegionItem.colors[id(self) % len(RegionItem.colors)].name()
         self.color = color
 
         self.name = name
