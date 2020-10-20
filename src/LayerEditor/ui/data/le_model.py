@@ -19,7 +19,9 @@ from gm_base.geometry_files.format_last import InterfaceNodeSet, LayerGeometry, 
 class LEModel(QObject):
     """Main data class for Layer Editor"""
     region_list_changed = pyqtSignal()
+    """Regions were added or deleted"""
     invalidate_scene = pyqtSignal()
+    """The scene needs to be updated"""
 
     def __init__(self, in_file=None):
         super(LEModel, self).__init__()
