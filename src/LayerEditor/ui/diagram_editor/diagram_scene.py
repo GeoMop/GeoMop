@@ -1,16 +1,11 @@
 from PyQt5 import QtWidgets, QtCore, QtGui
-from PyQt5.QtCore import Qt, QPoint
-from PyQt5.QtGui import QBrush, QPen
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QBrush
 from PyQt5.QtWidgets import QGraphicsRectItem
 
 from LayerEditor.ui.data.region_item import RegionItem
-from LayerEditor.ui.data.regions_model import RegionsModel
 from LayerEditor.ui.tools import better_undo
 from LayerEditor.ui.tools.cursor import Cursor
-
-from bgem.polygons import polygons
-from bgem.external import undo
-
 
 from LayerEditor.ui.diagram_editor.graphics_items.gs_point import GsPoint
 from LayerEditor.ui.diagram_editor.graphics_items.gs_polygon import GsPolygon
@@ -42,7 +37,6 @@ class DiagramScene(QtWidgets.QGraphicsScene):
         self.decomposition = block.decomposition
         res = self.decomposition.get_last_polygon_changes()
         self.decomposition.set_tolerance(self.TOLERANCE)
-        #assert res[0] == PolygonChange.add
         self.outer_id = res[1]
         """Decomposition of the a plane into polygons."""
         self.update_scene()
@@ -73,15 +67,6 @@ class DiagramScene(QtWidgets.QGraphicsScene):
         if region is None:
             region = RegionItem.none
         return region.color
-
-    # def get_shape_region(self, shape_key):
-    #     dim, shape_id = shape_key
-    #     region_id = self.decomposition.decomp.shapes[dim][shape_id].attr
-    #
-    #     if region_id is None:
-    #         region_id = Region.none.id
-    #
-    #     return region_id
 
     def create_aux_segment(self):
         pt_size = GsPoint.SIZE
@@ -360,42 +345,3 @@ class DiagramScene(QtWidgets.QGraphicsScene):
 
         elif type(shape) is GsPolygon:
             return 3, shape.polygon_data.id
-
-    # Modified from previous diagram
-    #
-    # def set_data(self):
-    #     """set new shapes data"""
-    #     for line in cfg.diagram.lines:
-    #         l = GsSegment(line, self.block)
-    #         self.add_graphical_object(l)
-    #     for point in cfg.diagram.points:
-    #         p = GsPoint(point, self.block)
-    #         self.add_graphical_object(p)
-    #     for polygon in cfg.diagram.polygons:
-    #         if polygon.object is None:
-    #             p = GsPolygon(polygon, self.block)
-    #             self.add_graphical_object(p)
-    #     #self._add_polygons()
-    #
-    # def add_graphical_object(self, obj):
-    #     self.addItem(obj)
-    #     # update the regions panel in case some region gets in use and therefore cannot be deleted.
-    #     self.regionsUpdateRequired.emit()
-    #
-    # # Copied from previous diagram
-    # def release_data(self, old_diagram):
-    #     """release all shapes data"""
-    #     for line in cfg.diagrams[old_diagram].lines:
-    #         obj = line.object
-    #         obj.release_line()
-    #         self.remove_graphical_object(obj)
-    #     for point in cfg.diagrams[old_diagram].points:
-    #         obj = point.object
-    #         obj.release_point()
-    #         self.remove_graphical_object(obj)
-    #     for polygon in cfg.diagrams[old_diagram].polygons:
-    #         obj = polygon.object
-    #         obj.release_polygon()
-    #         self.remove_graphical_object(obj)
-    #
-    #

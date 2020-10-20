@@ -1,9 +1,6 @@
 from PyQt5 import QtWidgets, QtGui, QtCore
-from PyQt5.QtCore import Qt
 import numpy as np
 
-from LayerEditor.ui.data.region_item import RegionItem
-from LayerEditor.ui.data.regions_model import RegionsModel
 from LayerEditor.ui.tools.cursor import Cursor
 
 class GsPolygon(QtWidgets.QGraphicsPolygonItem):

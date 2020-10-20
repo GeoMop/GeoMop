@@ -1,9 +1,6 @@
 from PyQt5 import QtWidgets, QtGui, QtCore
-from PyQt5.QtCore import Qt
 import numpy as np
 
-from LayerEditor.ui.data.region_item import RegionItem
-from LayerEditor.ui.data.regions_model import RegionsModel
 from LayerEditor.ui.tools.cursor import Cursor
 
 
@@ -109,10 +106,3 @@ class GsPoint(QtWidgets.QGraphicsEllipseItem):
                 self.setZValue(self.STD_ZVALUE)
         return super().itemChange(change, value)
 
-    # def mousePressEvent(self, event):
-    #     self.update()
-    #     super().mousePressEvent(event)
-    #
-    # def mouseReleaseEvent(self, event):
-    #     self.update()
-    #     super().mouseReleaseEvent(event)

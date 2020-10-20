@@ -15,6 +15,7 @@ from LayerEditor.ui.panels import RegionsPanel
 from LayerEditor.ui.tools import better_undo
 from LayerEditor.ui.tools.cursor import Cursor
 from gm_base.geometry_files.format_last import UserSupplement
+from gm_base.geomop_dialogs import GMErrorDialog
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 
@@ -31,9 +32,6 @@ class LayerEditor:
 
     def __init__(self, args=None):
         self.qapp_setup()
-        #TODO: handle args
-        #if args:
-        #    self.parse_args(args)
 
         self._le_model = LEModel()
 
@@ -47,8 +45,7 @@ class LayerEditor:
 
         # show
         self.mainwindow.show()
-        #self.mainwindow.paint_new_data()
-        #self._update_document_name()
+        self._update_document_name()
         self.autosave.start_autosave()
 
     def qapp_setup(self):
@@ -70,63 +67,11 @@ class LayerEditor:
         self.mainwindow.make_widgets()
         self.autosave.update_content()
 
-
-    # def parse_args(self, args):
-    #     """
-    #     Parse cmd line args.
-    #     :return:
-    #     """
-    #     parser = argparse.ArgumentParser(description='OldLayerEditor')
-    #     parser.add_argument('--debug', action='store_true', help='Enable debug mode')
-    #     parser.add_argument('file', help='Layers geometry JSON file.', default=None, nargs='?')
-    #     args = parser.parse_args(args)
-    #     if args.debug:
-    #         cfg.config.__class__.DEBUG_MODE = True
-    #         self.setup_logging()
-    #     self.filename = ar
-    #
-    # def setup_logging(self):
-    #     from gm_base.geomop_util.logging import log_unhandled_exceptions
-    #
-    #     def on_unhandled_exception(type_, exception, tback):
-    #         """Unhandled exception callback."""
-    #         # pylint: disable=unused-argument
-    #         from gm_base.geomop_dialogs import GMErrorDialog
-    #         err_dialog = GMErrorDialog(layer_editor.mainwindow)
-    #         err_dialog.open_error_dialog("Unhandled Exception!", error=exception)
-    #         sys.exit(1)
-    #
-    #     #            from geomop_dialogs import GMErrorDialog
-    #     #            if layer_editor is not None:
-    #     #                err_dialog = None
-    #     #                # display message box with the exception
-    #     #                if layer_editor.mainwindow is not None:
-    #     #                    err_dialog = GMErrorDialog(layer_editor.mainwindow)
-    #     #
-    #     #                # try to reload editor to avoid inconsistent state
-    #     #                if callable(layer_editor.mainwindow.reload):
-    #     #                    try:
-    #     #                        layer_editor.mainwindow.reload()
-    #     #                    except:
-    #     #                        if err_dialog is not None:
-    #     #                            err_dialog.open_error_dialog("Application performed invalid operation!",
-    #     #                                                         error=exception)
-    #     #                            sys.exit(1)
-    #     #
-    #     #                if err_dialog is not None:
-    #     #                    err_dialog.open_error_dialog("Unhandled Exception!", error=exception)
-    #     #
-    #     log_unhandled_exceptions(cfg.config.__class__.CONTEXT_NAME, on_unhandled_exception)
-    #
     def _restore_backup(self):
         """recover file from backup file if it exists and if user wishes so"""
         restored = self.autosave.restore_backup()
         if restored:
-            #cfg.main_window.release_data(cfg.diagram_id())
-            #cfg.history.remove_all()
             self.load_file(self.autosave.backup_filename(), from_backup=True)
-            #cfg.main_window.refresh_all()
-            #cfg.history.last_save_labels = -1
         return restored
 
     def new_file(self):
@@ -136,32 +81,28 @@ class LayerEditor:
         """
         if not self.save_old_file():
             return
-
-        #self.mainwindow.release_data(cls.diagram_id())
         self.load_file()
-
-        #self.le_data.curr_diagram.area.set_area([(0, 0), (100, 0), (100, 100), (0, 100)])
-        #self.mainwindow.refresh_all()
-        #self.mainwindow.paint_new_data()
-
-        return True
 
     def load_file(self, in_file=None, from_backup=False):
         """Loads in_file and sets the new scene to be visible. If in_file is None it will create default model"""
         better_undo.clear()
-        le_data = LEModel(in_file)
-        if from_backup:
-            le_data.curr_file = None
-            le_data.curr_file_timestamp = None
-        self.le_model = le_data
-        self._update_document_name()
+        try:
+            le_model = LEModel(in_file)
+            if from_backup:
+                le_model.curr_file = None
+                le_model.curr_file_timestamp = None
+            self.le_model = le_model
+            self._update_document_name()
+        except (RuntimeError, IOError) as err:
+            err_dialog = GMErrorDialog(self.mainwindow)
+            err_dialog.open_error_dialog("Can't open file", err)
+
 
     def open_file(self, in_file=None):
         """
         open file menu action
         handler for triggered signal.
         """
-
         if not self.save_old_file():
             return False
         if in_file is None:
@@ -169,12 +110,10 @@ class LayerEditor:
                 self.mainwindow, "Choose Json Geometry File",
                 cfg.data_dir, "Json Files (*.json)")
         if in_file:
-            #self.main_window.release_data(cls.diagram_id())
             cfg.add_recent_file(in_file)
             self.load_file(in_file)
             cfg.update_current_workdir(in_file)
 
-            #cls.main_window.refresh_all()
             cfg.current_workdir = os.path.dirname(in_file)
             self._restore_backup()
             self.mainwindow.show_status_message("File {} is opened".format(in_file))
@@ -277,7 +216,6 @@ class LayerEditor:
     def save_old_file(self):
         """
         If file not saved, display confirmation dialog and if is needed, do it
-
         return: False if action have to be aborted
         """
         if better_undo.has_changed():
@@ -300,10 +238,6 @@ class LayerEditor:
                 self.autosave.delete_backup()
         return True
 
-    # def run(self):
-    #     """go"""
-    #     self._app.exec()
-    #
     def _update_document_name(self):
         """Update document title (add file name)"""
         title = "GeoMop Layer Editor"

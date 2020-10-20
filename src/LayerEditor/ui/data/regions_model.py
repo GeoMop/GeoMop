@@ -41,32 +41,6 @@ class RegionsModel:
     def get_region_names(self):
         return [reg.name for reg in self.regions.values()]
 
-    # def get_common_region(self):
-    #     selected = self._diagram.selection._selected
-    #     r_id = Region.none.id
-    #     if selected:
-    #         r_id = self.get_shape_region(self._diagram.get_shape_key(selected[0]))
-    #         for item in selected[1:]:
-    #             if self.get_shape_region(self._diagram.get_shape_key(item)) != r_id:
-    #                 r_id = Region.none.id
-    #     return r_id
-
-    # def set_region(self, dim, shape_id, reg_id):
-    #     if dim != self.regions[reg_id].dim:
-    #         return False
-    #
-    #     if reg_id is None:
-    #         reg_id = Region.none.id
-    #
-    #     if dim == 1:
-    #         self._diagram.decomposition.points[shape_id].attr = reg_id
-    #     elif dim == 2:
-    #         self._diagram.decomposition.segments[shape_id].attr = reg_id
-    #     elif dim == 3:
-    #         self._diagram.decomposition.polygons[shape_id].attr = reg_id
-    #
-    #     return True
-
     def save(self):
         regions_data = []
         for idx, region in enumerate(self.regions.values()):

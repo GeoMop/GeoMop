@@ -134,9 +134,3 @@ class BlockItem(IdObject):
         for layer in self.layers:
             layers.append(layer.save())
         return layers
-
-    # def set_region_to_selected_shapes(self, region: Region):
-    #     """Sets regions of shapes for all layers in block."""
-    #     for layer in self.layers:
-    #         layer.set_region_to_selected_shapes(region)
-
