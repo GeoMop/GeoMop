@@ -1,7 +1,7 @@
 import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtGui as QtGui
 
-from .region_panel_tab import RegionLayerTab
+from .region_panel_tab import RegionLayerTab, nosignal
 from ..data.region_item import RegionItem
 from ..dialogs.regions import AddRegionDlg
 
@@ -29,8 +29,9 @@ class RegionsPanel(QtWidgets.QToolBox):
         super().__init__(parent)
 
         self._regions = []
-        # Not to be used for anything else then constructing ComboBox
-        # auxiliary map from region ID to index in the combo box.
+        """ Not to be used for anything else then constructing ComboBox and 
+            getting region from selecting item in ComboBox """
+
 
         self.le_model = le_model
         # Reference to adaptor for tab data.

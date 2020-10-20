@@ -334,14 +334,3 @@ class DiagramScene(QtWidgets.QGraphicsScene):
             self.selection._selected.clear()
 
             self.update_scene()
-
-    @staticmethod
-    def get_shape_key(shape):
-        if type(shape) is GsPoint:
-            return 1, shape.pt.id
-
-        elif type(shape) is GsSegment:
-            return 2, shape.segment.id
-
-        elif type(shape) is GsPolygon:
-            return 3, shape.polygon_data.id
