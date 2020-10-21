@@ -25,26 +25,17 @@ class RegionsModel:
                          region_data.brep_shape_ids)
         self.regions.add(reg)
 
-    def add_region(self, name="", dim=0, color=None):
-        reg = RegionItem(color=color, name=name, dim=dim)
-        self._add_region(reg)
-        return reg
-
-
     @undo.undoable
-    def _add_region(self, reg):
+    def add_region(self, reg):
         self.regions.add(reg)
         yield "Add new Region"
-        self._delete_region(reg)
-
-    def delete_region(self, reg: RegionItem):
-        self._delete_region(reg)
+        self.delete_region(reg)
 
     @undo.undoable
-    def _delete_region(self, reg):
+    def delete_region(self, reg):
         del self.regions[reg]
         yield "Delete Region"
-        self._add_region(reg)
+        self.add_region(reg)
 
     def get_region_names(self):
         return [reg.name for reg in self.regions.values()]
