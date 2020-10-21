@@ -82,7 +82,7 @@ class BlockItem(IdObject):
         for shape_id, region_id in enumerate(layer_data.polygon_region_ids):
             shape_regions[2][shape_id] = self.regions_model.regions.get(region_id)
 
-        layer = LayerItem(self,
+        layer = LayerItem(self.selection,
                           layer_data.name,
                           top_top,
                           bottom_top,
@@ -92,19 +92,19 @@ class BlockItem(IdObject):
 
         return layer
 
-    def init_regions_for_new_shape(self, shape: [GsPoint, GsSegment, GsPolygon]):
+    def init_regions_for_new_shape(self, shape_dim, shape_id):
         for layer in self.layers:
-            if shape.shape_id in layer.shape_regions[shape.dim]:
+            if shape_id in layer.shape_regions[shape_dim]:
                 return
             else:
                 region = layer.gui_selected_region
-                dim = shape.dim
+                dim = shape_dim
                 if layer.is_stratum:
                     dim += 1
                 if region.dim == dim:
-                    layer.set_region_to_shape(shape, layer.gui_selected_region)
+                    layer.set_region_to_shape(shape_dim, shape_id, layer.gui_selected_region)
                 else:
-                    layer.set_region_to_shape(shape, RegionItem.none)
+                    layer.set_region_to_shape(shape_dim, shape_id, RegionItem.none)
 
     #TODO: make this undoable
     def insert_layer(self, layer_data, index):
@@ -134,9 +134,3 @@ class BlockItem(IdObject):
         for layer in self.layers:
             layers.append(layer.save())
         return layers
-
-    # def set_region_to_selected_shapes(self, region: Region):
-    #     """Sets regions of shapes for all layers in block."""
-    #     for layer in self.layers:
-    #         layer.set_region_to_selected_shapes(region)
-

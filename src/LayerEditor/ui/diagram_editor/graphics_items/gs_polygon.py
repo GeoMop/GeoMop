@@ -1,9 +1,6 @@
 from PyQt5 import QtWidgets, QtGui, QtCore
-from PyQt5.QtCore import Qt
 import numpy as np
 
-from LayerEditor.ui.data.region_item import RegionItem
-from LayerEditor.ui.data.regions_model import RegionsModel
 from LayerEditor.ui.tools.cursor import Cursor
 
 class GsPolygon(QtWidgets.QGraphicsPolygonItem):
@@ -31,7 +28,7 @@ class GsPolygon(QtWidgets.QGraphicsPolygonItem):
             Needs ref to block for updating color and initializing regions"""
         self.polygon_data = polygon
         self.block = block
-        self.block.init_regions_for_new_shape(self)
+        self.block.init_regions_for_new_shape(self.dim, self.shape_id)
         #polygon.g_polygon = self
         self.painter_path = None
         self.depth = 0
@@ -63,7 +60,7 @@ class GsPolygon(QtWidgets.QGraphicsPolygonItem):
 
         self.painter_path = self._get_polygon_draw_path(self.polygon_data)
 
-        color = self.block.gui_selected_layer.get_shape_region(self).color
+        color = self.block.gui_selected_layer.get_shape_region(self.dim, self.shape_id).color
         self.region_brush = GsPolygon.brush_table(color)
 
         self.depth = self.polygon_data.depth()

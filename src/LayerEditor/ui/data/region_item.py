@@ -13,9 +13,8 @@ class RegionItem(IdObject):
     used_colors = [ QtGui.QColor(col) for col in _cols]
     id_next = 1
 
-    def __init__(self, id_map, color=None, name="", dim=-1, step=0.0, not_used=False, boundary=False, brep_shape_ids=[]):
+    def __init__(self, color=None, name="", dim=-1, step=0.0, not_used=False, boundary=False, brep_shape_ids=[]):
         super(RegionItem, self).__init__()
-        id_map.add(self)
         if color is None:
             color = self.get_distinct_color().name()
         self.color = color

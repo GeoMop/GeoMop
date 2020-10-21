@@ -4,9 +4,6 @@ from bgem.external import undo
 
 from LayerEditor.ui.data.interface_node_set_item import InterfaceNodeSetItem
 from LayerEditor.ui.data.region_item import RegionItem
-from LayerEditor.ui.diagram_editor.graphics_items.gs_point import GsPoint
-from LayerEditor.ui.diagram_editor.graphics_items.gs_polygon import GsPolygon
-from LayerEditor.ui.diagram_editor.graphics_items.gs_segment import GsSegment
 from LayerEditor.ui.tools import better_undo
 from LayerEditor.ui.tools.id_map import IdObject
 from gm_base.geometry_files.format_last import StratumLayer, FractureLayer
@@ -14,8 +11,8 @@ from gm_base.geometry_files.format_last import StratumLayer, FractureLayer
 
 class LayerItem(IdObject):
     """Data about one geological layer"""
-    def __init__(self, block, name, top_top, bottom_top, shape_regions):
-        self.block = block
+    def __init__(self, selection, name, top_top, bottom_top, shape_regions):
+        self.selection = selection
         """This layer is part of this block"""
         self.name = name
         """Layer name"""
@@ -64,23 +61,23 @@ class LayerItem(IdObject):
         """Sets regions of shapes only in this layer."""
         assert isinstance(undo.stack()._receiver, deque), "groups cannot be nested"
         with better_undo.group(f"Set region of selected to {region.id}"):
-            for g_item in self.block.selection._selected:
-                dim = g_item.dim
+            for orig_dim, shape_id in self.selection.get_selected_shape_dim_id():
+                dim = orig_dim
                 if self.is_stratum:
                     dim += 1
                 if dim == region.dim or region.dim == -1:
-                    self.set_region_to_shape(g_item, region)
+                    self.set_region_to_shape(orig_dim, shape_id, region)
 
-    def get_shape_region(self, g_item: [GsPoint, GsSegment, GsPolygon]) -> RegionItem:
-        return self.shape_regions[g_item.dim][g_item.shape_id]
+    def get_shape_region(self, dim, shape_id) -> RegionItem:
+        return self.shape_regions[dim][shape_id]
 
     @undo.undoable
-    def set_region_to_shape(self, g_item: [GsPoint, GsSegment, GsPolygon], region: RegionItem):
-        old_region = self.shape_regions[g_item.dim].get(g_item.shape_id, RegionItem.none)
-        self.shape_regions[g_item.dim][g_item.shape_id] = region
+    def set_region_to_shape(self, dim, shape_id, region: RegionItem):
+        old_region = self.shape_regions[dim].get(shape_id, RegionItem.none)
+        self.shape_regions[dim][shape_id] = region
         shape = ["point", "segment", "polygon"]
-        yield f"Change region of {shape[g_item.dim]} {g_item.shape_id} from {old_region.id} to {region.id}"
-        self.set_region_to_shape(g_item, old_region)
+        yield f"Change region of {shape[dim]} {shape_id} from {old_region.id} to {region.id}"
+        self.set_region_to_shape(dim, shape_id, old_region)
 
     @undo.undoable
     def set_gui_selected_region(self, region: RegionItem):

@@ -1,9 +1,6 @@
 from PyQt5 import QtWidgets, QtGui, QtCore
-from PyQt5.QtCore import Qt
 import numpy as np
 
-from LayerEditor.ui.data.region_item import RegionItem
-from LayerEditor.ui.data.regions_model import RegionsModel
 from LayerEditor.ui.tools.cursor import Cursor
 
 
@@ -34,7 +31,7 @@ class GsPoint(QtWidgets.QGraphicsEllipseItem):
             Needs ref to block for updating color and initializing regions"""
         self.pt = pt
         self.block = block
-        self.block.init_regions_for_new_shape(self)
+        self.block.init_regions_for_new_shape(self.dim, self.shape_id)
         # pt.gpt = self
         super().__init__(-self.SIZE, -self.SIZE, 2 * self.SIZE, 2 * self.SIZE)
         self.setFlag(QtWidgets.QGraphicsItem.ItemIgnoresTransformations, True)
@@ -72,7 +69,7 @@ class GsPoint(QtWidgets.QGraphicsEllipseItem):
         self.setPos(self.pt.xy[0], -self.pt.xy[1])
         self.setFlag(QtWidgets.QGraphicsItem.ItemSendsGeometryChanges)
 
-        color = self.block.gui_selected_layer.get_shape_region(self).color
+        color = self.block.gui_selected_layer.get_shape_region(self.dim, self.shape_id).color
         self.region_brush, self.region_pen = GsPoint.pen_table(color)
 
         self.setZValue(self.STD_ZVALUE)
@@ -90,7 +87,6 @@ class GsPoint(QtWidgets.QGraphicsEllipseItem):
             self.scene().update_all_segments()
             self.scene().update_all_polygons()
         self.update()
-        return True
 
     def itemChange(self, change, value):
         """
@@ -102,7 +98,6 @@ class GsPoint(QtWidgets.QGraphicsEllipseItem):
         """
         # print("change: ", change, "val: ", value)
         if change == QtWidgets.QGraphicsItem.ItemPositionHasChanged:
-            # self.pt.set_xy(value.x(), value.y())
             self.move_to(value.x(), value.y())
         if change == QtWidgets.QGraphicsItem.ItemSelectedChange:
             if self.isSelected():
@@ -111,10 +106,3 @@ class GsPoint(QtWidgets.QGraphicsEllipseItem):
                 self.setZValue(self.STD_ZVALUE)
         return super().itemChange(change, value)
 
-    # def mousePressEvent(self, event):
-    #     self.update()
-    #     super().mousePressEvent(event)
-    #
-    # def mouseReleaseEvent(self, event):
-    #     self.update()
-    #     super().mouseReleaseEvent(event)
