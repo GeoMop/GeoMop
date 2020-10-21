@@ -233,6 +233,8 @@ class RegionLayerTab(QtWidgets.QWidget):
             with undo.group("Set Name"):
                 self.curr_region.set_name(new_name)
                 self.layer.set_gui_selected_region(self.curr_region)
+                # This line doesnt do anything at first but it gets registered in undo redo system.
+                # That will cause region panel to switch to region which was changed by undoing/redoing.
 
         if error:
             err_dialog = GMErrorDialog(self)
@@ -252,6 +254,8 @@ class RegionLayerTab(QtWidgets.QWidget):
             with undo.group("Set Color"):
                 self.curr_region.set_color(selected_color.name())
                 self.layer.set_gui_selected_region(self.curr_region)
+                # This line doesnt do anything at first but it gets registered in undo redo system.
+                # That will cause region panel to switch to region which was changed by undoing/redoing.
 
         self._update_region_content()
         self._parent.update_tabs()
@@ -261,6 +265,8 @@ class RegionLayerTab(QtWidgets.QWidget):
         with undo.group("Change regions boundary setting"):
             self.curr_region.set_boundary(self.wg_boundary.isChecked())
             self.layer.set_gui_selected_region(self.curr_region)
+            # This line doesnt do anything at first but it gets registered in undo redo system.
+            # That will cause region panel to switch to region which was changed by undoing/redoing.
 
     def _not_used_checked(self):
         """
@@ -270,6 +276,8 @@ class RegionLayerTab(QtWidgets.QWidget):
         with undo.group("Change regions not used setting"):
             self.curr_region.set_not_used(self.wg_notused.isChecked())
             self.layer.set_gui_selected_region(self.curr_region)
+            # This line doesnt do anything at first but it gets registered in undo redo system.
+            # That will cause region panel to switch to region which was changed by undoing/redoing.
 
     def _set_mesh_step(self):
         step_value = float(self.wg_mesh_step_edit.text())
@@ -278,4 +286,6 @@ class RegionLayerTab(QtWidgets.QWidget):
             with undo.group("Set Mesh Step"):
                 self.curr_region.set_region_mesh_step(step_value)
                 self.layer.set_gui_selected_region(self.curr_region)
+                # This line doesnt do anything at first but it gets registered in undo redo system.
+                # That will cause region panel to switch to region which was changed by undoing/redoing.
 

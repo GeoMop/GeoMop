@@ -4,9 +4,6 @@ from bgem.external import undo
 
 from LayerEditor.ui.data.interface_node_set_item import InterfaceNodeSetItem
 from LayerEditor.ui.data.region_item import RegionItem
-from LayerEditor.ui.diagram_editor.graphics_items.gs_point import GsPoint
-from LayerEditor.ui.diagram_editor.graphics_items.gs_polygon import GsPolygon
-from LayerEditor.ui.diagram_editor.graphics_items.gs_segment import GsSegment
 from LayerEditor.ui.tools import better_undo
 from LayerEditor.ui.tools.id_map import IdObject
 from gm_base.geometry_files.format_last import StratumLayer, FractureLayer

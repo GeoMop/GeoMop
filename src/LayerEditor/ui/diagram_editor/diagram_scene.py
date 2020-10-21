@@ -20,6 +20,7 @@ class DiagramScene(QtWidgets.QGraphicsScene):
         super().__init__(bounding_rect, parent)
         self.selection = block.selection
         self.block = block
+        self.shapes = [{}, {}, {}]  # [points, segments, polygons]
         self.points = {}
         self.segments = {}
         self.polygons = {}
@@ -47,16 +48,6 @@ class DiagramScene(QtWidgets.QGraphicsScene):
         pen.setCosmetic(True)
         temp.setPen(pen)
         self.addItem(temp)
-
-    def get_shape(self, dim, shape_id) -> [GsPoint, GsSegment, GsPolygon]:
-        """Get g_item defined by dimension and id"""
-        if dim == 0:
-            return self.points[shape_id]
-        if dim == 1:
-            return self.segments[shape_id]
-        if dim == 2:
-            return self.polygons[shape_id]
-
 
     def get_shape_color(self, shape_key):
         if self.block.gui_selected_layer is None:
@@ -155,16 +146,14 @@ class DiagramScene(QtWidgets.QGraphicsScene):
 
             self.selection._selected.clear()
             self.update_scene()
-            # update scene so new shapes would habe g_item for next step
+            # update scene so new shapes would have g_item for next step
             for item in split_items:
                 # if some shape was splited then copy region to the new shape
                 if item[0] == 2 and item[1] == 0:
                     continue
-                g_old_item = self.get_shape(item[0], item[1])
-                g_new_item = self.get_shape(item[0], item[2])
                 for layer in self.block.layers:
-                    region = layer.get_shape_region(g_old_item.dim, g_old_item.shape_id)
-                    layer.set_region_to_shape(g_new_item.dim, g_new_item.shape_id, region)
+                    region = layer.get_shape_region(item[0], item[1])
+                    layer.set_region_to_shape(item[0], item[2], region)
             self.update_scene()
             # update again because colors may have changed
 
