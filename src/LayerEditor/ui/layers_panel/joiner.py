@@ -1,7 +1,7 @@
 from PyQt5 import QtGui
 from PyQt5.QtCore import QPoint, Qt, QRect
 from PyQt5.QtGui import QPainter, QPen, QFont
-from PyQt5.QtWidgets import QWidget
+from PyQt5.QtWidgets import QWidget, QApplication
 
 
 class Joiner(QWidget):
@@ -11,7 +11,11 @@ class Joiner(QWidget):
         self.top = top
         self.bottom = bottom
         self.middle = middle
-        self.setFixedWidth(QFont().pixelSize())
+        dpi = QApplication.primaryScreen().physicalDotsPerInch()
+        if self.font().pixelSize() == -1:
+            self.setFixedWidth(self.font().pointSize() / 72 * dpi)
+        else:
+            self.setFixedWidth(self.font().pixelSize())
         self.pen = QPen(self.parent().LINE_PEN)
         self.pen.setCapStyle(Qt.RoundCap)
 

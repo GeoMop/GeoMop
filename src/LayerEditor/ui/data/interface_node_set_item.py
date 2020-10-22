@@ -8,6 +8,10 @@ class InterfaceNodeSetItem:
         self.interface = interface
         """Interface index"""
 
+    @property
+    def block(self):
+        return self.decomposition.helper_attr_block
+
     def save(self):
         return InterfaceNodeSet(dict(nodeset_id=self.decomposition.temp_index,
                                      interface_id=self.interface.index))
