@@ -144,11 +144,10 @@ class RegionLayerTab(QtWidgets.QWidget):
         Update combobox according to the region list.
         :return:
         """
-        self._parent._update_region_list()
         with nosignal(self.wg_region_combo) as combo:
             combo.clear()
-            for reg in self._parent._regions:
-                combo.addItem(self.make_combo_label(reg), reg.id)
+            for reg in self.le_model.regions_model.regions.values():
+                combo.addItem(self.make_combo_label(reg), reg)
         self._update_region_content()
 
 
@@ -163,7 +162,7 @@ class RegionLayerTab(QtWidgets.QWidget):
         :return:
         """
         with nosignal(self.wg_region_combo) as o:
-            o.setCurrentIndex(self._parent._regions.index(self.curr_region))
+            o.setCurrentIndex(self.wg_region_combo.findData(self.curr_region))
         region = self.curr_region
 
         region_used = self.le_model.is_region_used(self.curr_region)
@@ -207,7 +206,7 @@ class RegionLayerTab(QtWidgets.QWidget):
         """
         Handle change in region combo box.
         """
-        region = self._parent._regions[combo_id]
+        region = self.wg_region_combo.itemData(combo_id)
         self._set_region_to_selected_shapes(region)
 
     def _set_region_to_selected_shapes(self, region):

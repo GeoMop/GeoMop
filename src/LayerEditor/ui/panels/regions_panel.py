@@ -28,11 +28,6 @@ class RegionsPanel(QtWidgets.QToolBox):
         """
         super().__init__(parent)
 
-        self._regions = []
-        """ Not to be used for anything else then constructing ComboBox and 
-            getting region from selecting item in ComboBox """
-
-
         self.le_model = le_model
         # Reference to adaptor for tab data.
         self.tabs = []
@@ -48,7 +43,6 @@ class RegionsPanel(QtWidgets.QToolBox):
         :return:
         """
         with nosignal(self):
-            self._update_region_list()
             while self.count() > 0:
                 self.removeItem(0)
             names = self.le_model.gui_curr_block.layer_names
@@ -119,11 +113,4 @@ class RegionsPanel(QtWidgets.QToolBox):
                 else:
                     layer.gui_selected_region = RegionItem.none
             self.update_tabs()
-
-    def _update_region_list(self):
-        """
-        Update update data for working with ComboBox
-        :return:
-        """
-        self._regions = list(self.le_model.regions_model.regions.values())
 
