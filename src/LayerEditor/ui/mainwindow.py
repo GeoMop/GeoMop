@@ -121,6 +121,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # self.layers.clearDiagramSelection.connect(self.clear_diagram_selection)
 
         self._layer_editor.le_model.invalidate_scene.connect(self.curr_scene.update_scene)
+        self._layer_editor.le_model.layers_changed.connect(self.layers_changed)
 
         # self.wg_surface_panel.show_grid.connect(self._show_grid)
 
@@ -146,6 +147,15 @@ class MainWindow(QtWidgets.QMainWindow):
     def _cursor_changed(self, x, y):
         """Editor node change signal"""
         self._column.setText("x: {:5f}  y: {:5f}".format(x, -y))
+
+    def layers_changed(self):
+        self.layers = LayerPanel(self._layer_editor.le_model)
+        self.scroll_area1.setWidget(self.layers)
+
+        idx = self._vsplitter1.indexOf(self.wg_regions_panel)
+        self.wg_regions_panel = RegionsPanel(self._layer_editor.le_model, self)
+        self._vsplitter1.replaceWidget(idx, self.wg_regions_panel)
+
 
     # def _show_grid(self, show_flag):
     #     """Show mash"""

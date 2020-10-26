@@ -1,3 +1,5 @@
+from bgem.external import undo
+
 from LayerEditor.ui.data.interface_node_set_item import InterfaceNodeSetItem
 from LayerEditor.ui.data.interpolated_node_set_item import InterpolatedNodeSetItem
 from LayerEditor.ui.data.layer_item import LayerItem
@@ -82,7 +84,7 @@ class BlockItem(IdObject):
         for shape_id, region_id in enumerate(layer_data.polygon_region_ids):
             shape_regions[2][shape_id] = self.regions_model.regions.get(region_id)
 
-        layer = LayerItem(self.selection,
+        layer = LayerItem(self,
                           layer_data.name,
                           top_top,
                           bottom_top,
@@ -106,27 +108,15 @@ class BlockItem(IdObject):
                 else:
                     layer.set_region_to_shape(shape_dim, shape_id, RegionItem.none)
 
-    #TODO: make this undoable
-    def insert_layer(self, layer_data, index):
-        pass
-        # layer = LayerModel(self.decomposition, self.regions_model.regions)
-        # self.layers.insert(layer)
-        # self.layers_dict.add(layer)
-        #
-        #
-        #
-        # if len(self.layers) == 1:
-        #     for shape in [*self.decomposition.points,
-        #                   *self.decomposition.segments,
-        #                   *self.decomposition.polygons]:
-        #         shape.attr[layer] = shape.attr[self.layers[-2]]
-        # else:
-        #     for shape in [*self.decomposition.points,
-        #                   *self.decomposition.segments,
-        #                   *self.decomposition.polygons]:
-        #         shape.attr[layer] = 0
-        #
-        # self.gui_selected_layer = self.layers[0]
+    @undo.undoable
+    def insert_after(self, new_layer: LayerItem, after_layer: LayerItem):
+        idx = self.layers.index(after_layer) + 1
+        self.layers.insert(idx, new_layer)
+        self.layers_dict.add(new_layer)
+        yield "New Layer"
+        del self.layers[idx]
+        self.layers_dict.remove(new_layer)
+
 
     def save(self):
         """Save data from this block to LayerGeometryModel"""

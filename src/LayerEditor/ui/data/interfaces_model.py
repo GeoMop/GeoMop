@@ -1,3 +1,5 @@
+from bgem.external import undo
+
 from LayerEditor.ui.data.interface_item import InterfaceItem
 
 class InterfacesModel:
@@ -17,4 +19,11 @@ class InterfacesModel:
     def clear_indexing(self):
         for interface in self.interfaces:
             interface.index = None
+
+    @undo.undoable
+    def insert_after(self, new_itf:InterfaceItem, after_itf: InterfaceItem):
+        idx = self.interfaces.index(after_itf) + 1
+        self.interfaces.insert(idx, new_itf)
+        yield f"Add interface, elevation: {new_itf.elevation}"
+        del self.interfaces[idx]
 

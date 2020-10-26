@@ -6,8 +6,12 @@ from bgem.external import undo
 
 from LayerEditor.exceptions.data_inconsistent_exception import DataInconsistentException
 from LayerEditor.ui.data.blocks_model import BlocksModel
+from LayerEditor.ui.data.interface_item import InterfaceItem
+from LayerEditor.ui.data.interface_node_set_item import InterfaceNodeSetItem
 from LayerEditor.ui.data.interfaces_model import InterfacesModel
 from LayerEditor.ui.data.decompositions_model import DecompositionsModel
+from LayerEditor.ui.data.interpolated_node_set_item import InterpolatedNodeSetItem
+from LayerEditor.ui.data.layer_item import LayerItem
 from LayerEditor.ui.data.region_item import RegionItem
 from LayerEditor.ui.data.regions_model import RegionsModel
 from LayerEditor.ui.data.surfaces_model import SurfacesModel
@@ -22,6 +26,8 @@ class LEModel(QObject):
     """Regions were added or deleted"""
     invalidate_scene = pyqtSignal()
     """The scene needs to be updated"""
+    layers_changed = pyqtSignal()
+    """The structure of layers and interfaces was changed"""
 
     def __init__(self, in_file=None):
         super(LEModel, self).__init__()
@@ -262,7 +268,7 @@ class LEModel(QObject):
         geo_model.interfaces.append(inter)
 
         surf_nodesets = (dict(nodeset_id=0, interface_id=1), dict(nodeset_id=0, interface_id=1))
-        #TODO: shouldn't this reference to the top nodeset???
+        #TODO: shouldn't this reference to the top interface???
         ns_bot = InterpolatedNodeSet(dict(surf_nodesets=surf_nodesets, interface_id=1))
 
         gl = StratumLayer(dict(name=lname, top=ns_top, bottom=ns_bot))
@@ -275,3 +281,37 @@ class LEModel(QObject):
         geo_model.node_sets.append(NodeSet(dict(topology_id=0, nodes=[])))
         geo_model.supplement.last_node_set = 0
         return geo_model
+
+    def split_layer(self, layer: LayerItem, new_layer_name: str, elevation: float):
+        with undo.group("Split Layer"):
+            new_itf = InterfaceItem(elevation)
+            self.interfaces_model.insert_after(new_itf, layer.top_top.interface)
+            bottom_if_node_set = layer.bottom_top
+            if isinstance(bottom_if_node_set, InterpolatedNodeSetItem):
+                """ Todo: it might be unnecessary to crate new InterpolatedNodeSetItem 
+                    if there really is a mistake in original and if they should have the same interface"""
+                top = InterfaceNodeSetItem(bottom_if_node_set.top_itf_node_set.decomposition, new_itf)
+                bot = InterfaceNodeSetItem(bottom_if_node_set.bottom_itf_node_set.decomposition, new_itf)
+                middle_it_node_set = InterpolatedNodeSetItem(top, bot, new_itf)
+            elif isinstance(layer.top_top, InterpolatedNodeSetItem):
+                top = InterfaceNodeSetItem(layer.top_top.top_itf_node_set.decomposition, new_itf)
+                bot = InterfaceNodeSetItem(layer.top_top.bottom_itf_node_set.decomposition, new_itf)
+                middle_it_node_set = InterpolatedNodeSetItem(top, bot, new_itf)
+            else:
+                middle_it_node_set = InterpolatedNodeSetItem(layer.top_top, bottom_if_node_set, new_itf)
+
+            layer.bottom_top = middle_it_node_set
+
+            shape_regions = [dict(layer.shape_regions[0]),
+                             dict(layer.shape_regions[1]),
+                             dict(layer.shape_regions[2])]
+            new_layer = LayerItem(layer.block,
+                                  new_layer_name,
+                                  middle_it_node_set,
+                                  bottom_if_node_set,
+                                  shape_regions)
+
+            self.blocks_model.blocks[layer.block].insert_after(new_layer, layer)
+            self.layers_changed.emit()
+
+
