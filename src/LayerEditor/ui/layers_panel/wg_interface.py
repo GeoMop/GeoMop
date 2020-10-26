@@ -18,6 +18,7 @@ class WGInterface(QWidget):
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         if fracture_name is not None:
             self.name = QLabel(" " + fracture_name + " ")
+            self.name.setCursor(Qt.PointingHandCursor)
             font = self.name.font()
             self.name.setFont(font)
             self.name.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)

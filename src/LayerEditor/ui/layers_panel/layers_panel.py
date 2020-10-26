@@ -8,6 +8,7 @@ from LayerEditor.ui.data.interface_node_set_item import InterfaceNodeSetItem
 from LayerEditor.ui.data.interpolated_node_set_item import InterpolatedNodeSetItem
 from LayerEditor.ui.data.layer_item import LayerItem
 from LayerEditor.ui.data.le_model import LEModel
+from LayerEditor.ui.layers_panel.elevation_label import ElevationLabel
 from LayerEditor.ui.layers_panel.wg_interface import WGInterface, InterfaceType
 from LayerEditor.ui.layers_panel.joiner import Joiner
 from LayerEditor.ui.layers_panel.wg_layer import WGLayer
@@ -35,67 +36,28 @@ class LayerPanel(QWidget):
         super(LayerPanel, self).__init__(parent)
         self.main_layout = QGridLayout()
         self.main_layout.setAlignment(Qt.AlignCenter)
-        self.button_group = QButtonGroup()
+        self.radio_button_group = QButtonGroup()
 
         self.main_layout.addLayout(add_margins_around_widget(QLabel("View"), 5, 0, 5, 0), 0, 0)
         self.main_layout.addLayout(add_margins_around_widget(QLabel("Edit"), 5, 0, 5, 0), 0, 1)
         self.main_layout.addLayout(add_margins_around_widget(QLabel("Layer"), 5, 0, 5, 0), 0, 2)
         self.main_layout.addLayout(add_margins_around_widget(QLabel("Elevation"), 5, 0, 5, 0), 0, 4)
 
-        self._fill_layers_panel(le_model)
-
-
-
-
-
-        # self.main_layout.addLayout(add_margins_around_widget(QCheckBox(), 5, 0, 5, 0), 1, 0)
-        # radio_button = RadioButton(self)
-        # self.button_group.addButton(radio_button.radio_button)
-        # self.main_layout.addWidget(radio_button, 1, 1)
-        # self.main_layout.addWidget(WGInterface(self, None, InterfaceType.TOP), 1, 2)
-        #
-        # self.main_layout.addWidget(WGLayer(self, "Layer_1"), 2, 2)
-        #
-        # self.main_layout.addWidget(WGInterface(self, None), 3, 2)
-        #
-        # self.main_layout.addWidget(WGLayer(self, "Layer_1"), 4, 2)
-        #
-        # top = WGInterface(self, None, InterfaceType.BOTTOM)
-        # self.main_layout.addWidget(top, 5, 2)
-        #
-        # self.main_layout.addLayout(add_margins_around_widget(QCheckBox(), 5, 0, 5, 0), 6, 0)
-        # radio_button = RadioButton(self)
-        # self.button_group.addButton(radio_button.radio_button)
-        # self.main_layout.addWidget(radio_button, 6, 1)
-        # middle = WGInterface(self, "Fracture_3", InterfaceType.NONE)
-        # self.main_layout.addWidget(middle, 6, 2)
-        #
-        # self.main_layout.addLayout(add_margins_around_widget(QCheckBox(), 5, 0, 5, 0), 7, 0)
-        # radio_button = RadioButton(self)
-        # self.button_group.addButton(radio_button.radio_button)
-        # self.main_layout.addWidget(radio_button, 7, 1)
-        # bottom = WGInterface(self, None, InterfaceType.TOP)
-        # self.main_layout.addWidget(bottom, 7, 2)
-        #
-        # self.main_layout.addWidget(Joiner(self, top, bottom, middle), 5, 3, 3, 1)
-        #
-        # self.main_layout.addWidget(WGLayer(self, "Layer_1"), 8, 2)
-        #
-        # self.main_layout.addWidget(WGInterface(self, "Interface"), 9, 2)
-        #
-        # self.main_layout.addWidget(WGLayer(self, "Layer_1"), 10, 2)
-        #
-        # self.main_layout.addWidget(WGInterface(self, "Interface", InterfaceType.BOTTOM), 11, 2)
+        self.le_model = le_model
+        self._fill_layers_panel()
 
         self.setLayout(self.main_layout)
         self.main_layout.setHorizontalSpacing(0)
         self.main_layout.setVerticalSpacing(0)
 
-    def _fill_layers_panel(self, le_model):
-        layer_panel_model = self._make_layer_panel_model(le_model)
+    def _fill_layers_panel(self, ):
+        layer_panel_model = self._make_layer_panel_model(self.le_model)
         layer_panel_model = self._add_types_of_left_joiners(layer_panel_model)
         self._add_interfaces_and_layer_to_panel(layer_panel_model)
-        self._add_right_joiners(layer_panel_model)
+        self._add_right_joiners_and_elevation(layer_panel_model)
+        for button in self.radio_button_group.buttons():
+            if button.parent().block == self.le_model.gui_curr_block:
+                button.setChecked(True)
 
     def _make_layer_panel_model(self, le_model):
         layer_panel_model = [[le_model.blocks_model.layers[0].top_top]]
@@ -135,19 +97,16 @@ class LayerPanel(QWidget):
     def _add_interfaces_and_layer_to_panel(self, layer_panel_model):
         for row, item in enumerate(layer_panel_model, start=1):
             if isinstance(item[0], InterfaceNodeSetItem):
-                self.main_layout.addLayout(add_margins_around_widget(QCheckBox(), 5, 0, 5, 0), row, 0)
-                radio_button = RadioButton(self)
-                self.button_group.addButton(radio_button.radio_button)
-                self.main_layout.addWidget(radio_button, row, 1)
+                self._add_edit_view(row, item[0].block)
             if isinstance(item[0], (InterfaceNodeSetItem, InterpolatedNodeSetItem)):
                 if len(item) == 3:
                     self.main_layout.addWidget(WGInterface(self, item[1].name, item[2]), row, 2)
                 else:
                     self.main_layout.addWidget(WGInterface(self, None, item[1]), row, 2)
             else:
-                self.main_layout.addWidget(WGLayer(self, item[0].name), row, 2)
+                self.main_layout.addWidget(WGLayer(self, item[0]), row, 2)
 
-    def _add_right_joiners(self, layer_panel_model):
+    def _add_right_joiners_and_elevation(self, layer_panel_model):
         joiner = 0
         last_elevation = None
         for row, item in enumerate(layer_panel_model, 1):
@@ -159,12 +118,16 @@ class LayerPanel(QWidget):
                     joiner += 1
                 else:
                     self._add_joiner(joiner, row)
+                    self.main_layout.addWidget(ElevationLabel(item[0].interface.elevation), row, 4)
                     joiner = 1
                     last_elevation = item[0].interface.elevation
             else:
                 self._add_joiner(joiner, row)
+                self.main_layout.addWidget(ElevationLabel(last_elevation), row-1, 4)
                 joiner = 0
                 last_elevation = None
+        self._add_joiner(joiner, row)
+        self.main_layout.addWidget(ElevationLabel(last_elevation), row, 4)
 
     def _add_joiner(self, n_join, end_row):
         if n_join == 2:
@@ -178,11 +141,17 @@ class LayerPanel(QWidget):
             self.main_layout.addWidget(Joiner(self, top, bot, mid), end_row - 3, 3, 3, 1)
         elif n_join > 3:
             assert False, "This is not right!!! Something is broken."
-    def _add_edit_view(self, row):
-        self.main_layout.addLayout(add_margins_around_widget(QCheckBox(), 5, 2, 5, 0), row, 0)
-        radio_button = RadioButton(self)
-        self.button_group.addButton(radio_button.radio_button)
+
+    def _add_edit_view(self, row, block):
+        check_box = QCheckBox()
+        check_box.setCursor(Qt.PointingHandCursor)
+        self.main_layout.addLayout(add_margins_around_widget(check_box, 5, 2, 5, 0), row, 0)
+        radio_button = RadioButton(self, block)
+        self.radio_button_group.addButton(radio_button.radio_button)
         self.main_layout.addWidget(radio_button, row, 1)
+
+    def get_current_block(self):
+        return self.radio_button_group.checkedButton().block
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)

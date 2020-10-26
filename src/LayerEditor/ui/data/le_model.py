@@ -46,7 +46,7 @@ class LEModel(QObject):
         self.init_zoom_pos_data = geo_model.supplement.zoom
         """Used only for initializing DiagramView after that is None and DiagramView holds those informations"""
 
-        self.gui_curr_block = list(self.blocks_model.blocks.values())[0]
+        self.gui_curr_block = self.decompositions_model.decomps[geo_model.supplement.last_node_set].helper_attr_block
         """helper attribute, holds currently active block"""
 
     def load_geo_model(self, in_file=None):
@@ -68,6 +68,12 @@ class LEModel(QObject):
                 curr_file_timestamp = None
         """Timestamp is used for detecting file changes while file is loaded in LE."""
         return (geo_model, curr_file_timestamp)
+
+    def layer_names(self):
+        r = []
+        for block in self.blocks_model.blocks.values():
+            r.extend(block.layer_names)
+        return r
 
     def confront_file_timestamp(self):
         """

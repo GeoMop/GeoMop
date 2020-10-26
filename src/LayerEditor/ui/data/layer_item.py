@@ -11,8 +11,9 @@ from gm_base.geometry_files.format_last import StratumLayer, FractureLayer
 
 class LayerItem(IdObject):
     """Data about one geological layer"""
-    def __init__(self, selection, name, top_top, bottom_top, shape_regions):
-        self.selection = selection
+    def __init__(self, block, name, top_top, bottom_top, shape_regions):
+
+        self.block = block
         """This layer is part of this block"""
         self.name = name
         """Layer name"""
@@ -61,7 +62,7 @@ class LayerItem(IdObject):
         """Sets regions of shapes only in this layer."""
         assert isinstance(undo.stack()._receiver, deque), "groups cannot be nested"
         with better_undo.group(f"Set region of selected to {region.id}"):
-            for orig_dim, shape_id in self.selection.get_selected_shape_dim_id():
+            for orig_dim, shape_id in self.block.selection.get_selected_shape_dim_id():
                 dim = orig_dim
                 if self.is_stratum:
                     dim += 1
