@@ -14,9 +14,6 @@ from LayerEditor.ui.diagram_editor.graphics_items.gs_segment import GsSegment
 
 
 class DiagramScene(QtWidgets.QGraphicsScene):
-    selection_changed = QtCore.pyqtSignal()
-    # selection has changed
-
     regionsUpdateRequired = QtCore.pyqtSignal()
     TOLERANCE = 0.01
 
@@ -153,7 +150,7 @@ class DiagramScene(QtWidgets.QGraphicsScene):
 
     def below_item(self, scene_pos):
         below_item = None
-        for item in self.items(scene_pos, deviceTransform=self.parent().viewportTransform()):
+        for item in self.items(scene_pos, deviceTransform=self.parent().transform()):
             if (item is self.aux_pt) or (item is self.aux_seg):
                 continue
             below_item = item

@@ -6,23 +6,36 @@ class RegionsModel:
     """Class for managing all regions"""
     NONE = None
     def __init__(self, le_data, regions_data):
-        self.regions = IdMap() # {region_id: Region}
+        self.regions = IdMap() # {region: Region}
         self.le_data = le_data
         """Needed for checking if some region is used in any shape in any decomposition"""
 
 
         for data in regions_data:
-            region = Region.make_from_data(data)
-            self.regions.add(region)
+            self.add_region_from_data(data)
         Region.none = self.regions.get(0)
 
-    def add_region(self, name="", dim=0, color=None):
-        reg = Region(color=color, name=name, dim=dim)
-        self.regions.add(reg)
-        return reg.id
+    def add_region_from_data(self, region_data):
+        Region( self.regions,
+                region_data.color,
+                region_data.name,
+                region_data.dim,
+                region_data.mesh_step,
+                region_data.not_used,
+                region_data.boundary)
 
-    def delete_region(self, id):
-        del self.regions[id]
+    #TODO: Make undoable, maybe?
+    def add_region(self, name="", dim=0, color=None):
+        reg = Region(self.regions, color=color, name=name, dim=dim)
+        return reg
+
+    # TODO: Make undoable, maybe?
+    def delete_region(self, reg):
+        for block in self.le_data.blocks.values():
+            for layer in block.layers:
+                if layer.gui_selected_region == reg:
+                    layer.gui_selected_region = Region.none
+        del self.regions[reg]
 
     def get_region_names(self):
         return [reg.name for reg in self.regions.values()]
@@ -54,15 +67,15 @@ class RegionsModel:
     #
     #     return True
 
-    def is_region_used(self, reg_id):
-        dim = self.regions[reg_id].dim
-        for block in self.le_data.blocks:
+    def is_region_used(self, reg):
+        dim = self.regions[reg].dim
+        for block in self.le_data.blocks.values():
             for layer in block.layers:
                 if not layer.is_fracture:
                     dim -= 1
                     if dim < 0:
                         continue
-                if reg_id in layer.shape_regions[dim].values():
+                if reg in layer.shape_regions[dim].values():
                     return True
         return False
 

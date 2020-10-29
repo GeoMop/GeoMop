@@ -10,7 +10,7 @@ from LayerEditor.ui.tools.cursor import Cursor
 class GsSegment(QtWidgets.QGraphicsLineItem):
     __pen_table={}
 
-    WIDTH = 3.0
+    WIDTH = 4.0
     STD_ZVALUE = 10
     SELECTED_ZVALUE = 11
     no_pen = QtGui.QPen(QtCore.Qt.NoPen)
@@ -48,6 +48,10 @@ class GsSegment(QtWidgets.QGraphicsLineItem):
         self.setAcceptedMouseButtons(QtCore.Qt.LeftButton | QtCore.Qt.RightButton)
         self.setZValue(self.STD_ZVALUE)
         self.update()
+
+    @property
+    def shape_id(self):
+        return self.segment.id
 
     def init_regions(self, block):
         for layer in block.layers:
@@ -93,7 +97,8 @@ class GsSegment(QtWidgets.QGraphicsLineItem):
         displacement = np.array([x - self.pos().x(), -y + self.pos().y()])
         if self.scene().decomposition.check_displacment([self.segment.vtxs[0], self.segment.vtxs[1]], displacement):
             self.scene().decomposition.move_points([self.segment.vtxs[0], self.segment.vtxs[1]], displacement)
-
+        else:
+            return self.pos()
         # for gseg in self.pt.g_segments():
         #     gseg.update()
         if self.scene():
@@ -106,6 +111,7 @@ class GsSegment(QtWidgets.QGraphicsLineItem):
         #print("change: ", change, "val: ", value)
         if change == QtWidgets.QGraphicsItem.ItemPositionChange:
             self.move_to(value.x(), value.y())
+            return self.pos()
         if change == QtWidgets.QGraphicsItem.ItemSelectedChange:
             if self.isSelected():
                 self.setZValue(self.SELECTED_ZVALUE)
@@ -115,7 +121,7 @@ class GsSegment(QtWidgets.QGraphicsLineItem):
 
     def update_zoom(self, value):
         pen = QtGui.QPen()
-        pen.setWidthF(self.WIDTH / value)
+        pen.setWidthF(self.WIDTH * 2 / value)
         self.setPen(pen)
 
 

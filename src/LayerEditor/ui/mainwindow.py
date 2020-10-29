@@ -6,7 +6,8 @@ import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtCore as QtCore
 import PyQt5.QtGui as QtGui
 from LayerEditor.data import cfg
-#from . import panels
+from LayerEditor.ui.diagram_editor.diagram_scene import DiagramScene
+from LayerEditor.ui.panels.regions_panel import RegionsPanel
 from LayerEditor.ui.tools.cursor import Cursor
 from LayerEditor.ui.diagram_editor.diagram_view import DiagramView
 # from .menus.edit import EditMenu
@@ -27,11 +28,18 @@ class MainWindow(QtWidgets.QMainWindow):
         """Initialize the class."""
         super(MainWindow, self).__init__()
         self._layer_editor = layer_editor
-        self.make_widgets()
+        self.make_widgets(True)
 
-    def make_widgets(self):
-        # self.wg_regions = panels.Regions(cfg.layer_heads, self)
-        # self.wg_regions = panels.Regions(self)
+    @property
+    def curr_scene(self):
+        return self.diagramView.scene()
+
+    @property
+    def diagramView(self):
+        return self._layer_editor.le_data.diagram_view
+
+    def make_widgets(self, first=False):
+        self.wg_regions_panel = RegionsPanel(self._layer_editor.le_data, self)
 
         self.setMinimumSize(1060, 660)
 
@@ -51,11 +59,10 @@ class MainWindow(QtWidgets.QMainWindow):
         #self.scroll_area1.setWidget(self.layers)
         self._vsplitter1.addWidget(self.scroll_area1)
 
-        #self._vsplitter1.addWidget(self.wg_regions)
+        self._vsplitter1.addWidget(self.wg_regions_panel)
 
         # scene
 
-        self.diagramView = self._layer_editor.le_data.diagram_view
         scene = self.diagramView.scenes[0]
         self.diagramView.setScene(scene)
         """scene is set here only temporarily until there will be more scenes  """
@@ -89,12 +96,12 @@ class MainWindow(QtWidgets.QMainWindow):
         # self._settings_menu = MainSettingsMenu(self, self._layer_editor)
         # self._mesh_menu = MeshMenu(self, self._layer_editor)
         self.update_recent_files(0)
-
-        self._menu.addMenu(self._file_menu)
-        # self._menu.addMenu(self._edit_menu)
-        # self._menu.addMenu(self._analysis_menu)
-        # self._menu.addMenu(self._settings_menu)
-        # self._menu.addMenu(self._mesh_menu)
+        if first:
+            self._menu.addMenu(self._file_menu)
+            # self._menu.addMenu(self._edit_menu)
+            # self._menu.addMenu(self._analysis_menu)
+            # self._menu.addMenu(self._settings_menu)
+            # self._menu.addMenu(self._mesh_menu)
 
         # status bar
         self._column = QtWidgets.QLabel(self)
@@ -128,7 +135,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # cfg.layer_heads.region_changed.connect(self._region_changed)
         # cfg.layer_heads.selected_layer_changed.connect(self._region_changed)
         # TODO: This should be wrong, but seems to be same as in the master branch.
-        # self.wg_regions.color_changed.connect(cfg.diagram.region_color_changed)
+        self.wg_regions_panel.regions_changed.connect(self.curr_scene.update_scene)
 
         # self.wg_surface_panel.show_grid.connect(self._show_grid)
 
@@ -294,11 +301,7 @@ class MainWindow(QtWidgets.QMainWindow):
     #     """Handle changes of config."""
     #     analysis = cfg.analysis or '(No Analysis)'
     #     self._analysis_label.setText(analysis)
-    #
-    # def _region_changed(self):
-    #     """Region in regions panel was changed."""
-    #     self.diagramScene.selection.set_current_region()
-    #
+
     # def _show_grid(self, show_flag):
     #     """Show mash"""
     #     if show_flag:

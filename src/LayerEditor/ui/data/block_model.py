@@ -1,5 +1,6 @@
 from LayerEditor.data.layer_geometry_serializer import LayerGeometrySerializer
 from LayerEditor.ui.data.layer_model import LayerModel
+from LayerEditor.ui.data.region import Region
 
 from LayerEditor.ui.diagram_editor.diagram_scene import DiagramScene
 from LayerEditor.ui.tools.id_map import IdMap
@@ -14,7 +15,7 @@ class BlockModel:
     def __init__(self, le_data):
         self.le_data = le_data
         """Reference for LEData."""
-        self.regions_model = self.le_data.regions
+        self.regions_model = self.le_data.regions_model
         """Reference to object which manages regions."""
         self.layers = []
         """list of layer in this block"""
@@ -47,7 +48,7 @@ class BlockModel:
 
     def init_add_layer(self, layer_data):
         """Add layer while initializing (isn't undoable)."""
-        layer = LayerModel(self.decomposition, self.regions_model.regions, layer_data)
+        layer = LayerModel(self, self.regions_model.regions, layer_data)
         self.layers.append(layer)
         self.layers_dict.add(layer)
 
@@ -82,3 +83,9 @@ class BlockModel:
         geo_model.add_node_set(top_idx, nodes)
         for layer in self.layers:
             layer.save(geo_model, region_id_to_idx)
+
+    def set_region_to_selected_shapes(self, region:Region):
+        """Sets regions of shapes for all layers in block."""
+        for layer in self.layers:
+            layer.set_region_to_selected_shapes(region)
+

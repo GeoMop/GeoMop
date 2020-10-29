@@ -4,6 +4,7 @@ import PyQt5.QtGui as QtGui
 import PyQt5.QtCore as QtCore
 import gm_base.icon as icon
 from gm_base.geomop_dialogs import GMErrorDialog
+from ..data.region import Region
 from ..dialogs.regions import AddRegionDlg
 
 
@@ -18,7 +19,7 @@ def nosignal(qt_obj):
     qt_obj.blockSignals(False)
 
 
-class LayerHeads(QtCore.QObject):
+class BlockLayerHeads(QtCore.QObject):
     """
     Adaptor to access layer names and
     to store currently selected regions and layers.
@@ -32,25 +33,15 @@ class LayerHeads(QtCore.QObject):
     region_list_changed = QtCore.pyqtSignal()
 
 
-    def __init__(self, layers_geometry):
+    def __init__(self, block):
         """
         Constructor.
         :param layers_geometry: LEConfig class.
         """
-        super().__init__()
+        super(BlockLayerHeads, self).__init__()
 
-        self.lc = layers_geometry
-        # Data object used to retrieve data
-        self._selected_layers = {0: 0}
-        # Selected layer tab in topology. Map { topology_id : layer_id}.
-        self._selected_regions = {0: 0}
-        # Selected region for each layer including layers in other topologies/blocks.
-        # { layer_id: region_id }
-
-    def reinit_regions_map(self):
-        """ Update _selected_regions according to the layers."""
-        for layer_id, name in self.layer_names:
-            self._selected_regions.setdefault(layer_id, 0)
+        self.block = block
+        """Data object used to retrieve data"""
 
     def select_regions(self, region_dict):
         """
@@ -59,76 +50,73 @@ class LayerHeads(QtCore.QObject):
         :return:
         """
         # assert layer_id in self._selected_regions
+        assert False, "Not refactored"
         self._selected_regions.update(region_dict)
         self.region_changed.emit()
 
     def select_layer(self, layer_id):
         """ Select actual layer tab."""
-        self._selected_layers[self.current_topology_id] = layer_id
+        assert False, "Not refactored"
+        self.block.gui_selected_layers[self.current_topology_id] = layer_id
 
-    def add_region(self, name, dim, color):
+    def add_region(self, name, dim):
         """ Add new region according to the provided data from the current tab and select it."""
-        region = self.regions.add_new_region(color, name, dim, True, "Add Region")
-        self._selected_regions[self.current_layer_id] = region.reg_id
+        reg = self.regions_model.add_region(name, dim)
+        self.block.gui_selected_layer.gui_selected_region = reg
+        self.block.set_region_to_selected_shapes(reg)
         self.region_list_changed.emit()
-        return region
+        self.region_changed.emit()
+        return reg
 
-    def remove_region(self, reg_id):
+    def remove_region(self, reg):
         """Remove the region."""
-        shapes = self.regions.get_shapes_of_region(reg_id)
-        if not shapes:
-            self.regions.delete_region(reg_id)
-            self.region_list_changed.emit()
-        else:
-            print("List is not empty! Oops, this button should have been disabled.")
+        self.regions_model.delete_region(reg)
+        self.region_list_changed.emit()
 
-    @property
     def max_selected_dim(self):
         """Maximal object dimension within the current selection.
         TODO: better check for the fracture layer.
         """
-        max_selected_dim = self.lc.main_window.diagramScene.selection.max_selected_dim()
-        if self.current_layer_id >= 0:
+        max_selected_dim = self.block.selection.max_selected_dim()
+        if not self.block.gui_selected_layer.is_fracture:
             max_selected_dim += 1
         return max(max_selected_dim, 0)
 
     @property
     def region_names(self):
         """ List of unique region names."""
-        return {reg.name: reg for reg in self.lc.diagram.regions.regions.values()}
+        return [reg.name for reg in self.block.regions_model.regions.values()]
 
     @property
-    def regions(self):
+    def regions_model(self):
         """ Regions object. """
-        return self.lc.diagram.regions
+        return self.block.regions_model
 
     @property
     def current_topology_id(self):
-        return self.lc.diagram.topology_idx
+        assert False, "Not refactored"
+        return self.block.diagram.topology_idx
 
-    @property
-    def selected_region_id(self):
-        """ Region ID of the current region of the current layer. """
-        return self._selected_regions[self.current_layer_id]
 
     @property
     def selected_region(self):
         """ Current region of the current layer."""
+        assert False, "Not refactored"
         region_id = self._selected_regions[self.current_layer_id]
-        return self.regions.regions[region_id]
+        return self.regions_model.regions_model[region_id]
 
     @property
-    def current_layer_id(self):
+    def current_layer_idx(self):
         """ Layer ID for current teb in Region Panel."""
-        return self._selected_layers[self.current_topology_id]
+        return self.block.layers.index(self.block.gui_selected_layer)
 
     @property
     def layer_names(self):
         """
-        Return list of
-        :return: [ (layer_id, layer_name), .. ]
+        Return list of layer names
+        :return: [ layer_name,...]
         """
-        return self.regions.get_layers(self.current_topology_id)
+        return self.block.layer_names
 
     @property
     def selected_regions(self):
@@ -136,10 +124,11 @@ class LayerHeads(QtCore.QObject):
         Return list of selected region IDs.
         :return: [ (layer_id, region_id), ... ]
         """
+        assert False, "Not refactored"
         return self._selected_regions
 
 
-class Regions(QtWidgets.QToolBox):
+class RegionsPanel(QtWidgets.QToolBox):
     """
     GeoMop regions panel.
 
@@ -160,11 +149,11 @@ class Regions(QtWidgets.QToolBox):
     pyqtSignals:
         * :py:attr:`regionChanged() <regionChanged>`
     """
-    color_changed = QtCore.pyqtSignal()
+    regions_changed = QtCore.pyqtSignal()
 
     # Emitted when color of some region has changed.
 
-    def __init__(self, layer_heads, parent=None):
+    def __init__(self, le_data, parent=None):
         """
         Inicialize window
 
@@ -173,90 +162,96 @@ class Regions(QtWidgets.QToolBox):
         """
         super().__init__(parent)
 
-        self.layer_heads = layer_heads
+        self.layer_heads = BlockLayerHeads(le_data.gui_curr_block)
         # Reference to adaptor for tab data.
-        self.layer_id_to_idx = {}
-        # Map layer_id to tab index.
         self.tabs = []
         #  Tab widgets.
         self.update_tabs()
 
         self.currentChanged.connect(self._layer_changed)
+        self.layer_heads.block.selection.selection_changed.connect(self.selection_changed)
 
     @property
     def regions(self):
         """ Regions data object. """
-        return self.layer_heads.regions
+        assert False, "Not refactored"
+        return self.layer_heads.regions_model
 
     def update_tabs(self):
         """
         Update tabs and its contents according to layer heads adaptor.
         :return:
         """
-        # Update number of tabs and their layers.
-        self.layer_heads.reinit_regions_map()
-        i_tab = 0
-        names = self.layer_heads.layer_names
-        self.layer_id_to_idx = {}
-        for layer_id, layer_name in names:
-            self.layer_id_to_idx[layer_id] = i_tab
-            if i_tab >= self.count():
-                tab_widget = RegionLayerTab(self.layer_heads, i_tab, self)
-                self.tabs.append(tab_widget)
+        with nosignal(self):
+            while self.count() > 0:
+                self.removeItem(0)
+            names = self.layer_heads.layer_names
+            for idx, layer_name in enumerate(names):
+                tab_widget = RegionLayerTab(self.layer_heads, self.layer_heads.block.layers[idx], self)
                 self.addItem(tab_widget, "")
-            self.tabs[i_tab].reinit(layer_id, layer_name)
-            i_tab += 1
-        while i_tab < self.count():
-            self.removeItem(i_tab)
-            self.tabs.pop(-1)
-            i_tab += 1
-        # Update content.
-        self.setCurrentIndex(self.layer_id_to_idx[self.layer_heads.current_layer_id])
+                tab_widget.reinit(layer_name)
+            # Update content.
+        self.setCurrentIndex(self.layer_heads.current_layer_idx)
 
     def _update_tab_head(self, tab):
         """
         Update tab head, called by tab itself after change of region.
-        :param i:
+        :param tab:
         :return:
         """
         color = tab.region_color
-        item_idx = self.layer_id_to_idx[tab.layer_id]
+        item_idx = self.layer_heads.block.layers.index(tab.layer)
         pixmap = QtGui.QPixmap(16, 16)
         pixmap.fill(color)
         iconPix = QtGui.QIcon(pixmap)
         self.setItemIcon(item_idx, iconPix)
-        self.setItemText(item_idx, "{} ({})".format(tab._layer_name, tab.region.name))
+        self.setItemText(item_idx, "{} ({})".format(tab._layer_name, tab.curr_region.name))
 
     def add_region(self):
         """
         Add new region to all combo and select it in current tab.
         Handle combo changed signal in current tab.
         """
-        dialog = AddRegionDlg(self.layer_heads.max_selected_dim, self.layer_heads.region_names, self)
+        dialog = AddRegionDlg(self.layer_heads.max_selected_dim(), self.layer_heads.region_names, self)
         dialog_result = dialog.exec_()
         if dialog_result == QtWidgets.QDialog.Accepted:
             name = dialog.region_name.text()
             dim = dialog.region_dim.currentData()
-            color = dialog.get_some_color(self.layer_heads.regions._get_available_reg_id() - 1).name()
-            region = self.layer_heads.add_region(name, dim, color)
-            self.current_tab._combo_set_region(region.reg_id)
-            self.update_tabs()
-            self.color_changed.emit()
+            region = self.layer_heads.add_region(name, dim)
+            self.current_tab._combo_set_region(self.current_tab._combo_id_to_idx[region.id])
 
     def remove_region(self):
         """Remove region if it is not assigned to any no shapes"""
-        reg_id = self.layer_heads.selected_region_id
-        self.layer_heads.remove_region(reg_id)
+        reg = self.current_tab.curr_region
+        self.layer_heads.remove_region(reg)
 
     @property
     def current_tab(self):
         """ Current Tab widget. """
-        return self.tabs[self.currentIndex()]
+        return self.widget(self.currentIndex())
 
     def _layer_changed(self):
         """item Changed handler"""
+        assert False, "Not refactored"
         self.layer_heads.select_layer(self.current_tab.layer_id)
-        self.color_changed.emit()
+        self.regions_changed.emit()
+
+    def selection_changed(self):
+        selected = self.layer_heads.block.selection._selected
+        if selected:
+            for layer in self.layer_heads.block.layers:
+                region = layer.get_shape_region(selected[0])
+                is_region_same = True
+                for g_item in selected:
+                    if region != layer.get_shape_region(g_item):
+                        is_region_same = False
+                        break
+                if is_region_same:
+                    layer.gui_selected_region = region
+                else:
+                    layer.gui_selected_region = Region.none
+            self.update_tabs()
+
 
 
 class RegionLayerTab(QtWidgets.QWidget):
@@ -264,7 +259,7 @@ class RegionLayerTab(QtWidgets.QWidget):
     Single Tab of the Region panel. One tab for every layer in the current topology block.
     """
 
-    def __init__(self, layer_heads, i_tab, parent):
+    def __init__(self, layer_heads, layer, parent):
         """
         Constructor, just make widgets and set reference to parent and layer_heads.
         Reinit must be called explicitely to fill the widget content.
@@ -275,41 +270,29 @@ class RegionLayerTab(QtWidgets.QWidget):
         # === Data
         self.layer_heads = layer_heads
         # Reference model for region panel
-        self._i_tab = i_tab
-        # Set index of tab in the toolbox (used for callback to set header).
-        self.layer_id = None
-        # ID of the layer to which this Tab is related.
+        self.layer = layer
+        # Layer to which this Tab is related.
         self._layer_name = None
         # Name of the layer.
-        self._combo_id_to_idx = {0: 0}
+        self._combo_id_to_idx = {Region.none.id: 0}
         # auxiliary map from region ID to index in the combo box.
 
         self.layer_heads.region_changed.connect(self._update_region_content)
         self.layer_heads.region_list_changed.connect(self._update_region_list)
         self._make_widgets()
 
-    def reinit(self, layer_id, layer_name):
-        self.layer_id = layer_id
+    def reinit(self, layer_name):
         self._layer_name = layer_name
         self._update_region_list()
 
     @property
-    def region_id(self):
-        """ Current region id. """
-        return self.layer_heads.selected_regions[self.layer_id]
-
-    @property
-    def region(self):
+    def curr_region(self):
         """ Current region. """
-        return self.layer_heads.regions.regions[self.region_id]
+        return self.layer.gui_selected_region
 
     @property
     def region_color(self):
-        """ QColor of current region.
-            TODO: make this a property of the  Region.
-            (with optional parameter object_dim for the None region)
-        """
-        return QtGui.QColor(self.region.color)
+        return QtGui.QColor(self.curr_region.color)
 
     def _make_widgets(self):
         """Make grid of widgets of the single region tab.
@@ -403,10 +386,10 @@ class RegionLayerTab(QtWidgets.QWidget):
             # self.wg_region_combo.setUpdatesEnabled(False) # Disable repainting until combobox is filled.
             combo.clear()
             self._combo_id_to_idx = {}
-            sorted_regions = self.layer_heads.regions.regions.values()
+            sorted_regions = self.layer_heads.regions_model.regions.values()
             for idx, reg in enumerate(sorted_regions):
-                self._combo_id_to_idx[reg.reg_id] = idx
-                combo.addItem(self.make_combo_label(reg), reg.reg_id)
+                self._combo_id_to_idx[reg.id] = idx
+                combo.addItem(self.make_combo_label(reg), reg.id)
             # self.wg_region_combo.setUpdatesEnabled(True)
         self._update_region_content()
 
@@ -422,17 +405,17 @@ class RegionLayerTab(QtWidgets.QWidget):
         :return:
         """
         with nosignal(self.wg_region_combo) as o:
-            o.setCurrentIndex(self._combo_id_to_idx[self.region_id])
-        region = self.region
+            o.setCurrentIndex(self._combo_id_to_idx[self.curr_region.id])
+        region = self.curr_region
 
-        shapes = self.layer_heads.regions.get_shapes_of_region(self.region_id)
-        is_default = (self.region_id == 0)
+        region_used = self.layer_heads.regions_model.is_region_used(self.curr_region)
+        is_default = self.curr_region == Region.none
         if is_default:
             self.wg_remove_button.setEnabled(False)
             self.wg_remove_button.setToolTip('Default region cannot be removed!')
             self.wg_boundary.setEnabled(False)
             self.wg_mesh_step_edit.setEnabled(False)
-        if shapes:
+        elif region_used:
             self.wg_remove_button.setEnabled(False)
             self.wg_remove_button.setToolTip('Region is still in use!')
         else:
@@ -449,7 +432,7 @@ class RegionLayerTab(QtWidgets.QWidget):
         self.wg_dims.setText(AddRegionDlg.REGION_DESCRIPTION_DIM[region.dim])
         self.wg_boundary.setChecked(region.boundary)
         self.wg_notused.setChecked(region.not_used)
-        self.wg_mesh_step_edit.setText("{:8.4g}".format(region.mesh_step))
+        self.wg_mesh_step_edit.setText("{:8.4g}".format(region.mesh_step).replace(" ", ""))
 
         none_widgets = [self.wg_boundary, self.wg_color_button, self.wg_name, self.wg_notused, self.wg_mesh_step_edit]
         if is_default:
@@ -463,12 +446,18 @@ class RegionLayerTab(QtWidgets.QWidget):
 
 
     # ======= Internal signal handlers
-    def _combo_set_region(self, region_id):
+    def _combo_set_region(self, combo_id):
         """
         Handle change in region combo box.
         """
-        self._region_id = region_id
-        self.layer_heads.select_regions({self.layer_id: region_id})
+        for reg_id, idx in self._combo_id_to_idx.items():
+            if idx == combo_id:
+                break
+        region = self.layer_heads.regions_model.regions.get(reg_id)
+        self.layer.gui_selected_region = region
+        self.layer.set_region_to_selected_shapes(region)
+        self._parent.regions_changed.emit()
+        self._parent.update_tabs()
         # self._update_region_content() # update called through connected signal layer_heads.region_changed
 
     def _name_editing_finished(self):
@@ -477,15 +466,13 @@ class RegionLayerTab(QtWidgets.QWidget):
         :return:
         """
         new_name = self.wg_name.text().strip()
-        reg = self.layer_heads.region_names.get(new_name, None)
-        if  reg and reg.reg_id != self.region.reg_id:
+        if  new_name in self.layer_heads.region_names and new_name != self.curr_region.name:
             error = "Region name already exist"
         elif not new_name:
             error = "Region name is empty"
         else:
             error = None
-            self.region.name = new_name
-            self.layer_heads.regions.set_region_name(self.region.reg_id, new_name, True, "Set region name")
+            self.curr_region.name = new_name
 
         if error:
             err_dialog = GMErrorDialog(self)
@@ -502,27 +489,22 @@ class RegionLayerTab(QtWidgets.QWidget):
         selected_color = color_dialog.getColor()
 
         if selected_color.isValid():
-            self.layer_heads.regions.set_region_color(self.region_id,
-                                                      selected_color.name(), True, "Set Color")
+            self.curr_region.set_color(selected_color.name())
 
-            # self.region.set_color(selected_color)
         self._update_region_content()
         self._parent.update_tabs()
-        self._parent.color_changed.emit()
+        self._parent.regions_changed.emit()
 
     def _boundary_changed(self):
-        self.layer_heads.regions.set_region_boundary(self.region_id, self.wg_boundary.isChecked(),
-                                                     True, "Set region boundary")
+        self.curr_region.set_boundary(self.wg_boundary.isChecked())
 
     def _not_used_checked(self):
         """
         Region not used property is changed
         TODO: possibly make as region type : [regular, boundary, not used]
         """
-        self.layer_heads.regions.set_region_not_used(self.region_id, self.wg_notused.isChecked(),
-                                                     True, "Set region usage")
+        self.curr_region.set_not_used(self.wg_notused.isChecked())
 
-    def _set_mesh_step(self, value):
-        step_value = float(self.wg_mesh_step.text())
-        self.region.set_region_mesh_step(self.region_id, step_value,
-                                         True, "Set region mesh step")
+    def _set_mesh_step(self):
+        step_value = float(self.wg_mesh_step_edit.text())
+        self.curr_region.set_region_mesh_step(step_value)

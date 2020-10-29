@@ -11,9 +11,9 @@ class Region(IdObject):
     colors = [ QtGui.QColor(col) for col in _cols]
     id_next = 1
 
-    def __init__(self, color=None, name="", dim=-1, step=0.0, boundary=False):
+    def __init__(self, id_map, color=None, name="", dim=-1, step=0.0, not_used=False, boundary=False):
         super(Region, self).__init__()
-
+        id_map.add(self)
         if color is None:
             color = Region.colors[self.id % len(Region.colors)].name()
         self.color = color
@@ -24,19 +24,29 @@ class Region(IdObject):
         """dimension (point = 0, well = 1, fracture = 2, bulk = 3)"""
         self.boundary = boundary
         """Is boundary region"""
+        self.not_used = not_used
         self.mesh_step = float(step)
 
-    @staticmethod
-    def make_from_data(region_data:format_last.Region):
-        return Region(region_data.color,
-                      region_data.name,
-                      region_data.dim,
-                      region_data.mesh_step,
-                      region_data.boundary)
+    def convert_to_data(self):
+        return format_last.Region({ "color": self.color,
+                                    "name": self.name,
+                                    "dim": self.dim,
+                                    "mesh_step": self.mesh_step,
+                                    "boundary": self.boundary,
+                                    "not_used": self.not_used})
 
-    def convert_to_data(region_data: format_last.Region):
-        return format_last.Region({ "color": region_data.color,
-                                    "name": region_data.name,
-                                    "dim": region_data.dim,
-                                    "mesh_step": region_data.mesh_step,
-                                    "boundary": region_data.boundary})
+    # TODO: Make undoable, maybe?
+    def set_color(self, color_name: str):
+        self.color = color_name
+
+    # TODO: Make undoable, maybe?
+    def set_boundary(self, boundary: bool):
+        self.boundary = boundary
+
+    # TODO: Make undoable, maybe?
+    def set_region_mesh_step(self, mesh_step):
+        self.mesh_step = mesh_step
+
+    # TODO: Make undoable, maybe?
+    def set_not_used(self, not_used: bool):
+        self.not_used = not_used

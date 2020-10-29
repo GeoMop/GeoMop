@@ -85,7 +85,7 @@ class AddRegionDlg(QtWidgets.QDialog):
 
 
 
-    def __init__(self, init_dim,  region_names, parent=None):
+    def __init__(self, init_dim, region_names, parent=None):
         super(AddRegionDlg, self).__init__(parent)
         self.region_names = region_names
 

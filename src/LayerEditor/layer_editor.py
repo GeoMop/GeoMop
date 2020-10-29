@@ -6,6 +6,8 @@ import os
 import signal
 
 from LayerEditor.ui.data.le_data import LEData
+from LayerEditor.ui.diagram_editor.diagram_view import DiagramView
+from LayerEditor.ui.panels import RegionsPanel
 from LayerEditor.ui.tools.cursor import Cursor
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
@@ -33,7 +35,8 @@ class LayerEditor:
         self.exit = False
 
         save_fn = lambda: self.le_data.save_to_string()
-        self.autosave = Autosave(cfg.current_workdir, lambda: self.le_data.curr_file, save_fn)
+        curr_file_fn = lambda: self.le_data.curr_file
+        self.autosave = Autosave(cfg.current_workdir, curr_file_fn, save_fn)
         self._restore_backup()
 
         # show
@@ -41,7 +44,6 @@ class LayerEditor:
         #self.mainwindow.paint_new_data()
         #self._update_document_name()
         self.autosave.start_autosave()
-        #self.mainwindow.diagramScene.regionsUpdateRequired.connect(self.autosave.on_content_change)
 
     def qapp_setup(self):
         """Setup application."""
@@ -59,6 +61,7 @@ class LayerEditor:
     @le_data.setter
     def le_data(self, le_data):
         self._le_data = le_data
+        self.mainwindow.make_widgets()
         self.autosave.update_content()
 
 
@@ -115,9 +118,7 @@ class LayerEditor:
         if restored:
             #cfg.main_window.release_data(cfg.diagram_id())
             #cfg.history.remove_all()
-            self.load_file(self.autosave.backup_filename())
-            self.le_data.curr_file = None
-            self.le_data.curr_file_timestamp = None
+            self.load_file(self.autosave.backup_filename(), True)
             #cfg.main_window.refresh_all()
             #cfg.history.last_save_labels = -1
         return restored
@@ -139,9 +140,13 @@ class LayerEditor:
 
         return True
 
-    def load_file(self, in_file=None):
+    def load_file(self, in_file=None, from_backup=False):
         """Loads in_file and sets the new scene to be visible. If in_file is None it will cr"""
-        self.le_data = LEData(in_file)
+        le_data = LEData(in_file)
+        if from_backup:
+            le_data.curr_file = None
+            le_data.curr_file_timestamp = None
+        self.le_data = le_data
         scene = self.le_data.diagram_view.scenes[0]
         self.mainwindow.diagramView.setScene(scene)
         self._update_document_name()
@@ -160,11 +165,11 @@ class LayerEditor:
                 cfg.data_dir, "Json Files (*.json)")
         if in_file:
             #self.main_window.release_data(cls.diagram_id())
+            cfg.add_recent_file(in_file)
             self.load_file(in_file)
             cfg.update_current_workdir(in_file)
 
             #cls.main_window.refresh_all()
-            cfg.add_recent_file(in_file)
             cfg.current_workdir = os.path.dirname(in_file)
             self._restore_backup()
             self.mainwindow.show_status_message("File {} is opened".format(in_file))
