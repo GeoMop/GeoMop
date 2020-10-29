@@ -30,7 +30,8 @@ class GsPolygon(QtWidgets.QGraphicsPolygonItem):
         """ Initialize graphics polygon from data in polygon.
             Calls fnc_init_attr to initialize polygon.attr """
         self.polygon_data = polygon
-        self.init_regions(block)
+        self.block = block
+        self.init_regions()
         #polygon.g_polygon = self
         self.painter_path = None
         self.depth = 0
@@ -50,8 +51,8 @@ class GsPolygon(QtWidgets.QGraphicsPolygonItem):
     def shape_id(self):
         return self.polygon_data.id
 
-    def init_regions(self, block):
-        for layer in block.layers:
+    def init_regions(self):
+        for layer in self.block.layers:
             if self.polygon_data.id in layer.shape_regions[self.dim]:
                 return
             else:
@@ -60,9 +61,9 @@ class GsPolygon(QtWidgets.QGraphicsPolygonItem):
                 if not layer.is_fracture:
                     dim += 1
                 if region.dim == dim:
-                    layer.shape_regions[self.dim][self.polygon_data.id] = layer.gui_selected_region
+                    layer.set_region_to_shape(self, layer.gui_selected_region)
                 else:
-                    layer.shape_regions[self.dim][self.polygon_data.id] = Region.none
+                    layer.set_region_to_shape(self, Region.none)
 
     def update(self):
         self.prepareGeometryChange()
@@ -76,10 +77,7 @@ class GsPolygon(QtWidgets.QGraphicsPolygonItem):
 
         self.painter_path = self._get_polygon_draw_path(self.polygon_data)
 
-        color = Region.none.color
-        if self.scene():
-            key = (2, self.polygon_data.id)
-            color = self.scene().get_shape_color(key)
+        color = self.block.gui_selected_layer.get_shape_region(self).color
         self.region_brush = GsPolygon.brush_table(color)
 
         self.depth = self.polygon_data.depth()
@@ -144,3 +142,4 @@ class GsPolygon(QtWidgets.QGraphicsPolygonItem):
         for inner_wire in polygon.outer_wire.childs:
             self._add_to_painter_path(complex_path, inner_wire)
         return complex_path
+

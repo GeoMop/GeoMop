@@ -1,3 +1,5 @@
+from bgem.external import undo
+
 from LayerEditor.ui.data.region import Region
 from LayerEditor.ui.tools.id_map import IdMap
 
@@ -24,18 +26,31 @@ class RegionsModel:
                 region_data.not_used,
                 region_data.boundary)
 
-    #TODO: Make undoable, maybe?
+    @undo.undoable
     def add_region(self, name="", dim=0, color=None):
         reg = Region(self.regions, color=color, name=name, dim=dim)
-        return reg
+        yield "Add new Region", reg
+        self.delete_region(reg)
 
-    # TODO: Make undoable, maybe?
-    def delete_region(self, reg):
+    @undo.undoable
+    def delete_region(self, reg: Region):
+        record = {}     # {block_id:[layer_id]}
+        """Record of layers which had deleted region selected"""
+
         for block in self.le_data.blocks.values():
+            record[block] = []
             for layer in block.layers:
                 if layer.gui_selected_region == reg:
-                    layer.gui_selected_region = Region.none
+                    record[block].append(layer)
+                    layer.set_gui_selected_region(Region.none)
         del self.regions[reg]
+        yield "Delete Region"
+        self.add_region_from_data(reg)
+        #for block, lst in record.items():
+        #    for layer in lst:
+        #        layer.gui_selected_region = reg
+
+
 
     def get_region_names(self):
         return [reg.name for reg in self.regions.values()]

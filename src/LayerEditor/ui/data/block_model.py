@@ -3,16 +3,17 @@ from LayerEditor.ui.data.layer_model import LayerModel
 from LayerEditor.ui.data.region import Region
 
 from LayerEditor.ui.diagram_editor.diagram_scene import DiagramScene
-from LayerEditor.ui.tools.id_map import IdMap
+from LayerEditor.ui.tools.id_map import IdMap, IdObject
 from LayerEditor.ui.tools.selection import Selection
 
 import gm_base.polygons.polygons_io as polygons_io
 from gm_base.geometry_files.format_last import InterfaceNodeSet
 
 
-class BlockModel:
+class BlockModel(IdObject):
     """Holds common data for a block of layers"""
     def __init__(self, le_data):
+        super(BlockModel, self).__init__()
         self.le_data = le_data
         """Reference for LEData."""
         self.regions_model = self.le_data.regions_model
@@ -84,8 +85,8 @@ class BlockModel:
         for layer in self.layers:
             layer.save(geo_model, region_id_to_idx)
 
-    def set_region_to_selected_shapes(self, region:Region):
-        """Sets regions of shapes for all layers in block."""
-        for layer in self.layers:
-            layer.set_region_to_selected_shapes(region)
+    # def set_region_to_selected_shapes(self, region: Region):
+    #     """Sets regions of shapes for all layers in block."""
+    #     for layer in self.layers:
+    #         layer.set_region_to_selected_shapes(region)
 

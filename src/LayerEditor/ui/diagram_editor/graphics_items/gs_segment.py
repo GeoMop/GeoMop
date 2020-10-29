@@ -34,7 +34,8 @@ class GsSegment(QtWidgets.QGraphicsLineItem):
         """ Initialize graphics segment from data in segment.
             Calls fnc_init_attr to initialize segment.attr """
         self.segment = segment
-        self.init_regions(block)
+        self.block = block
+        self.init_regions()
         #segment.g_segment = self
         super().__init__()
         #self.setFlag(QtWidgets.QGraphicsItem.ItemIgnoresTransformations, True)
@@ -53,8 +54,8 @@ class GsSegment(QtWidgets.QGraphicsLineItem):
     def shape_id(self):
         return self.segment.id
 
-    def init_regions(self, block):
-        for layer in block.layers:
+    def init_regions(self):
+        for layer in self.block.layers:
             if self.segment.id in layer.shape_regions[self.dim]:
                 return
             else:
@@ -63,9 +64,9 @@ class GsSegment(QtWidgets.QGraphicsLineItem):
                 if not layer.is_fracture:
                     dim += 1
                 if region.dim == dim:
-                    layer.shape_regions[self.dim][self.segment.id] = layer.gui_selected_region
+                    layer.set_region_to_shape(self, layer.gui_selected_region)
                 else:
-                    layer.shape_regions[self.dim][self.segment.id] = Region.none
+                    layer.set_region_to_shape(self, Region.none)
 
     def update(self):
         #pt_from, pt_to = self.segment.points
@@ -76,10 +77,7 @@ class GsSegment(QtWidgets.QGraphicsLineItem):
         self.setFlag(QtWidgets.QGraphicsItem.ItemSendsGeometryChanges)
         self.setLine(0, 0, pt_to.xy[0] - pt_from.xy[0], -pt_to.xy[1] + pt_from.xy[1])
 
-        color = Region.none.color
-        if self.scene():
-            key = (1, self.segment.id)
-            color = self.scene().get_shape_color(key)
+        color = self.block.gui_selected_layer.get_shape_region(self).color
         self.region_pen, self.region_selected_pen  = GsSegment.pen_table(color)
 
         super().update()

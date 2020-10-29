@@ -1,4 +1,5 @@
 from PyQt5 import QtGui
+from bgem.external import undo
 
 from LayerEditor.ui.tools.id_map import IdObject
 from gm_base.geometry_files import format_last
@@ -35,18 +36,35 @@ class Region(IdObject):
                                     "boundary": self.boundary,
                                     "not_used": self.not_used})
 
-    # TODO: Make undoable, maybe?
-    def set_color(self, color_name: str):
-        self.color = color_name
+    @undo.undoable
+    def set_name(self, name: str):
+        old_name = self.name
+        self.name = name
+        yield "Set name"
+        self.name = old_name
 
-    # TODO: Make undoable, maybe?
+    @undo.undoable
+    def set_color(self, color_name: str):
+        old_color = self.color
+        self.color = color_name
+        yield "Set Color"
+        self.color = old_color
+
+    @undo.undoable
     def set_boundary(self, boundary: bool):
         self.boundary = boundary
+        yield "Change region to/from boudary"
+        self.boundary = not boundary
 
-    # TODO: Make undoable, maybe?
+    @undo.undoable
     def set_region_mesh_step(self, mesh_step):
+        old_step = self.mesh_step
         self.mesh_step = mesh_step
+        yield "Set mesh step"
+        self.mesh_step = old_step
 
-    # TODO: Make undoable, maybe?
+    @undo.undoable
     def set_not_used(self, not_used: bool):
         self.not_used = not_used
+        yield "Change region to/from used"
+        self.not_used = not not_used

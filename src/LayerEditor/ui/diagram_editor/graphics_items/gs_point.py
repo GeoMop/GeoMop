@@ -33,7 +33,8 @@ class GsPoint(QtWidgets.QGraphicsEllipseItem):
         """ Initialize graphics point from data in pt.
             Calls fnc_init_attr to initialize pt.attr."""
         self.pt = pt
-        self.init_regions(block)
+        self.block = block
+        self.init_regions()
         # pt.gpt = self
         super().__init__(-self.SIZE, -self.SIZE, 2 * self.SIZE, 2 * self.SIZE)
         self.setFlag(QtWidgets.QGraphicsItem.ItemIgnoresTransformations, True)
@@ -55,8 +56,8 @@ class GsPoint(QtWidgets.QGraphicsEllipseItem):
     def shape_id(self):
         return self.pt.id
 
-    def init_regions(self, block):
-        for layer in block.layers:
+    def init_regions(self):
+        for layer in self.block.layers:
             if self.pt.id in layer.shape_regions[self.dim]:
                 return
             else:
@@ -65,9 +66,9 @@ class GsPoint(QtWidgets.QGraphicsEllipseItem):
                 if not layer.is_fracture:
                     dim += 1
                 if region.dim == dim:
-                    layer.shape_regions[self.dim][self.pt.id] = layer.gui_selected_region
+                    layer.set_region_to_shape(self, layer.gui_selected_region)
                 else:
-                    layer.shape_regions[self.dim][self.pt.id] = Region.none
+                    layer.set_region_to_shape(self, Region.none)
 
     def paint(self, painter, option, widget):
         # print("option: ", option.state)
@@ -85,10 +86,7 @@ class GsPoint(QtWidgets.QGraphicsEllipseItem):
         self.setPos(self.pt.xy[0], -self.pt.xy[1])
         self.setFlag(QtWidgets.QGraphicsItem.ItemSendsGeometryChanges)
 
-        color = Region.none.color
-        if self.scene():
-            key = (0, self.pt.id)
-            color = self.scene().get_shape_color(key)
+        color = self.block.gui_selected_layer.get_shape_region(self).color
         self.region_brush, self.region_pen = GsPoint.pen_table(color)
 
         self.setZValue(self.STD_ZVALUE)

@@ -19,6 +19,7 @@ import gm_base.icon as icon
 # from .panels.new_diagram.diagram_view import DiagramView
 # from .panels.new_diagram.tools import Cursor
 from LayerEditor.ui.menus.file import MainFileMenu
+from bgem.external import undo
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -322,12 +323,38 @@ class MainWindow(QtWidgets.QMainWindow):
     #     #   self.diagramScene.init_area.reload()
     #     pass
     #
-    # def closeEvent(self, event):
-    #     """Performs actions before app is closed."""
-    #     # prompt user to save changes (if any)
-    #     if not self._layer_editor.save_old_file():
-    #         return event.ignore()
-    #     super(MainWindow, self).closeEvent(event)
+    def closeEvent(self, event):
+        """Performs actions before app is closed."""
+        # prompt user to save changes (if any)
+        if not self._layer_editor.save_old_file():
+            return event.ignore()
+        super(MainWindow, self).closeEvent(event)
+
+    def undo(self):
+        self._layer_editor.le_data.gui_curr_block.selection.deselect_all()
+        # Deselect because selected region can change and that could create wrong behaviour #
+        self.curr_scene.hide_aux_point_and_seg()
+        undo.stack().undo()
+        self.curr_scene.update_scene()
+        self.wg_regions_panel.update_tabs()
+
+    def redo(self):
+        self._layer_editor.le_data.gui_curr_block.selection.deselect_all()
+        # the same reason as in undo
+        self.curr_scene.hide_aux_point_and_seg()
+        undo.stack().redo()
+        self.curr_scene.update_scene()
+        self.wg_regions_panel.update_tabs()
+
+    def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:
+        if event.key() == QtCore.Qt.Key_Z and\
+                event.modifiers() & QtCore.Qt.ControlModifier and\
+                not event.modifiers() & QtCore.Qt.ShiftModifier:
+            self.undo()
+        elif event.key() == QtCore.Qt.Key_Z and\
+                event.modifiers() & QtCore.Qt.ControlModifier and\
+                event.modifiers() & QtCore.Qt.ShiftModifier:
+            self.redo()
 
     def show_status_message(self, message, duration=5000):
         """Show a message in status bar for the given duration (in ms)."""

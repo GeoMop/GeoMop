@@ -1,8 +1,13 @@
+from collections import deque
+
+from bgem.external import undo
+
 from LayerEditor.data.layer_geometry_serializer import LayerGeometrySerializer
 from LayerEditor.ui.data.region import Region
 from LayerEditor.ui.diagram_editor.graphics_items.gs_point import GsPoint
 from LayerEditor.ui.diagram_editor.graphics_items.gs_polygon import GsPolygon
 from LayerEditor.ui.diagram_editor.graphics_items.gs_segment import GsSegment
+from LayerEditor.ui.tools import better_undo
 from LayerEditor.ui.tools.id_map import IdObject
 from gm_base.geometry_files.format_last import StratumLayer, LayerType, FractureLayer, TopologyType, InterfaceNodeSet
 
@@ -92,16 +97,30 @@ class LayerModel(IdObject):
 
     def set_region_to_selected_shapes(self, region: Region):
         """Sets regions of shapes only in this layer."""
-        for g_item in self.block.selection._selected:
-            dim = g_item.dim
-            if self.is_stratum:
-                dim += 1
-            if dim == region.dim or region.dim == -1:
-                self.set_region_to_shape(g_item, region)
+        assert isinstance(undo.stack()._receiver, deque), "groups cannot be nested"
+        with better_undo.group(f"Set region of selected to {region.id}"):
+            for g_item in self.block.selection._selected:
+                dim = g_item.dim
+                if self.is_stratum:
+                    dim += 1
+                if dim == region.dim or region.dim == -1:
+                    self.set_region_to_shape(g_item, region)
 
     def get_shape_region(self, g_item: [GsPoint, GsSegment, GsPolygon]) -> Region:
         return self.shape_regions[g_item.dim][g_item.shape_id]
 
-    # TODO: set undoable, maybe?
-    def set_region_to_shape(self, g_item, region):
+    @undo.undoable
+    def set_region_to_shape(self, g_item: [GsPoint, GsSegment, GsPolygon], region: Region):
+        old_region = self.shape_regions[g_item.dim].get(g_item.shape_id, Region.none)
         self.shape_regions[g_item.dim][g_item.shape_id] = region
+        shape = ["point", "segment", "polygon"]
+        yield f"Change region of {shape[g_item.dim]} {g_item.shape_id} from {old_region.id} to {region.id}"
+        self.set_region_to_shape(g_item, old_region)
+
+    @undo.undoable
+    def set_gui_selected_region(self, region: Region):
+        """Use this when you want this to be included in undo/redo system"""
+        old_region = self.gui_selected_region
+        self.gui_selected_region = region
+        yield f"Selected region {region.id} on layer {self.id} changed. Old region {old_region.id}"
+        self.gui_selected_region = old_region

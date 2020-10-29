@@ -3,10 +3,12 @@ from PyQt5.QtCore import Qt, QPoint
 
 from LayerEditor.ui.data.region import Region
 from LayerEditor.ui.data.regions_model import RegionsModel
+from LayerEditor.ui.tools import better_undo
 from LayerEditor.ui.tools.cursor import Cursor
 
-from bgem.polygons.polygons import PolygonDecomposition
+from bgem.polygons import polygons
 from bgem.external import undo
+
 
 from LayerEditor.ui.diagram_editor.graphics_items.gs_point import GsPoint
 from LayerEditor.ui.diagram_editor.graphics_items.gs_polygon import GsPolygon
@@ -15,7 +17,7 @@ from LayerEditor.ui.diagram_editor.graphics_items.gs_segment import GsSegment
 
 class DiagramScene(QtWidgets.QGraphicsScene):
     regionsUpdateRequired = QtCore.pyqtSignal()
-    TOLERANCE = 0.01
+    TOLERANCE = 5
 
     def __init__(self, block, parent):
         rect = QtCore.QRectF(QPoint(-100000, -100000), QPoint(100000, 100000))
@@ -38,11 +40,22 @@ class DiagramScene(QtWidgets.QGraphicsScene):
         # polygons
         self.decomposition = block.decomposition
         res = self.decomposition.get_last_polygon_changes()
+        self.decomposition.set_tolerance(self.TOLERANCE)
         #assert res[0] == PolygonChange.add
         self.outer_id = res[1]
         """Decomposition of the a plane into polygons."""
         self.update_scene()
         self.pixmap_item = None
+
+    def get_shape(self, dim, shape_id) -> [GsPoint, GsSegment, GsPolygon]:
+        """Get g_item defined by dimension and id"""
+        if dim == 0:
+            return self.points[shape_id]
+        if dim == 1:
+            return self.segments[shape_id]
+        if dim == 2:
+            return self.polygons[shape_id]
+
 
     def get_shape_color(self, shape_key):
         if self.block.gui_selected_layer is None:
@@ -129,6 +142,7 @@ class DiagramScene(QtWidgets.QGraphicsScene):
         new_g_point = self.add_point(pos, gitem)
         if self.last_point is not None:
             self.add_segment(self.last_point, new_g_point)
+
         if not close:
             self.last_point = new_g_point
             pt = new_g_point.pos()
@@ -136,17 +150,32 @@ class DiagramScene(QtWidgets.QGraphicsScene):
         else:
             self.last_point = None
             self.hide_aux_line()
+        return self.decomposition.last_split_shapes
 
     def mouse_create_event(self, event):
         #transform = self.parent().transform()
         #below_item = self.itemAt(event.scenePos(), transform)
         below_item = self.below_item(event.scenePos())
         close = event.modifiers() & Qt.ControlModifier
-        self.new_point(event.scenePos(), below_item, close)
-        event.accept()
+        with better_undo.group("New point"):
+            split_items = self.new_point(event.scenePos(), below_item, close)
+            event.accept()
 
-        self.selection._selected.clear()
-        self.update_scene()
+            self.selection._selected.clear()
+            self.update_scene()
+            # update scene so new shapes would habe g_item for next step
+            for item in split_items:
+                # if some shape was splited then copy region to the new shape
+                if item[0] == 2 and item[1] == 0:
+                    continue
+                g_old_item = self.get_shape(item[0], item[1])
+                g_new_item = self.get_shape(item[0], item[2])
+                for layer in self.block.layers:
+                    region1 = layer.get_shape_region(g_new_item)
+                    region = layer.get_shape_region(g_old_item)
+                    layer.set_region_to_shape(g_new_item, region)
+            self.update_scene()
+            # update again because colors may have changed
 
     def below_item(self, scene_pos):
         below_item = None
@@ -226,19 +255,20 @@ class DiagramScene(QtWidgets.QGraphicsScene):
             self.move_aux_segment(event.scenePos())
         super().mouseMoveEvent(event)
 
+    def hide_aux_point_and_seg(self):
+        self.last_point = None
+        self.hide_aux_line()
+
     def keyPressEvent(self, event):
         """Standart key press event"""
         if event.key() == QtCore.Qt.Key_Escape:
-            self.last_point = None
-            self.hide_aux_line()
+            self.hide_aux_point_and_seg()
         elif event.key() == QtCore.Qt.Key_Delete:
             self.delete_selected()
         elif event.key() == QtCore.Qt.Key_A and event.modifiers() & Qt.ControlModifier:
             self.selection.select_all()
-        elif event.key() == QtCore.Qt.Key_Z and event.modifiers() & Qt.ControlModifier and not event.modifiers() & Qt.ShiftModifier:
-            self.undo()
-        elif event.key() == QtCore.Qt.Key_Z and event.modifiers() & Qt.ControlModifier and event.modifiers() & Qt.ShiftModifier:
-            self.redo()
+        else:
+            super(DiagramScene, self).keyPressEvent(event)
 
     def update_scene(self):
         # points
@@ -299,31 +329,20 @@ class DiagramScene(QtWidgets.QGraphicsScene):
         self.update()
 
     def delete_selected(self):
-        # segments
-        for item in self.selection._selected:
-            if type(item) is GsSegment:
-                self.decomposition.delete_segment(item.segment)
-
-        # points
-        for item in self.selection._selected:
-            if type(item) is GsPoint:
-                self.decomposition.delete_point(item.pt)
-
-        self.selection._selected.clear()
-
-        self.update_scene()
-
-    def region_panel_changed(self, region_id):
-        if self.selection._selected:
-            remove = []
+        with better_undo.group("Delete selected"):
+            # segments
             for item in self.selection._selected:
-                key = self.get_shape_key(item)
-                if not self.regions.set_region(key[0], key[1], region_id):
-                    remove.append(item)
-            for item in remove:
-                self.selection._selected.remove(item)
+                if type(item) is GsSegment:
+                    self.decomposition.delete_segment(item.segment)
 
-        self.update_scene()
+            # points
+            for item in self.selection._selected:
+                if type(item) is GsPoint:
+                    self.decomposition.delete_point(item.pt)
+
+            self.selection._selected.clear()
+
+            self.update_scene()
 
     @staticmethod
     def get_shape_key(shape):
@@ -335,14 +354,6 @@ class DiagramScene(QtWidgets.QGraphicsScene):
 
         elif type(shape) is GsPolygon:
             return 3, shape.polygon_data.id
-
-    # def undo(self):
-    #     undo.stack().undo()
-    #     self.update_scene()
-    #
-    # def redo(self):
-    #     undo.stack().redo()
-    #     self.update_scene()
 
     # Modified from previous diagram
     #
