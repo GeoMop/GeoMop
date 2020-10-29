@@ -32,10 +32,10 @@ class GsSegment(QtWidgets.QGraphicsLineItem):
 
     def __init__(self, segment, block):
         """ Initialize graphics segment from data in segment.
-            Calls fnc_init_attr to initialize segment.attr """
+            Needs ref to block for updating color and initializing regions"""
         self.segment = segment
         self.block = block
-        self.init_regions()
+        self.block.init_regions_for_new_shape(self)
         #segment.g_segment = self
         super().__init__()
         #self.setFlag(QtWidgets.QGraphicsItem.ItemIgnoresTransformations, True)
@@ -53,20 +53,6 @@ class GsSegment(QtWidgets.QGraphicsLineItem):
     @property
     def shape_id(self):
         return self.segment.id
-
-    def init_regions(self):
-        for layer in self.block.layers:
-            if self.segment.id in layer.shape_regions[self.dim]:
-                return
-            else:
-                region = layer.gui_selected_region
-                dim = self.dim
-                if not layer.is_fracture:
-                    dim += 1
-                if region.dim == dim:
-                    layer.set_region_to_shape(self, layer.gui_selected_region)
-                else:
-                    layer.set_region_to_shape(self, Region.none)
 
     def update(self):
         #pt_from, pt_to = self.segment.points
@@ -120,9 +106,4 @@ class GsSegment(QtWidgets.QGraphicsLineItem):
     def update_zoom(self, value):
         pen = QtGui.QPen()
         pen.setWidthF(self.WIDTH * 2 / value)
-        self.setPen(pen)
-
-
-    def update_color(self, layer_id: int, regions: RegionsModel):
-        pen, selected_pen = self.pen_table(regions.regions[self.segment.attr].color)
         self.setPen(pen)

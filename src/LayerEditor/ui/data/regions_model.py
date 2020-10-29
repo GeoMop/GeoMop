@@ -94,12 +94,11 @@ class RegionsModel:
                     return True
         return False
 
-    def save(self, geo_model):
+    def save(self):
         regions_data = []
         id_to_idx = {}
         for idx, region in enumerate(self.regions.values()):
             regions_data.append(region.convert_to_data())
             id_to_idx[region.id] = idx
-        geo_model.geometry.regions = regions_data
-        return id_to_idx
+        return (regions_data, id_to_idx)
 

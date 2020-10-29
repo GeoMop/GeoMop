@@ -28,10 +28,10 @@ class GsPolygon(QtWidgets.QGraphicsPolygonItem):
 
     def __init__(self, polygon, block):
         """ Initialize graphics polygon from data in polygon.
-            Calls fnc_init_attr to initialize polygon.attr """
+            Needs ref to block for updating color and initializing regions"""
         self.polygon_data = polygon
         self.block = block
-        self.init_regions()
+        self.block.init_regions_for_new_shape(self)
         #polygon.g_polygon = self
         self.painter_path = None
         self.depth = 0
@@ -50,20 +50,6 @@ class GsPolygon(QtWidgets.QGraphicsPolygonItem):
     @property
     def shape_id(self):
         return self.polygon_data.id
-
-    def init_regions(self):
-        for layer in self.block.layers:
-            if self.polygon_data.id in layer.shape_regions[self.dim]:
-                return
-            else:
-                region = layer.gui_selected_region
-                dim = self.dim
-                if not layer.is_fracture:
-                    dim += 1
-                if region.dim == dim:
-                    layer.set_region_to_shape(self, layer.gui_selected_region)
-                else:
-                    layer.set_region_to_shape(self, Region.none)
 
     def update(self):
         self.prepareGeometryChange()

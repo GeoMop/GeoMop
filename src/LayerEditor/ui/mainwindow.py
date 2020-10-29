@@ -33,14 +33,10 @@ class MainWindow(QtWidgets.QMainWindow):
 
     @property
     def curr_scene(self):
-        return self.diagramView.scene()
-
-    @property
-    def diagramView(self):
-        return self._layer_editor.le_data.diagram_view
+        return self.diagram_view.scene()
 
     def make_widgets(self, first=False):
-        self.wg_regions_panel = RegionsPanel(self._layer_editor.le_data, self)
+        self.wg_regions_panel = RegionsPanel(self._layer_editor.le_model, self)
 
         self.setMinimumSize(1060, 660)
 
@@ -63,11 +59,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self._vsplitter1.addWidget(self.wg_regions_panel)
 
         # scene
+        self.diagram_view = DiagramView(self._layer_editor.le_model)
+        """View is common for all layers and blocks."""
 
-        scene = self.diagramView.scenes[0]
-        self.diagramView.setScene(scene)
-        """scene is set here only temporarily until there will be more scenes  """
-        self._hsplitter.addWidget(self.diagramView)
+        self._hsplitter.addWidget(self.diagram_view)
 
         self._hsplitter.setSizes([300, 760])
 
@@ -117,7 +112,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self._analysis_label = QtWidgets.QLabel(self)
         # cfg.config.observers.append(self)
 
-        self._status = self.statusBar()
+        self._status = QtWidgets.QStatusBar()
         self._status.addPermanentWidget(self._reload_icon)
         self._status.addPermanentWidget(self._analysis_label)
         self._status.addPermanentWidget(self._column)
@@ -125,6 +120,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self._status.showMessage("Ready", 5000)
 
         # signals
+        self.diagram_view.cursorChanged.connect(self._cursor_changed)
         # self.shp.background_changed.connect(self.background_changed)
         # self.shp.item_removed.connect(self.del_background_item)
         # self.layers.viewInterfacesChanged.connect(self.refresh_view_data)
@@ -215,10 +211,10 @@ class MainWindow(QtWidgets.QMainWindow):
     #     else:
     #         self._move()
     #
-    # def _cursor_changed(self, x, y):
-    #     """Editor node change signal"""
-    #     self._column.setText("x: {:5f}  y: {:5f}".format(x, -y))
-    #
+    def _cursor_changed(self, x, y):
+        """Editor node change signal"""
+        self._column.setText("x: {:5f}  y: {:5f}".format(x, -y))
+
     # def _move(self):
     #     """zooming and moving"""
     #     view_rect = self.diagramView.rect()
@@ -331,7 +327,7 @@ class MainWindow(QtWidgets.QMainWindow):
         super(MainWindow, self).closeEvent(event)
 
     def undo(self):
-        self._layer_editor.le_data.gui_curr_block.selection.deselect_all()
+        self._layer_editor.le_model.gui_curr_block.selection.deselect_all()
         # Deselect because selected region can change and that could create wrong behaviour #
         self.curr_scene.hide_aux_point_and_seg()
         undo.stack().undo()
@@ -339,7 +335,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.wg_regions_panel.update_tabs()
 
     def redo(self):
-        self._layer_editor.le_data.gui_curr_block.selection.deselect_all()
+        self._layer_editor.le_model.gui_curr_block.selection.deselect_all()
         # the same reason as in undo
         self.curr_scene.hide_aux_point_and_seg()
         undo.stack().redo()
