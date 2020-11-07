@@ -2,7 +2,8 @@ import sys
 
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QPen, QFont
-from PyQt5.QtWidgets import QWidget, QGridLayout, QLabel, QApplication, QCheckBox, QHBoxLayout, QButtonGroup
+from PyQt5.QtWidgets import QWidget, QGridLayout, QLabel, QApplication, QCheckBox, QHBoxLayout, QButtonGroup, \
+    QScrollArea
 
 from LayerEditor.ui.data.interface_node_set_item import InterfaceNodeSetItem
 from LayerEditor.ui.data.interpolated_node_set_item import InterpolatedNodeSetItem
@@ -27,13 +28,21 @@ def add_margins_around_widget(widget: QWidget,
     return helper_layout
 
 
-class LayerPanel(QWidget):
+class LayerPanel(QScrollArea):
     """Represents structure of layers and interfaces from data layer"""
     LINE_WIDTH = 2  # Must be multiple of two! Otherwise artifacts will occur due to rounding after dividing by 2
     LINE_PEN = QPen(Qt.black, LINE_WIDTH)
 
     def __init__(self, le_model: LEModel, parent=None):
         super(LayerPanel, self).__init__(parent)
+        self.le_model = le_model
+        self.update_layers_panel()
+
+    def update_layers_panel(self):
+        h_bar_value = self.horizontalScrollBar().value()
+        v_bar_value = self.verticalScrollBar().value()
+
+        widget = QWidget()
         self.main_layout = QGridLayout()
         self.main_layout.setAlignment(Qt.AlignCenter)
         self.radio_button_group = QButtonGroup()
@@ -43,14 +52,6 @@ class LayerPanel(QWidget):
         self.main_layout.addLayout(add_margins_around_widget(QLabel("Layer"), 5, 0, 5, 0), 0, 2)
         self.main_layout.addLayout(add_margins_around_widget(QLabel("Elevation"), 5, 0, 5, 0), 0, 4)
 
-        self.le_model = le_model
-        self._fill_layers_panel()
-
-        self.setLayout(self.main_layout)
-        self.main_layout.setHorizontalSpacing(0)
-        self.main_layout.setVerticalSpacing(0)
-
-    def _fill_layers_panel(self, ):
         layer_panel_model = self._make_layer_panel_model(self.le_model)
         layer_panel_model = self._add_types_of_left_joiners(layer_panel_model)
         self._add_interfaces_and_layer_to_panel(layer_panel_model)
@@ -58,6 +59,16 @@ class LayerPanel(QWidget):
         for button in self.radio_button_group.buttons():
             if button.parent().block == self.le_model.gui_curr_block:
                 button.setChecked(True)
+
+        widget.setLayout(self.main_layout)
+
+        self.main_layout.setHorizontalSpacing(0)
+        self.main_layout.setVerticalSpacing(0)
+        self.setWidget(widget)
+
+        self.horizontalScrollBar().setValue(h_bar_value)
+        self.verticalScrollBar().setValue(v_bar_value)
+
 
     def _make_layer_panel_model(self, le_model):
         layer_panel_model = [[le_model.blocks_model.layers[0].top_top]]
