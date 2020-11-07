@@ -2,7 +2,7 @@ import random
 
 from PyQt5 import QtGui
 from PyQt5.QtGui import QColor
-from bgem.external import undo
+from LayerEditor.ui.tools import undo
 
 from LayerEditor.ui.tools.id_map import IdObject
 from gm_base.geometry_files import format_last

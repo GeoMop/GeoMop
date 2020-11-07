@@ -2,7 +2,7 @@ from contextlib import contextmanager
 
 import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtGui as QtGui
-from bgem.external import undo
+from LayerEditor.ui.tools import undo
 
 import gm_base.icon as icon
 from gm_base.geomop_dialogs import GMErrorDialog

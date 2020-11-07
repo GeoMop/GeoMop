@@ -6,13 +6,11 @@ import sys
 import os
 import signal
 
-from bgem.external import undo
-
 from LayerEditor.exceptions.data_inconsistent_exception import DataInconsistentException
 from LayerEditor.ui.data.le_model import LEModel
 from LayerEditor.ui.diagram_editor.diagram_view import DiagramView
 from LayerEditor.ui.panels import RegionsPanel
-from LayerEditor.ui.tools import better_undo
+from LayerEditor.ui.tools import undo
 from LayerEditor.ui.tools.cursor import Cursor
 from gm_base.geometry_files.format_last import UserSupplement
 from gm_base.geomop_dialogs import GMErrorDialog
@@ -85,7 +83,7 @@ class LayerEditor:
 
     def load_file(self, in_file=None, from_backup=False):
         """Loads in_file and sets the new scene to be visible. If in_file is None it will create default model"""
-        better_undo.clear()
+        undo.clear()
         try:
             le_model = LEModel(in_file)
             if from_backup:
@@ -181,7 +179,7 @@ class LayerEditor:
         self.mainwindow.show_status_message("File is saved")
         self.mainwindow.update_recent_files()
         self._update_document_name()
-        better_undo.savepoint()
+        undo.savepoint()
 
     def save_file(self):
         """save file menu action"""
@@ -218,7 +216,7 @@ class LayerEditor:
         If file not saved, display confirmation dialog and if is needed, do it
         return: False if action have to be aborted
         """
-        if better_undo.has_changed():
+        if undo.has_changed():
             msg_box = QtWidgets.QMessageBox()
             msg_box.setWindowTitle("Confirmation")
             msg_box.setIcon(QtWidgets.QMessageBox.Question)

@@ -225,7 +225,7 @@ class LEModel(QObject):
     @staticmethod
     def check_geo_model_consistency(geo_model):
         """check created file consistency"""
-        errors =  []
+        errors = []
         for ns_idx in range(0, len(geo_model.node_sets)):
             ns = geo_model.node_sets[ns_idx]
             topology_idx = ns.topology_id

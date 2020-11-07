@@ -10,7 +10,7 @@ from LayerEditor.ui.tools.cursor import Cursor
 from LayerEditor.ui.diagram_editor.diagram_view import DiagramView
 import gm_base.icon as icon
 from LayerEditor.ui.menus.file import MainFileMenu
-from bgem.external import undo
+from LayerEditor.ui.tools import undo
 
 
 class MainWindow(QtWidgets.QMainWindow):

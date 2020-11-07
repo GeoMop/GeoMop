@@ -1,10 +1,8 @@
 from collections import deque
 
-from bgem.external import undo
-
 from LayerEditor.ui.data.interface_node_set_item import InterfaceNodeSetItem
 from LayerEditor.ui.data.region_item import RegionItem
-from LayerEditor.ui.tools import better_undo
+from LayerEditor.ui.tools import undo
 from LayerEditor.ui.tools.id_map import IdObject
 from gm_base.geometry_files.format_last import StratumLayer, FractureLayer
 
@@ -61,7 +59,7 @@ class LayerItem(IdObject):
     def set_region_to_selected_shapes(self, region: RegionItem):
         """Sets regions of shapes only in this layer."""
         assert isinstance(undo.stack()._receiver, deque), "groups cannot be nested"
-        with better_undo.group(f"Set region of selected to {region.id}"):
+        with undo.group(f"Set region of selected to {region.id}"):
             for orig_dim, shape_id in self.block.selection.get_selected_shape_dim_id():
                 dim = orig_dim
                 if self.is_stratum:

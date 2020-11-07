@@ -1,4 +1,4 @@
-from bgem.external import undo
+from LayerEditor.ui.tools import undo
 
 from LayerEditor.ui.data.region_item import RegionItem
 from LayerEditor.ui.tools.id_map import IdMap

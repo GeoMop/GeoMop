@@ -8,7 +8,7 @@ import codecs
 import time
 from PyQt5 import QtCore, QtWidgets
 from LayerEditor.data import cfg
-from LayerEditor.ui.tools import better_undo
+from LayerEditor.ui.tools import undo
 
 
 class Autosave:
@@ -52,11 +52,11 @@ class Autosave:
 
     def _autosave(self):
         """Periodically saves specified string (current file)."""
-        if better_undo.has_changed(self.savepoint):
+        if undo.has_changed(self.savepoint):
             cfg.save()
             content = self.text()
             content_hash = hash(content)
-            self.savepoint = better_undo.undo.stack()._undos[-1]
+            self.savepoint = undo.stack()._undos[-1]
             if self.content_hash != content_hash:
                 self.content_hash = content_hash
                 with codecs.open(self.backup_filename(), 'w', 'utf-8') as file_d:

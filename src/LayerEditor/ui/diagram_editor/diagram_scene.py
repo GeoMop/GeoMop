@@ -4,7 +4,7 @@ from PyQt5.QtGui import QBrush
 from PyQt5.QtWidgets import QGraphicsRectItem
 
 from LayerEditor.ui.data.region_item import RegionItem
-from LayerEditor.ui.tools import better_undo
+from LayerEditor.ui.tools import undo
 from LayerEditor.ui.tools.cursor import Cursor
 
 from LayerEditor.ui.diagram_editor.graphics_items.gs_point import GsPoint
@@ -140,7 +140,7 @@ class DiagramScene(QtWidgets.QGraphicsScene):
         #below_item = self.itemAt(event.scenePos(), transform)
         below_item = self.below_item(event.scenePos())
         close = event.modifiers() & Qt.ControlModifier
-        with better_undo.group("New point"):
+        with undo.group("New point"):
             split_items = self.new_point(event.scenePos(), below_item, close)
             event.accept()
 
@@ -309,7 +309,7 @@ class DiagramScene(QtWidgets.QGraphicsScene):
         self.update()
 
     def delete_selected(self):
-        with better_undo.group("Delete selected"):
+        with undo.group("Delete selected"):
             # segments
             for item in self.selection._selected:
                 if type(item) is GsSegment:

@@ -1,4 +1,4 @@
-from bgem.external import undo
+from LayerEditor.ui.tools import undo
 
 from LayerEditor.ui.data.interface_item import InterfaceItem
 

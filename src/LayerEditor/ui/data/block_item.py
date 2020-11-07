@@ -8,6 +8,7 @@ from LayerEditor.ui.diagram_editor.graphics_items.gs_point import GsPoint
 from LayerEditor.ui.diagram_editor.graphics_items.gs_polygon import GsPolygon
 from LayerEditor.ui.diagram_editor.graphics_items.gs_segment import GsSegment
 
+from LayerEditor.ui.tools import undo
 from LayerEditor.ui.tools.id_map import IdMap, IdObject
 from LayerEditor.ui.tools.selection import Selection
 
