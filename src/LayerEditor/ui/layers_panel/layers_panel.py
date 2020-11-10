@@ -71,18 +71,18 @@ class LayerPanel(QScrollArea):
 
 
     def _make_layer_panel_model(self, le_model):
-        layer_panel_model = [[le_model.blocks_model.layers[0].top_top]]
+        layer_panel_model = [[le_model.blocks_model.layers[0].top_in]]
         for layer in le_model.blocks_model.layers:
             if layer.is_stratum:
-                if isinstance(layer_panel_model[-1][0], LayerItem) or layer_panel_model[-1][0] != layer.top_top:
-                    layer_panel_model.append([layer.top_top])
+                if isinstance(layer_panel_model[-1][0], LayerItem) or layer_panel_model[-1][0] != layer.top_in:
+                    layer_panel_model.append([layer.top_in])
                 layer_panel_model.append([layer])
-                layer_panel_model.append([layer.bottom_top])
+                layer_panel_model.append([layer.bottom_in])
             else:
-                if layer_panel_model[-1][0] != layer.top_top:
-                    layer_panel_model.append([layer.top_top, layer])
+                if layer_panel_model[-1][0] != layer.top_in:
+                    layer_panel_model.append([layer.top_in, layer])
                 else:
-                    layer_panel_model[-1] = [layer.top_top, layer]
+                    layer_panel_model[-1] = [layer.top_in, layer]
         return layer_panel_model
 
     def _add_types_of_left_joiners(self, layer_panel_model):

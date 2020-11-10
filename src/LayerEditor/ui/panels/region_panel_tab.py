@@ -41,7 +41,6 @@ class RegionLayerTab(QtWidgets.QWidget):
         # Name of the layer.
         # auxiliary map from region ID to index in the combo box.
 
-        self.le_model.invalidate_scene.connect(self._update_region_content)
         self.le_model.region_list_changed.connect(self._update_region_list)
 
         self._make_widgets()
@@ -240,7 +239,7 @@ class RegionLayerTab(QtWidgets.QWidget):
             err_dialog.open_error_dialog(error)
             self.wg_name.selectAll()
 
-        self._update_region_content()
+        self._parent.update_tabs()
 
     def _set_color(self):
         """Region color is changed, refresh diagram"""
@@ -256,7 +255,6 @@ class RegionLayerTab(QtWidgets.QWidget):
                 # This line doesnt do anything at first but it gets registered in undo redo system.
                 # That will cause region panel to switch to region which was changed by undoing/redoing.
 
-        self._update_region_content()
         self._parent.update_tabs()
         self.le_model.invalidate_scene.emit()
 

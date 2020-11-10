@@ -7,7 +7,8 @@ from PyQt5.QtWidgets import QRadioButton, QWidget, QHBoxLayout
 class RadioButton(QWidget):
     """Acts as QRadioButton, but has a line going from the edge of radio button to the right side of this widget."""
     def __init__(self, parent, block):
-        super(RadioButton, self).__init__(parent)
+        super(RadioButton, self).__init__()
+        self._parent = parent
         self.block = block
         self.radio_button = QRadioButton(self)
         self.radio_button.setCursor(Qt.PointingHandCursor)
@@ -18,7 +19,7 @@ class RadioButton(QWidget):
 
     def paintEvent(self, event: QtGui.QPaintEvent) -> None:
         painter = QPainter(self)
-        painter.setPen(self.parent().LINE_PEN)
+        painter.setPen(self._parent.LINE_PEN)
         rb_rect = self.radio_button.rect()
         rect = self.rect()
         center = rect.center()

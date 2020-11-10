@@ -4,7 +4,6 @@ from PyQt5.QtGui import QBrush
 from PyQt5.QtWidgets import QGraphicsRectItem
 
 from LayerEditor.ui.data.region_item import RegionItem
-from LayerEditor.ui.tools import undo
 from LayerEditor.ui.tools.cursor import Cursor
 
 from LayerEditor.ui.diagram_editor.graphics_items.gs_point import GsPoint
@@ -92,39 +91,19 @@ class DiagramScene(QtWidgets.QGraphicsScene):
         self.aux_pt.hide()
         self.aux_seg.hide()
 
-    def add_point(self, pos, gitem):
-        if type(gitem) == GsPoint:
-            return gitem
+    def add_point(self, pos):
+        """Add continuous line and point, from self.last_point"""
+        new_point = self.decomposition.new_point(pos, self.last_point)
+        if new_point.id in self.points:
+            return self.points[new_point.id]
         else:
-            #if type(gitem) == GsSegment:
-            #pt = Point(pos.x(), pos.y(), Region.none)
-            #pt = self.decomposition.add_free_point(None, (pos.x(), -pos.y()), self.outer_id)
-            pt = self.decomposition.add_point((pos.x(), -pos.y()))
-            if pt.id in self.points:
-                gpt = self.points[pt.id]
-            else:
-                gpt = GsPoint(pt, self.block)
-                #self.points.append(pt)
-                self.points[pt.id] = gpt
-                self.addItem(gpt)
-            return gpt
+            new_g_point = GsPoint(new_point, self.block)
+            self.points[new_point.id] = new_g_point
+            self.addItem(new_g_point)
+            return new_g_point
 
-    def add_segment(self, gpt1, gpt2):
-        #seg = Segment(gpt1.pt, gpt2.pt, Region.none)
-        #seg = self.decomposition.new_segment(gpt1.pt, gpt2.pt)
-        seg_list = self.decomposition.add_line_for_points(gpt1.pt, gpt2.pt)
-        # for seg in seg_list:
-        #     gseg = GsSegment(seg)
-        #     gseg.update_zoom(self._zoom_value)
-        #     self.segments.append(seg)
-        #     self.addItem(gseg)
-        self.update_scene()
-
-    def new_point(self, pos, gitem, close = False):
-        #print("below: ", gitem)
-        new_g_point = self.add_point(pos, gitem)
-        if self.last_point is not None:
-            self.add_segment(self.last_point, new_g_point)
+    def new_point(self, pos, close=False):
+        new_g_point = self.add_point(pos)
 
         if not close:
             self.last_point = new_g_point
@@ -133,29 +112,14 @@ class DiagramScene(QtWidgets.QGraphicsScene):
         else:
             self.last_point = None
             self.hide_aux_line()
-        return self.decomposition.last_split_shapes
+
+        self.update_scene()
 
     def mouse_create_event(self, event):
-        #transform = self.parent().transform()
-        #below_item = self.itemAt(event.scenePos(), transform)
-        below_item = self.below_item(event.scenePos())
         close = event.modifiers() & Qt.ControlModifier
-        with undo.group("New point"):
-            split_items = self.new_point(event.scenePos(), below_item, close)
-            event.accept()
-
-            self.selection._selected.clear()
-            self.update_scene()
-            # update scene so new shapes would have g_item for next step
-            for item in split_items:
-                # if some shape was splited then copy region to the new shape
-                if item[0] == 2 and item[1] == 0:
-                    continue
-                for layer in self.block.layers:
-                    region = layer.get_shape_region(item[0], item[1])
-                    layer.set_region_to_shape(item[0], item[2], region)
-            self.update_scene()
-            # update again because colors may have changed
+        event.accept()
+        self.selection._selected.clear()
+        self.new_point(event.scenePos(), close)
 
     def below_item(self, scene_pos):
         below_item = None
@@ -188,9 +152,6 @@ class DiagramScene(QtWidgets.QGraphicsScene):
         :param event: QGraphicsSceneMouseEvent
         :return:
         """
-        #print("P last: ", event.lastScenePos())
-        #if event.button() == Qt.RightButton and self.last_point is None:
-        #    self.mouse_create_event(event)
 
         self._press_screen_pos = event.screenPos()
 
@@ -201,9 +162,8 @@ class DiagramScene(QtWidgets.QGraphicsScene):
         :param event: QGraphicsSceneMouseEvent
         :return:
         """
-        #print("R last: ", event.lastScenePos())
         below_item = self.below_item(event.scenePos())
-        screen_pos_not_changed = event.screenPos() == self._press_screen_pos
+        screen_pos_not_changed = (event.screenPos() - self._press_screen_pos).manhattanLength() < 5
 
         if event.button() == Qt.LeftButton and screen_pos_not_changed:
             self.mouse_create_event(event)
@@ -309,17 +269,5 @@ class DiagramScene(QtWidgets.QGraphicsScene):
         self.update()
 
     def delete_selected(self):
-        with undo.group("Delete selected"):
-            # segments
-            for item in self.selection._selected:
-                if type(item) is GsSegment:
-                    self.decomposition.delete_segment(item.segment)
-
-            # points
-            for item in self.selection._selected:
-                if type(item) is GsPoint:
-                    self.decomposition.delete_point(item.pt)
-
-            self.selection._selected.clear()
-
-            self.update_scene()
+        self.decomposition.delete_items(self.selection.get_selected_shape_dim_id())
+        self.update_scene()

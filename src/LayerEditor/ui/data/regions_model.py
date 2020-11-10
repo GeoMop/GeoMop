@@ -7,7 +7,9 @@ from LayerEditor.ui.tools.id_map import IdMap
 class RegionsModel:
     """Class for managing all regions"""
     NONE = None
-    def __init__(self, regions_data):
+    def __init__(self, le_model, regions_data):
+        self.le_model = le_model
+        """Le Model needed for correct deleting of region"""
         self.regions = IdMap()  # {region_id: Region}
         """Needed for checking if some region is used in any shape in any decomposition"""
 
@@ -34,6 +36,10 @@ class RegionsModel:
     @undo.undoable
     def delete_region(self, reg):
         del self.regions[reg]
+        for block in self.le_model.blocks_model.blocks.values():
+            for layer in block.layers_dict.values():
+                if layer.gui_selected_region == reg:
+                    layer.set_gui_selected_region(RegionItem.none)
         yield "Delete Region"
         self.add_region(reg)
 

@@ -15,11 +15,11 @@ class InterpolatedNodeSetItem:
 
     @property
     def block(self):
-        return self.top_itf_node_set.decomposition.helper_attr_block
+        return self.top_itf_node_set.decomposition.block
 
     def save(self):
-        return InterpolatedNodeSet(dict(surf_nodesets=[self.top_itf_node_set.save(),
-                                                       self.bottom_itf_node_set.save()],
+        return InterpolatedNodeSet(dict(surf_nodesets=(self.top_itf_node_set.save(),
+                                                       self.bottom_itf_node_set.save()),
                                         interface_id=self.interface.index))
 
     def __eq__(self, other):

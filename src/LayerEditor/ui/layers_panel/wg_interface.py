@@ -13,7 +13,8 @@ class WGInterface(QWidget):
     """Widget for Layers Panel which represents an interface or fracture layer"""
     def __init__(self, parent, fracture_name=None, top_bot=InterfaceType.BOTH):
         """top_bot hold placement of this interface. top = True, bot = False, None otherwise"""
-        super(WGInterface, self).__init__(parent)
+        super(WGInterface, self).__init__()
+        self._parent = parent
         self.top_bot = top_bot
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         if fracture_name is not None:
@@ -31,16 +32,16 @@ class WGInterface(QWidget):
             self.setLayout(layout)
             layout.setContentsMargins(15, 0, 15, 0)
         else:
-            #self.setMinimumHeight(self.parent().LINE_WIDTH+1)
+            #self.setMinimumHeight(self._parent.LINE_WIDTH+1)
             self.setMinimumHeight(QLabel().sizeHint().height())
 
 
     def paintEvent(self, a0: QtGui.QPaintEvent) -> None:
         super(WGInterface, self).paintEvent(a0)
         painter = QPainter(self)
-        painter.setPen(self.parent().LINE_PEN)
+        painter.setPen(self._parent.LINE_PEN)
         center = self.rect().center()
-        start = QPoint(self.rect().left() + self.parent().LINE_WIDTH * 0.5, center.y())
+        start = QPoint(self.rect().left() + self._parent.LINE_WIDTH * 0.5, center.y())
 
         painter.drawLine(start, QPoint(self.rect().right(), center.y()))
 
@@ -49,8 +50,8 @@ class WGInterface(QWidget):
 
         if self.top_bot in [InterfaceType.TOP, InterfaceType.BOTH]:
             painter.drawLine(start,
-                             self.rect().bottomLeft() + QPoint(self.parent().LINE_WIDTH * 0.5, 0))
+                             self.rect().bottomLeft() + QPoint(self._parent.LINE_WIDTH * 0.5, 0))
         if self.top_bot in [InterfaceType.BOTTOM, InterfaceType.BOTH]:
             painter.drawLine(start,
-                             self.rect().topLeft() + QPoint(self.parent().LINE_WIDTH * 0.5, 0))
+                             self.rect().topLeft() + QPoint(self._parent.LINE_WIDTH * 0.5, 0))
 

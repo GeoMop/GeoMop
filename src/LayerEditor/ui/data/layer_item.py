@@ -9,16 +9,16 @@ from gm_base.geometry_files.format_last import StratumLayer, FractureLayer
 
 class LayerItem(IdObject):
     """Data about one geological layer"""
-    def __init__(self, block, name, top_top, bottom_top, shape_regions):
+    def __init__(self, block, name, top_in, bottom_in, shape_regions):
 
         self.block = block
         """This layer is part of this block"""
         self.name = name
         """Layer name"""
-        self.top_top = top_top
-        """Top topology"""
-        self.bottom_top = bottom_top
-        """Bottom topology if layer is fracture always None"""
+        self.top_in = top_in
+        """Top InterfaceNodeSetItem/InterpolatedNodeSetItem"""
+        self.bottom_in = bottom_in
+        """Bottom InterfaceNodeSetItem/InterpolatedNodeSetItem if layer is fracture always None"""
         self.shape_regions = shape_regions
         """[{point_id: region_object}, {seg_id: region_object}, {poly_id: region_object}]"""
         """Regions of shapes grouped by dimension"""
@@ -28,17 +28,17 @@ class LayerItem(IdObject):
         """Default region for new objects in diagram. Also used by LayerHeads for RegionsPanel"""
         """Not undoable"""
 
-        self.is_stratum = self.bottom_top is not None
+        self.is_stratum = self.bottom_in is not None
         """Is this layer stratum layer?"""
 
 
     def save(self):
-        layer_config = dict(name=self.name, top=self.top_top.save())
+        layer_config = dict(name=self.name, top=self.top_in.save())
         shape_region_idx = ([], [], [])
-        if isinstance(self.top_top, InterfaceNodeSetItem):
-            decomp = self.top_top.decomposition
+        if isinstance(self.top_in, InterfaceNodeSetItem):
+            decomp = self.top_in.decomposition
         else:
-            decomp = self.top_top.top_itf_node_set.decomposition
+            decomp = self.top_in.top_itf_node_set.decomposition
 
         for dim in range(3):
             for shape in sorted(decomp.decomp.shapes[dim].values(), key=lambda x: x.index):
@@ -49,7 +49,7 @@ class LayerItem(IdObject):
         layer_config["polygon_region_ids"] = shape_region_idx[2]
 
         if self.is_stratum:
-            layer_config['bottom'] = self.bottom_top.save()
+            layer_config['bottom'] = self.bottom_in.save()
             gl = StratumLayer(layer_config)
         else:
             gl = FractureLayer(layer_config)
@@ -85,3 +85,11 @@ class LayerItem(IdObject):
         self.gui_selected_region = region
         yield f"Selected region {region.id} on layer {self.id} changed. Old region {old_region.id}"
         self.gui_selected_region = old_region
+
+    @undo.undoable
+    def set_bottom_in(self, new_in):
+        """Sets new bottom InterfaceNodeSetItem/InterpolatedNodeSetItem"""
+        old_ni = self.bottom_in
+        self.bottom_in = new_in
+        yield f"bottom_ni changed in layer {self.id}"
+        self.set_bottom_in(old_ni)

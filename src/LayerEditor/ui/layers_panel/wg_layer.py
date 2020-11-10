@@ -12,6 +12,7 @@ class WGLayer(QWidget):
     """Widget for Layers Panel which represents layer"""
     def __init__(self, parent, layer: LayerItem):
         super(WGLayer, self).__init__(parent)
+        self._parent = parent
         self.le_model = parent.le_model
         self.layer = layer
         self.name = QLabel(layer.name)
@@ -29,13 +30,13 @@ class WGLayer(QWidget):
     def paintEvent(self, a0: QtGui.QPaintEvent) -> None:
         super(WGLayer, self).paintEvent(a0)
         painter = QPainter(self)
-        painter.setPen(self.parent().LINE_PEN)
-        x = self.rect().left() + self.parent().LINE_WIDTH / 2
+        painter.setPen(self._parent.LINE_PEN)
+        x = self.rect().left() + self._parent.LINE_WIDTH / 2
         painter.drawLine(x, self.rect().top(), x, self.rect().bottom())
 
     def split_layer(self):
-        top_y = self.layer.top_top.interface.elevation
-        bot_y = self.layer.bottom_top.interface.elevation
+        top_y = self.layer.top_in.interface.elevation
+        bot_y = self.layer.bottom_in.interface.elevation
         dlg = SplitLayerDlg(top_y, bot_y, self.le_model.layer_names())
         ret = dlg.exec_()
         if ret == QDialog.Accepted:

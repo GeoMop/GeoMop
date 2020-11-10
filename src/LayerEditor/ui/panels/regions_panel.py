@@ -34,7 +34,7 @@ class RegionsPanel(QtWidgets.QToolBox):
         # Tab widgets.
         self.update_tabs()
 
-        self.currentChanged.connect(self._layer_changed)
+        self.currentChanged.connect(self._curr_layer_changed)
         self.le_model.gui_curr_block.selection.selection_changed.connect(self.selection_changed)
 
     def update_tabs(self):
@@ -45,13 +45,14 @@ class RegionsPanel(QtWidgets.QToolBox):
         with nosignal(self):
             while self.count() > 0:
                 self.removeItem(0)
-            names = self.le_model.gui_curr_block.layer_names
-            for idx, layer_name in enumerate(names):
-                tab_widget = RegionLayerTab(self.le_model, self.le_model.gui_curr_block.layers[idx], self)
+            layers = self.le_model.gui_curr_block.get_sorted_layers()
+            for layer in layers:
+                tab_widget = RegionLayerTab(self.le_model, layer, self)
                 self.addItem(tab_widget, "")
                 self._update_tab_head(tab_widget)
             # Update content.
-        self.setCurrentIndex(self.le_model.get_curr_layer_index())
+        idx = self.le_model.gui_curr_block.get_sorted_layers().index(self.le_model.gui_curr_block.gui_selected_layer)
+        self.setCurrentIndex(idx)
 
     def _update_tab_head(self, tab):
         """
@@ -60,7 +61,7 @@ class RegionsPanel(QtWidgets.QToolBox):
         :return:
         """
         color = tab.region_color
-        item_idx = self.le_model.gui_curr_block.layers.index(tab.layer)
+        item_idx = self.le_model.gui_curr_block.get_sorted_layers().index(tab.layer)
         pixmap = QtGui.QPixmap(16, 16)
         pixmap.fill(color)
         iconPix = QtGui.QIcon(pixmap)
@@ -80,7 +81,7 @@ class RegionsPanel(QtWidgets.QToolBox):
         if dialog_result == QtWidgets.QDialog.Accepted:
             name = dialog.region_name.text()
             dim = dialog.region_dim.currentData()
-            region = self.le_model.add_region(name, dim)
+            region = self.le_model.add_region(RegionItem(name=name, dim=dim))
             self.current_tab._set_region_to_selected_shapes(region)
 
     def remove_region(self):
@@ -93,7 +94,7 @@ class RegionsPanel(QtWidgets.QToolBox):
         """ Current Tab widget. """
         return self.widget(self.currentIndex())
 
-    def _layer_changed(self):
+    def _curr_layer_changed(self):
         """item Changed handler"""
         self.le_model.gui_curr_block.gui_selected_layer = self.current_tab.layer
         self.le_model.invalidate_scene.emit()
@@ -101,7 +102,7 @@ class RegionsPanel(QtWidgets.QToolBox):
     def selection_changed(self):
         selected = self.le_model.gui_curr_block.selection._selected
         if selected:
-            for layer in self.le_model.gui_curr_block.layers:
+            for layer in self.le_model.gui_curr_block.get_sorted_layers():
                 region = layer.get_shape_region(selected[0].dim, selected[0].shape_id)
                 is_region_same = True
                 for g_item in selected:

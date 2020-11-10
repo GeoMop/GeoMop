@@ -44,8 +44,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.scroll_area1 = QtWidgets.QScrollArea()
         # self._scroll_area.setWidgetResizable(True)
         self.layers = LayerPanel(self._layer_editor.le_model)
-        self.scroll_area1.setWidget(self.layers)
-        self._vsplitter1.addWidget(self.scroll_area1)
+        self._vsplitter1.addWidget(self.layers)
 
         self._vsplitter1.addWidget(self.wg_regions_panel)
 
@@ -149,13 +148,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self._column.setText("x: {:5f}  y: {:5f}".format(x, -y))
 
     def layers_changed(self):
-        self.layers = LayerPanel(self._layer_editor.le_model)
-        self.scroll_area1.setWidget(self.layers)
+        self.layers.update_layers_panel()
 
-        idx = self._vsplitter1.indexOf(self.wg_regions_panel)
-        self.wg_regions_panel = RegionsPanel(self._layer_editor.le_model, self)
-        self._vsplitter1.replaceWidget(idx, self.wg_regions_panel)
-
+        self.wg_regions_panel.selection_changed()
+        self.wg_regions_panel.update_tabs()
 
     # def _show_grid(self, show_flag):
     #     """Show mash"""
@@ -195,6 +191,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def update_all(self):
         self.curr_scene.update_scene()
         self.wg_regions_panel.update_tabs()
+        self.layers.update_layers_panel()
 
     def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:
         if event.key() == QtCore.Qt.Key_Z and\

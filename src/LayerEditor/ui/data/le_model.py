@@ -2,7 +2,7 @@ import os
 
 from PyQt5.QtCore import QObject, QPointF, pyqtSignal
 from PyQt5.QtGui import QPolygonF
-from bgem.external import undo
+from LayerEditor.ui.tools import undo
 
 from LayerEditor.exceptions.data_inconsistent_exception import DataInconsistentException
 from LayerEditor.ui.data.blocks_model import BlocksModel
@@ -42,7 +42,7 @@ class LEModel(QObject):
         """Manages surfaces"""
         self.interfaces_model = InterfacesModel(self, geo_model.interfaces)
         """Manages interfaces"""
-        self.regions_model = RegionsModel(geo_model.regions)
+        self.regions_model = RegionsModel(self, geo_model.regions)
         """Manages regions."""
         self.blocks_model = BlocksModel(geo_model, self)
         """Manages blocks."""
@@ -52,7 +52,7 @@ class LEModel(QObject):
         self.init_zoom_pos_data = geo_model.supplement.zoom
         """Used only for initializing DiagramView after that is None and DiagramView holds those informations"""
 
-        self.gui_curr_block = self.decompositions_model.decomps[geo_model.supplement.last_node_set].helper_attr_block
+        self.gui_curr_block = self.decompositions_model.decomps[geo_model.supplement.last_node_set].block
         """helper attribute, holds currently active block"""
 
     def load_geo_model(self, in_file=None):
@@ -110,10 +110,8 @@ class LEModel(QObject):
                 pass
         return False
 
-    def add_region(self, name, dim):
-        """ Add new region according to the provided data from the current tab and select it."""
+    def add_region(self, reg):
         with undo.group("Add new region"):
-            reg = RegionItem(name=name, dim=dim)
             self.regions_model.add_region(reg)
             self.gui_curr_block.gui_selected_layer.set_gui_selected_region(reg)
         self.region_list_changed.emit()
@@ -123,20 +121,13 @@ class LEModel(QObject):
     def delete_region(self, reg):
         with undo.group("Add new region"):
             self.regions_model.delete_region(reg)
-            for block in self.blocks_model.blocks.values():
-                for layer in block.layers:
-                    if layer.gui_selected_region == reg:
-                        layer.set_gui_selected_region(RegionItem.none)
         self.region_list_changed.emit()
         self.invalidate_scene.emit()
 
-    def get_curr_layer_index(self):
-        return self.gui_curr_block.layers.index(self.gui_curr_block.gui_selected_layer)
-
     def is_region_used(self, reg):
-        dim = self.regions_model.regions[reg].dim
         for block in self.blocks_model.blocks.values():
-            for layer in block.layers:
+            for layer in block.layers_dict.values():
+                dim = self.regions_model.regions[reg].dim
                 if layer.is_stratum:
                     dim -= 1
                     if dim < 0:
@@ -251,11 +242,8 @@ class LEModel(QObject):
         geo_model.version = [0, 5, 5]
 
         lname = "Layer_1"
-        default_regions = [  # Stratum layer
-            Region(dict(color="gray", name="NONE", not_used=True, dim=RegionDim.none))  # TopologyDim.polygon
-        ]
-        for reg in default_regions:
-            geo_model.regions.append(reg)
+        default_region = Region(dict(color="gray", name="NONE", not_used=True, dim=RegionDim.none))
+        geo_model.regions.append(default_region)
 
         regions = ([], [], [0])  # No node, segment, polygon or regions.
         inter = Interface(dict(elevation=0.0, surface_id=None))
@@ -267,9 +255,7 @@ class LEModel(QObject):
         inter.transform_z = [1.0, 0.0]
         geo_model.interfaces.append(inter)
 
-        surf_nodesets = (dict(nodeset_id=0, interface_id=1), dict(nodeset_id=0, interface_id=1))
-        #TODO: shouldn't this reference to the top interface???
-        ns_bot = InterpolatedNodeSet(dict(surf_nodesets=surf_nodesets, interface_id=1))
+        ns_bot = InterpolatedNodeSet(dict(surf_nodesets=(ns_top, ns_top), interface_id=1))
 
         gl = StratumLayer(dict(name=lname, top=ns_top, bottom=ns_bot))
         gl.node_region_ids = regions[0]
@@ -285,33 +271,41 @@ class LEModel(QObject):
     def split_layer(self, layer: LayerItem, new_layer_name: str, elevation: float):
         with undo.group("Split Layer"):
             new_itf = InterfaceItem(elevation)
-            self.interfaces_model.insert_after(new_itf, layer.top_top.interface)
-            bottom_if_node_set = layer.bottom_top
-            if isinstance(bottom_if_node_set, InterpolatedNodeSetItem):
+            self.interfaces_model.insert_after(new_itf, layer.top_in.interface)
+            bottom_in = layer.bottom_in
+
+            if isinstance(bottom_in, InterpolatedNodeSetItem):
                 """ Todo: it might be unnecessary to crate new InterpolatedNodeSetItem 
                     if there really is a mistake in original and if they should have the same interface"""
-                top = InterfaceNodeSetItem(bottom_if_node_set.top_itf_node_set.decomposition, new_itf)
-                bot = InterfaceNodeSetItem(bottom_if_node_set.bottom_itf_node_set.decomposition, new_itf)
-                middle_it_node_set = InterpolatedNodeSetItem(top, bot, new_itf)
-            elif isinstance(layer.top_top, InterpolatedNodeSetItem):
-                top = InterfaceNodeSetItem(layer.top_top.top_itf_node_set.decomposition, new_itf)
-                bot = InterfaceNodeSetItem(layer.top_top.bottom_itf_node_set.decomposition, new_itf)
-                middle_it_node_set = InterpolatedNodeSetItem(top, bot, new_itf)
-            else:
-                middle_it_node_set = InterpolatedNodeSetItem(layer.top_top, bottom_if_node_set, new_itf)
+                middle_it_node_set = InterpolatedNodeSetItem(bottom_in.top_itf_node_set,
+                                                             bottom_in.bottom_itf_node_set,
+                                                             new_itf)
 
-            layer.bottom_top = middle_it_node_set
+            elif isinstance(layer.top_in, InterpolatedNodeSetItem):
+                middle_it_node_set = InterpolatedNodeSetItem(layer.top_in.top_itf_node_set,
+                                                             layer.top_in.bottom_itf_node_set,
+                                                             new_itf)
+            else:
+                middle_it_node_set = InterpolatedNodeSetItem(layer.top_in, layer.bottom_in, new_itf)
+
+            layer.set_bottom_in(middle_it_node_set)
 
             shape_regions = [dict(layer.shape_regions[0]),
                              dict(layer.shape_regions[1]),
                              dict(layer.shape_regions[2])]
+
             new_layer = LayerItem(layer.block,
                                   new_layer_name,
                                   middle_it_node_set,
-                                  bottom_if_node_set,
+                                  bottom_in,
                                   shape_regions)
 
-            self.blocks_model.blocks[layer.block].insert_after(new_layer, layer)
+            self.blocks_model.blocks[layer.block].add_layer(new_layer)
+
             self.layers_changed.emit()
+
+    def delete_layer(self, layer):
+        self.gui_curr_block.delete_layer(layer)
+        self.layers_changed.emit()
 
 

@@ -17,11 +17,11 @@ class DecompositionsModel:
         for idx, decomp in enumerate(self.decomps):
             nodes, topology = polygons_io.serialize(decomp)
             decomp.temp_index = idx
-            if decomp.helper_attr_block in helper_blocks:
+            if decomp.block in helper_blocks:
                 top_id = topologies.index(topology)
             else:
                 topologies.append(topology)
-                helper_blocks.append(decomp.helper_attr_block)
+                helper_blocks.append(decomp.block)
                 top_id = len(topologies) - 1
             node_sets.append(NodeSet(dict(topology_id=top_id, nodes=nodes)))
         return node_sets, topologies
