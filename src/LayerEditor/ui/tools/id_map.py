@@ -55,3 +55,6 @@ class IdMap():
 
     def __delitem__(self, key):
         self.remove(key)
+
+    def __len__(self):
+        return len(self._dict)

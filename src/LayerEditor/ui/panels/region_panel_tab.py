@@ -46,8 +46,6 @@ class RegionLayerTab(QtWidgets.QWidget):
         # Name of the layer.
         # auxiliary map from region ID to index in the combo box.
 
-        self.le_model.region_list_changed.connect(self._update_region_list)
-
         self._make_widgets()
         self._update_region_list()
 

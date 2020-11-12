@@ -2,9 +2,6 @@ from LayerEditor.ui.data.interface_node_set_item import InterfaceNodeSetItem
 from LayerEditor.ui.data.interpolated_node_set_item import InterpolatedNodeSetItem
 from LayerEditor.ui.data.layer_item import LayerItem
 from LayerEditor.ui.data.region_item import RegionItem
-from LayerEditor.ui.diagram_editor.graphics_items.gs_point import GsPoint
-from LayerEditor.ui.diagram_editor.graphics_items.gs_polygon import GsPolygon
-from LayerEditor.ui.diagram_editor.graphics_items.gs_segment import GsSegment
 
 from LayerEditor.ui.tools import undo
 from LayerEditor.ui.tools.id_map import IdMap, IdObject
@@ -38,6 +35,16 @@ class BlockItem(IdObject):
 
     def get_sorted_layers(self):
         return sorted(list(self.layers_dict.values()), key=self._get_average_elevation, reverse=True)
+
+    def get_interface_node_sets(self):
+        """Returns all InterfaceNodeSetItems which hold decompositions (neat ;) )"""
+        node_sets = []
+        for layer in self.layers_dict.values():
+            if not layer.top_in.is_interpolated and layer.top_in not in node_sets:
+                node_sets.append(layer.top_in)
+        if layer.is_stratum and not layer.bottom_in.is_interpolated and layer.bottom_in not in node_sets:
+            node_sets.append(layer.bottom_in)
+        return node_sets
 
     @property
     def decomposition(self):
@@ -125,7 +132,7 @@ class BlockItem(IdObject):
         if self.gui_selected_layer is layer:
             self.set_gui_selected_layer(list(self.layers_dict.values())[0])
         yield "Delete Layer"
-        self.add_layer()
+        self.add_layer(layer)
 
     @undo.undoable
     def set_gui_selected_layer(self, layer):
@@ -133,5 +140,4 @@ class BlockItem(IdObject):
         self.gui_selected_layer = layer
         yield "Set Active Layer in this Block"
         self.gui_selected_layer = old_layer
-
 

@@ -136,6 +136,41 @@ class LEModel(QObject):
                     return True
         return False
 
+    def delete_layer_top(self, layer):
+        """ Delete specified layer and top interface.
+            Layer above deleted layer will be extended to bottom interface of deleted layer.
+            There must be at least one stratum layer above specified layer in parameter(fracture layer doesn't count)"""
+        with undo.group("Delete layer and extend the layer above"):
+            layers = layer.block.get_sorted_layers()
+            idx = layers.index(layer)
+            if layers[idx - 1].is_stratum:
+                top_layer = layers[idx - 1]
+            else:
+                layer.block.delete_layer(layers[idx - 1])
+                top_layer = layers[idx - 2]
+            top_layer.set_bottom_in(layer.bottom_in)
+            layer.block.delete_layer(layer)
+        self.layers_changed.emit()
+
+    def delete_layer_bot(self, layer):
+        """ Delete specified layer and bottom interface.
+            Layer below deleted layer will be extended to top interface of deleted layer.
+            There must be at least one stratum layer below specified layer (fracture layer doesn't count)"""
+        with undo.group("Delete layer and extend the layer below"):
+            layers = layer.block.get_sorted_layers()
+            idx = layers.index(layer)
+            if layers[idx + 1].is_stratum:
+                top_layer = layers[idx + 1]
+            else:
+                layer.block.delete_layer(layers[idx + 1])
+                top_layer = layers[idx + 2]
+            top_layer.set_top_in(layer.top_in)
+            layer.block.delete_layer(layer)
+        self.layers_changed.emit()
+
+    def delete_block(self, block):
+        self.blocks_model.delete_block(block)
+
     # @classmethod
     # def reload_surfaces(cls, id=None):
     #     """Reload surface panel"""

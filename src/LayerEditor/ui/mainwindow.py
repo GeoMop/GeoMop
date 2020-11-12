@@ -148,10 +148,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self._column.setText("x: {:5f}  y: {:5f}".format(x, -y))
 
     def layers_changed(self):
-        self.layers.update_layers_panel()
-
-        self.wg_regions_panel.selection_changed()
-        self.wg_regions_panel.update_tabs()
+        self.update_all()
 
     # def _show_grid(self, show_flag):
     #     """Show mash"""

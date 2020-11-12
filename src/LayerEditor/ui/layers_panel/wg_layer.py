@@ -26,9 +26,12 @@ class WGLayer(QWidget):
         self.setLayout(layout)
         layout.setContentsMargins(5, 0, 5, 0)
 
-        self.menu = LayerMenu()
+        self.menu = LayerMenu(self.le_model, self.layer)
         self.menu.split_action.triggered.connect(self.split_layer)
         self.menu.rename_action.triggered.connect(self.name.start_editing)
+        self.menu.del_layer_top.triggered.connect(self.del_layer_top)
+        self.menu.del_layer_bot.triggered.connect(self.del_layer_bot)
+        self.menu.del_block_action.triggered.connect(self.del_block)
 
     def paintEvent(self, a0: QtGui.QPaintEvent) -> None:
         super(WGLayer, self).paintEvent(a0)
@@ -82,5 +85,14 @@ class WGLayer(QWidget):
                     return False
             return True
 
+    def del_layer_top(self):
+        self.le_model.delete_layer_top(self.layer)
+
+    def del_layer_bot(self):
+        self.le_model.delete_layer_bot(self.layer)
+
+    def del_block(self):
+        # TODO: was not able to test this testa when blocks can be created
+        self.le_model.delete_block(self.layer.block)
 
 

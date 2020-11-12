@@ -2,6 +2,7 @@ from gm_base.geometry_files.format_last import InterfaceNodeSet
 
 
 class InterfaceNodeSetItem:
+    is_interpolated = False
     def __init__(self, decomp, interface):
         self.decomposition = decomp
         """Node set index"""

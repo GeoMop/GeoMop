@@ -35,6 +35,7 @@ class RegionsPanel(QtWidgets.QToolBox):
 
         self.currentChanged.connect(self._curr_layer_changed)
         self.le_model.gui_curr_block.selection.selection_changed.connect(self.selection_changed)
+        self.le_model.region_list_changed.connect(self._update_region_list)
 
         self.update_tabs()
 
@@ -55,6 +56,10 @@ class RegionsPanel(QtWidgets.QToolBox):
             # Update content.
         idx = self.le_model.gui_curr_block.get_sorted_layers().index(self.le_model.gui_curr_block.gui_selected_layer)
         self.setCurrentIndex(idx)
+
+    def _update_region_list(self):
+        for idx in range(self.count()):
+            self.widget(idx)._update_region_list()
 
     def _update_tab_head(self, tab):
         """

@@ -1,6 +1,7 @@
 from PyQt5.QtCore import QObject, pyqtSignal
 
 from LayerEditor.ui.data.block_item import BlockItem
+from LayerEditor.ui.tools import undo
 from LayerEditor.ui.tools.id_map import IdMap
 from gm_base.geometry_files.format_last import InterpolatedNodeSet
 
@@ -28,6 +29,7 @@ class BlocksModel(QObject):
 
     @property
     def layers(self):
+        """Returns all layer across all blocks sorted by elevation"""
         layers = []
         for block in self.blocks.values():
             layers.extend(block.get_sorted_layers())
@@ -36,9 +38,15 @@ class BlocksModel(QObject):
                     reverse=True)
         return layers
 
-
     def save(self):
         layers = []
         for layer in self.layers:
             layers.append(layer.save())
         return layers
+
+    @undo.undoable
+    def delete_block(self, block):
+        #TODO: was not able to test this testa when blocks can be created
+        self.blocks.remove(block)
+        yield "Remove Block"
+        self.blocks.add(block)

@@ -2,6 +2,7 @@ from gm_base.geometry_files.format_last import InterpolatedNodeSet
 
 
 class InterpolatedNodeSetItem:
+    is_interpolated = True
     def __init__(self, itf_node_set1, itf_node_set2, interface):
         if itf_node_set1.interface.elevation > itf_node_set2.interface.elevation:
             self.top_itf_node_set = itf_node_set1

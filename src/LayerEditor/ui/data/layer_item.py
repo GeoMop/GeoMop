@@ -69,6 +69,51 @@ class LayerItem(IdObject):
     def get_shape_region(self, dim, shape_id) -> RegionItem:
         return self.shape_regions[dim][shape_id]
 
+    def is_first(self):
+        """Does this layer have top interface which is first in block?"""
+        layers = self.block.get_sorted_layers()
+        idx = layers.index(self)
+        if idx == 0:
+            return True
+        if idx == 1:
+            if layers[0].is_stratum or not self.is_stratum:
+                return False
+            else:
+                return True
+        else:
+            return False
+
+    def is_last(self):
+        """Does this layer have bot interface which is last in block?"""
+        layers = self.block.get_sorted_layers()
+        idx = layers.index(self)
+        if idx == len(layers) - 1:
+            return True
+        if idx == len(layers) - 2:
+            if layers[len(layers) - 1].is_stratum or not self.is_stratum:
+                return False
+            else:
+                return True
+        else:
+            return False
+
+    def is_last_decomp(self, top: bool):
+        """ Returns True if top/bottom is last InterfaceNodeSetItem (which holds decomposition) in block.
+            If top/bottom is InterpolatedNodeSetItem return False"""
+        itf_node_sets = self.block.get_interface_node_sets()
+        if len(itf_node_sets) > 1:
+            return False
+        elif top:
+            if self.top_in.is_interpolated:
+                return False
+            else:
+                return True
+        else:
+            if self.bottom_in.is_interpolated:
+                return False
+            else:
+                return True
+
     @undo.undoable
     def set_region_to_shape(self, dim, shape_id, region: RegionItem):
         old_region = self.shape_regions[dim].get(shape_id, RegionItem.none)
@@ -92,6 +137,14 @@ class LayerItem(IdObject):
         self.bottom_in = new_in
         yield f"bottom_ni changed in layer {self.id}"
         self.set_bottom_in(old_ni)
+
+    @undo.undoable
+    def set_top_in(self, new_in):
+        """Sets new top InterfaceNodeSetItem/InterpolatedNodeSetItem"""
+        old_ni = self.top_in
+        self.top_in = new_in
+        yield f"top_ni changed in layer {self.id}"
+        self.set_top_in(old_ni)
 
     @undo.undoable
     def set_name(self, new_name):
