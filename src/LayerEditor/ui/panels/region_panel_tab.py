@@ -2,6 +2,8 @@ from contextlib import contextmanager
 
 import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtGui as QtGui
+from PyQt5.QtCore import QObject
+
 from LayerEditor.ui.tools import undo
 
 import gm_base.icon as icon
@@ -9,16 +11,19 @@ from gm_base.geomop_dialogs import GMErrorDialog
 from ..data.region_item import RegionItem
 from ..dialogs.regions import AddRegionDlg
 from ..helpers.combo_box import ComboBox
+from ...widgets.line_edit import LineEdit
+
 
 @contextmanager
-def nosignal(qt_obj):
+def nosignal(qt_obj: QObject):
     """
     Context manager for blocking signals inside some signal handlers.
     TODO: move to some common module
     """
-    qt_obj.blockSignals(True)
+    old_state = qt_obj.blockSignals(True)
     yield qt_obj
-    qt_obj.blockSignals(False)
+    qt_obj.blockSignals(old_state)
+
 
 class RegionLayerTab(QtWidgets.QWidget):
     """
@@ -77,8 +82,9 @@ class RegionLayerTab(QtWidgets.QWidget):
         grid.addWidget(self.wg_remove_button, 0, 2)
 
         # name
-        self.wg_name = QtWidgets.QLineEdit()
+        self.wg_name = LineEdit()
         self.wg_name.editingFinished.connect(self._name_editing_finished)
+        self.wg_name.textChanged.connect(self._region_name_changed)
         grid.addWidget(self.wg_name, 1, 1, 1, 2)
         name_label = QtWidgets.QLabel("Name:", self)
         name_label.setToolTip("Name of the region.")
@@ -214,32 +220,41 @@ class RegionLayerTab(QtWidgets.QWidget):
         self.le_model.invalidate_scene.emit()
         self._parent.update_tabs()
 
+    def is_region_name_unique(self, new_name):
+        if new_name == self.curr_region.name:
+            return None
+        for name in self.le_model.regions_model.get_region_names():
+            if name == new_name:
+                return False
+        return True
+
     def _name_editing_finished(self):
         """
         Handler of region name change.
         :return:
         """
         new_name = self.wg_name.text().strip()
-        if new_name == self.curr_region.name:
-            return
-        elif  new_name in self.le_model.regions_model.get_region_names():
-            error = "Region name already exist"
-        elif not new_name:
-            error = "Region name is empty"
-        else:
-            error = None
+        if self.is_region_name_unique(new_name):
             with undo.group("Set Name"):
                 self.curr_region.set_name(new_name)
-                self.layer.set_gui_selected_region(self.curr_region)
                 # This line doesnt do anything at first but it gets registered in undo redo system.
                 # That will cause region panel to switch to region which was changed by undoing/redoing.
+                self.wg_name.blockSignals(True)
+                self._parent.update_tabs()
+        else:
+            self.wg_name.setText(self.curr_region.name)
+        self.wg_name.setToolTip("")
+        # for some reason upon deleting this tab in update_tabs(), wg_name emits editingFinished again,
+        # which causes problems
 
-        if error:
-            err_dialog = GMErrorDialog(self)
-            err_dialog.open_error_dialog(error)
-            self.wg_name.selectAll()
-
-        self._parent.update_tabs()
+    def _region_name_changed(self, new_name):
+        unique = self.is_region_name_unique(new_name.strip())
+        if unique is None or unique:
+            self.wg_name.mark_text_valid()
+            self.wg_name.setToolTip("")
+        else:
+            self.wg_name.mark_text_invalid()
+            self.wg_name.setToolTip("This name already exist")
 
     def _set_color(self):
         """Region color is changed, refresh diagram"""

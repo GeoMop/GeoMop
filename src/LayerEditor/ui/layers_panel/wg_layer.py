@@ -1,10 +1,11 @@
 from PyQt5 import QtGui
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QPainter
-from PyQt5.QtWidgets import QWidget, QLabel, QHBoxLayout, QSizePolicy, QDialog
+from PyQt5.QtWidgets import QWidget, QLabel, QHBoxLayout, QSizePolicy, QDialog, QLineEdit
 
 from LayerEditor.ui.data.layer_item import LayerItem
 from LayerEditor.ui.layers_panel.dialogs.split_layer import SplitLayerDlg
+from LayerEditor.ui.layers_panel.editable_text import EditableText
 from LayerEditor.ui.layers_panel.menu.layer_menu import LayerMenu
 
 
@@ -15,17 +16,19 @@ class WGLayer(QWidget):
         self._parent = parent
         self.le_model = parent.le_model
         self.layer = layer
-        self.name = QLabel(layer.name)
+        self.name = EditableText(self, layer.name)
         self.name.setCursor(Qt.PointingHandCursor)
+        self.name.text_edit.editingFinished.connect(self.name_finished)
+        self.name.text_edit.textChanged.connect(self.text_changed)
 
         layout = QHBoxLayout()
         layout.addWidget(self.name, alignment=Qt.AlignCenter)
         self.setLayout(layout)
         layout.setContentsMargins(5, 0, 5, 0)
-        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
 
         self.menu = LayerMenu()
         self.menu.split_action.triggered.connect(self.split_layer)
+        self.menu.rename_action.triggered.connect(self.name.start_editing)
 
     def paintEvent(self, a0: QtGui.QPaintEvent) -> None:
         super(WGLayer, self).paintEvent(a0)
@@ -47,4 +50,37 @@ class WGLayer(QWidget):
     def mousePressEvent(self, event: QtGui.QMouseEvent) -> None:
         if event.button() == Qt.RightButton or event.button() == Qt.LeftButton:
             self.menu.exec_(event.globalPos())
+
+    def text_changed(self, new_name):
+        new_name = new_name.strip()
+        unique = self.is_layer_name_unique(new_name)
+        if unique is None or unique:
+            self.name.text_edit.mark_text_valid()
+            self.name.setToolTip("")
+        else:
+            self.name.text_edit.mark_text_invalid()
+            self.name.setToolTip("This name already exist")
+
+    def name_finished(self):
+        new_name = self.name.text_edit.text().strip()
+        if self.is_layer_name_unique(new_name):
+            self.layer.set_name(new_name)
+            self._parent.update_layers_panel()
+        else:
+            self.name.text_edit.setText(self.layer.name)
+            self.name.finish_editing()
+            self.name.setToolTip("")
+
+    def is_layer_name_unique(self, new_name):
+        """ Is new layer name unique?
+            :return: True if new name is unique, False if it is not unique, None if new name is the same as old name"""
+        if self.layer.name == new_name:
+            return None
+        else:
+            for name in self.le_model.layer_names():
+                if name == new_name:
+                    return False
+            return True
+
+
 

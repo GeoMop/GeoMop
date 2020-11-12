@@ -31,7 +31,6 @@ class LayerItem(IdObject):
         self.is_stratum = self.bottom_in is not None
         """Is this layer stratum layer?"""
 
-
     def save(self):
         layer_config = dict(name=self.name, top=self.top_in.save())
         shape_region_idx = ([], [], [])
@@ -93,3 +92,11 @@ class LayerItem(IdObject):
         self.bottom_in = new_in
         yield f"bottom_ni changed in layer {self.id}"
         self.set_bottom_in(old_ni)
+
+    @undo.undoable
+    def set_name(self, new_name):
+        """Sets layer name to new_name. new_name has to be unique"""
+        old_name = self.name
+        self.name = new_name
+        yield "Name Changed"
+        self.name = old_name

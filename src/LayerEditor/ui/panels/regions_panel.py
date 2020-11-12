@@ -32,16 +32,18 @@ class RegionsPanel(QtWidgets.QToolBox):
         # Reference to adaptor for tab data.
         self.tabs = []
         # Tab widgets.
-        self.update_tabs()
 
         self.currentChanged.connect(self._curr_layer_changed)
         self.le_model.gui_curr_block.selection.selection_changed.connect(self.selection_changed)
+
+        self.update_tabs()
 
     def update_tabs(self):
         """
         Update tabs and its contents according to layer heads adaptor.
         :return:
         """
+
         with nosignal(self):
             while self.count() > 0:
                 self.removeItem(0)
