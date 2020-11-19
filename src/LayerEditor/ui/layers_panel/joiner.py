@@ -8,6 +8,7 @@ class Joiner(QWidget):
     """Widget for Layers Panel which connects two or three interfaces"""
     def __init__(self, parent, top, bottom, middle=None):
         super(Joiner, self).__init__(parent)
+        self._parent = parent
         self.top = top
         self.bottom = bottom
         self.middle = middle
@@ -20,7 +21,7 @@ class Joiner(QWidget):
         self.pen.setCapStyle(Qt.RoundCap)
 
     def paintEvent(self, a0: QtGui.QPaintEvent) -> None:
-        half_line_width = self.parent().LINE_WIDTH / 2
+        half_line_width = self._parent.LINE_WIDTH / 2
         painter = QPainter(self)
         painter.setRenderHint(QPainter.HighQualityAntialiasing)
         painter.setPen(self.pen)
@@ -35,7 +36,7 @@ class Joiner(QWidget):
             painter.drawLine(QPoint(self.rect().left(), middle_right.y()), middle_right)
         else:
             middle_right = QPoint(self.rect().right() - half_line_width,
-                                  self.rect().center().y)
+                                  self.rect().center().y())
 
         painter.drawLine(QPoint(self.rect().left() + half_line_width - 1,
                                 self.top.rect().center().y()),

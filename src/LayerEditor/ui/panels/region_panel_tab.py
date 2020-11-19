@@ -214,8 +214,7 @@ class RegionLayerTab(QtWidgets.QWidget):
 
     def _set_region_to_selected_shapes(self, region):
         self.layer.gui_selected_region = region
-        self.layer.set_region_to_selected_shapes(region)
-        self.le_model.invalidate_scene.emit()
+        self.layer.set_region_to_selected_shapes(region, self.le_model)
         self._parent.update_tabs()
 
     def is_region_name_unique(self, new_name):
@@ -267,9 +266,9 @@ class RegionLayerTab(QtWidgets.QWidget):
                 self.layer.set_gui_selected_region(self.curr_region)
                 # This line doesnt do anything at first but it gets registered in undo redo system.
                 # That will cause region panel to switch to region which was changed by undoing/redoing.
-
+                self.le_model.emit_invalidate_scene()
         self._parent.update_tabs()
-        self.le_model.invalidate_scene.emit()
+
 
     def _boundary_changed(self):
         with undo.group("Change regions boundary setting"):

@@ -50,3 +50,9 @@ class BlocksModel(QObject):
         self.blocks.remove(block)
         yield "Remove Block"
         self.blocks.add(block)
+
+    @undo.undoable
+    def add_block(self, block):
+        self.blocks.add(block)
+        yield "Add Block"
+        self.blocks.remove(block)

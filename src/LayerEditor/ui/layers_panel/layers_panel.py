@@ -118,38 +118,80 @@ class LayerPanel(QScrollArea):
                 self.main_layout.addWidget(WGLayer(self, item[0]), row, 2)
 
     def _add_right_joiners_and_elevation(self, layer_panel_model):
-        joiner = 0
-        last_elevation = None
+        joiner = 0  # successive interface count
+        last_interface = None   # None if ast item was layer otherwise last interface
         for row, item in enumerate(layer_panel_model, 1):
             if isinstance(item[0], (InterfaceNodeSetItem, InterpolatedNodeSetItem)):
-                if last_elevation is None:
-                    last_elevation = item[0].interface.elevation
+                # if current item is an interface...
+                if last_interface is None:
+                    # ... and before it was layer, start counting successive interfaces for this interface
+                    last_interface = item[0].interface
                     joiner += 1
-                elif last_elevation == item[0].interface.elevation:
+                elif last_interface.elevation == item[0].interface.elevation:
+                    # ... and it is the same as the interface before, increment successive interface count
                     joiner += 1
                 else:
-                    self._add_joiner(joiner, row)
-                    self.main_layout.addWidget(ElevationLabel(item[0].interface.elevation), row, 4)
+                    # ... and it is different than last interface, join successive interfaces, give them elevation label
+                    # and start new count
+                    self._add_joiner(joiner, row - 1)
+                    elevation = self._construct_elevation_label(joiner, row - 1, layer_panel_model)
+                    self.main_layout.addWidget(elevation, row - joiner, 4, joiner, 1)
+
                     joiner = 1
-                    last_elevation = item[0].interface.elevation
+                    last_interface = item[0].interface
             else:
-                self._add_joiner(joiner, row)
-                self.main_layout.addWidget(ElevationLabel(last_elevation), row-1, 4)
+                # if current item is layer, end count, join successive interfaces if any and give them elevation label
+                self._add_joiner(joiner, row - 1)
+
+                elevation = self._construct_elevation_label(joiner, row - 1, layer_panel_model)
+                self.main_layout.addWidget(elevation, row - joiner, 4, joiner, 1)
                 joiner = 0
-                last_elevation = None
+                last_interface = None
         self._add_joiner(joiner, row)
-        self.main_layout.addWidget(ElevationLabel(last_elevation), row, 4)
+        elevation = self._construct_elevation_label(joiner, row, layer_panel_model)
+        self.main_layout.addWidget(elevation, row - joiner + 1, 4, joiner, 1)
+
+    def _construct_elevation_label(self, joiner, last_row, layer_panel_model):
+        """ Construct elevation label.
+            :joiner: number of successive interfaces
+            :row: last row with specified interface
+            :layer_panel_model: model for layer panel
+        """
+        fracture = None
+        i_node_sets = []
+        for idx in range(last_row - joiner, last_row):
+            # check if interface has fracture layer
+            item = layer_panel_model[idx]
+            i_node_sets.append(item[0])
+
+            if isinstance(item[1], LayerItem):
+                fracture = item[1]
+        if last_row - joiner - 1 >= 0:
+            layer_above = layer_panel_model[last_row - joiner - 1][0]
+        else:
+            layer_above = None
+
+        if last_row < len(layer_panel_model):
+            layer_below = layer_panel_model[last_row][0]
+        else:
+            layer_below = None
+
+        return ElevationLabel(self.le_model, i_node_sets, layer_below, layer_above, fracture)
 
     def _add_joiner(self, n_join, end_row):
+        """ Adds joiner of interfaces
+            :n_join: number of interfaces to join
+            :end_row: last row to join
+        """
         if n_join == 2:
-            top = self.main_layout.itemAtPosition(end_row - 2, 2).widget()
-            bot = self.main_layout.itemAtPosition(end_row - 1, 2).widget()
-            self.main_layout.addWidget(Joiner(self, top, bot), end_row - 2, 2, 3, 1)
+            top = self.main_layout.itemAtPosition(end_row - 1, 2).widget()
+            bot = self.main_layout.itemAtPosition(end_row, 2).widget()
+            self.main_layout.addWidget(Joiner(self, top, bot), end_row - 1, 3, 2, 1)
         elif n_join == 3:
-            top = self.main_layout.itemAtPosition(end_row - 3, 2).widget()
-            mid = self.main_layout.itemAtPosition(end_row - 2, 2).widget()
-            bot = self.main_layout.itemAtPosition(end_row - 1, 2).widget()
-            self.main_layout.addWidget(Joiner(self, top, bot, mid), end_row - 3, 3, 3, 1)
+            top = self.main_layout.itemAtPosition(end_row - 2, 2).widget()
+            mid = self.main_layout.itemAtPosition(end_row - 1, 2).widget()
+            bot = self.main_layout.itemAtPosition(end_row, 2).widget()
+            self.main_layout.addWidget(Joiner(self, top, bot, mid), end_row - 2, 3, 3, 1)
         elif n_join > 3:
             assert False, "This is not right!!! Something is broken."
 

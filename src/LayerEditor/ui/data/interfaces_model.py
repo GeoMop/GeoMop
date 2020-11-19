@@ -21,9 +21,16 @@ class InterfacesModel:
             interface.index = None
 
     @undo.undoable
-    def insert_after(self, new_itf:InterfaceItem, after_itf: InterfaceItem):
+    def insert_after(self, new_itf: InterfaceItem, after_itf: InterfaceItem):
         idx = self.interfaces.index(after_itf) + 1
         self.interfaces.insert(idx, new_itf)
         yield f"Add interface, elevation: {new_itf.elevation}"
         del self.interfaces[idx]
+
+    @undo.undoable
+    def delete_itf(self, itf):
+        idx = self.interfaces.index(itf)
+        del self.interfaces[idx]
+        yield "Delete Interface"
+        self.interfaces.insert(idx, itf)
 

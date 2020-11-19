@@ -9,6 +9,7 @@ class DiagramView(QtWidgets.QGraphicsView):
     cursorChanged = pyqtSignal(float, float)
     def __init__(self, le_model):
         super(DiagramView, self).__init__()
+        self.le_model = le_model
         self.scenes = {}  # {topology_id: DiagramScene}
         # dict of all scenes
         self._empty = True
@@ -67,3 +68,11 @@ class DiagramView(QtWidgets.QGraphicsView):
                          "x": center.x(),
                          "y": -center.y(),
                          'position_set': False}}
+
+    def scenes_changed(self, block_id, added: bool):
+        if added:
+            block = self.le_model.blocks_model.blocks.get(block_id)
+            diagram_scene = DiagramScene(block, self.le_model.init_area, self)
+
+            block.selection.set_diagram(diagram_scene)
+            self.scenes[block.id] = diagram_scene

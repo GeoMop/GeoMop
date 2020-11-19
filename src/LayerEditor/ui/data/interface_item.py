@@ -6,7 +6,7 @@ class InterfaceItem:
         super(InterfaceItem, self).__init__()
         self.surface = surface
         """Surface index"""
-        self.transform_z = transform_z or [1.0, elevation]
+        self.transform_z = transform_z or [1.0, 0]
         """Transformation in Z direction (scale and shift)."""
         self.elevation = elevation
         """ Representative Z coord of the surface."""

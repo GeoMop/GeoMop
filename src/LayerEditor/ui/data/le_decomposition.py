@@ -1,6 +1,7 @@
 from bgem.polygons.polygons import PolygonDecomposition
 
 from LayerEditor.ui.tools import undo
+from gm_base.polygons import polygons_io
 
 
 class LEDecomposition(PolygonDecomposition):
@@ -57,4 +58,19 @@ class LEDecomposition(PolygonDecomposition):
                 if dim == 0:
                     self.delete_point(self.points[id])
 
+    def copy_itself(self):
+        """ Make new decomposition with identical topology and nodeset as this.
+            Ids will change, so everything that uses shape ids needs to be updated using old_to_new_id"""
+        receiver = undo.stack()._receiver
+        nodes, topology = polygons_io.serialize(self)
 
+        old_to_new_id = [{}, {}, {}]
+        for dim in range(3):
+            for shape in self.decomp.shapes[dim].values():
+                old_to_new_id[dim][shape.id] = shape.index
+
+        cpy = polygons_io.deserialize(nodes, topology)
+
+        cpy.block = self.block
+        undo.stack().setreceiver(receiver)
+        return cpy, old_to_new_id

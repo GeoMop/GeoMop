@@ -55,7 +55,7 @@ class LayerItem(IdObject):
 
         return gl
 
-    def set_region_to_selected_shapes(self, region: RegionItem):
+    def set_region_to_selected_shapes(self, region: RegionItem, le_model):
         """Sets regions of shapes only in this layer."""
         assert isinstance(undo.stack()._receiver, deque), "groups cannot be nested"
         with undo.group(f"Set region of selected to {region.id}"):
@@ -65,6 +65,7 @@ class LayerItem(IdObject):
                     dim += 1
                 if dim == region.dim or region.dim == -1:
                     self.set_region_to_shape(orig_dim, shape_id, region)
+            le_model.emit_invalidate_scene()
 
     def get_shape_region(self, dim, shape_id) -> RegionItem:
         return self.shape_regions[dim][shape_id]
@@ -113,6 +114,17 @@ class LayerItem(IdObject):
                 return False
             else:
                 return True
+
+    @undo.undoable
+    def update_shape_ids(self, old_to_new_id):
+        new_shape_regions = [{}, {}, {}]
+        for dim in range(3):
+            for shape_id, region in self.shape_regions[dim].items():
+                new_shape_regions[dim][old_to_new_id[dim][shape_id]] = region
+        old_shape_regions = self.shape_regions
+        self.shape_regions = new_shape_regions
+        yield "Updating ids in shape_regions"
+        self.shape_regions = old_shape_regions
 
     @undo.undoable
     def set_region_to_shape(self, dim, shape_id, region: RegionItem):

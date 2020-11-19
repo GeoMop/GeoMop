@@ -1,3 +1,4 @@
+from LayerEditor.ui.tools import undo
 from gm_base.geometry_files.format_last import NodeSet
 from gm_base.polygons import polygons_io
 
@@ -29,4 +30,18 @@ class DecompositionsModel:
     def clear_indexing(self):
         for decomp in self.decomps:
             del decomp.temp_index
+
+    @undo.undoable
+    def add_decomposition(self, decomp):
+        self.decomps.append(decomp)
+        yield "Add Decomposition"
+        self.decomps.remove(decomp)
+
+    @undo.undoable
+    def delete_decomposition(self, decomp):
+        idx = self.decomps.index(decomp)
+        self.decomps.remove(decomp)
+        yield "Delete Decomposition"
+        self.decomps.insert(idx, decomp)
+
 

@@ -11,17 +11,15 @@ class InterfaceType:
 
 class WGInterface(QWidget):
     """Widget for Layers Panel which represents an interface or fracture layer"""
-    def __init__(self, parent, fracture_name=None, top_bot=InterfaceType.BOTH):
-        """top_bot hold placement of this interface. top = True, bot = False, None otherwise"""
+    def __init__(self, parent, fracture_name=None, placement=InterfaceType.BOTH):
+        """Placement selects joining line on left."""
         super(WGInterface, self).__init__()
         self._parent = parent
-        self.top_bot = top_bot
+        self.placement = placement
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         if fracture_name is not None:
-            self.name = QLabel(" " + fracture_name + " ")
+            self.name = QLabel(" " + fracture_name)
             self.name.setCursor(Qt.PointingHandCursor)
-            font = self.name.font()
-            self.name.setFont(font)
             self.name.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
             self.name.setMargin(0)
             palette = self.name.palette()
@@ -30,7 +28,6 @@ class WGInterface(QWidget):
             layout = QHBoxLayout()
             layout.addWidget(self.name, alignment=Qt.AlignCenter)
             self.setLayout(layout)
-            layout.setContentsMargins(15, 0, 15, 0)
         else:
             #self.setMinimumHeight(self._parent.LINE_WIDTH+1)
             self.setMinimumHeight(QLabel().sizeHint().height())
@@ -45,13 +42,12 @@ class WGInterface(QWidget):
 
         painter.drawLine(start, QPoint(self.rect().right(), center.y()))
 
-        if self.top_bot == InterfaceType.NONE:
+        if self.placement == InterfaceType.NONE:
             return
 
-        if self.top_bot in [InterfaceType.TOP, InterfaceType.BOTH]:
+        if self.placement in [InterfaceType.TOP, InterfaceType.BOTH]:
             painter.drawLine(start,
                              self.rect().bottomLeft() + QPoint(self._parent.LINE_WIDTH * 0.5, 0))
-        if self.top_bot in [InterfaceType.BOTTOM, InterfaceType.BOTH]:
+        if self.placement in [InterfaceType.BOTTOM, InterfaceType.BOTH]:
             painter.drawLine(start,
                              self.rect().topLeft() + QPoint(self._parent.LINE_WIDTH * 0.5, 0))
-

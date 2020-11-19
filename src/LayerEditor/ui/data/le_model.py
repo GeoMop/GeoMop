@@ -2,6 +2,8 @@ import os
 
 from PyQt5.QtCore import QObject, QPointF, pyqtSignal
 from PyQt5.QtGui import QPolygonF
+
+from LayerEditor.ui.data.block_item import BlockItem
 from LayerEditor.ui.tools import undo
 
 from LayerEditor.exceptions.data_inconsistent_exception import DataInconsistentException
@@ -26,8 +28,11 @@ class LEModel(QObject):
     """Regions were added or deleted"""
     invalidate_scene = pyqtSignal()
     """The scene needs to be updated"""
-    layers_changed = pyqtSignal()
+    _layers_changed = pyqtSignal()
     """The structure of layers and interfaces was changed"""
+    scenes_changed = pyqtSignal(int, bool)
+    """ Scene created or deleted
+        carries block id of the scene and True if scene was created or False if scene was deleted"""
 
     def __init__(self, in_file=None):
         super(LEModel, self).__init__()
@@ -75,6 +80,14 @@ class LEModel(QObject):
         """Timestamp is used for detecting file changes while file is loaded in LE."""
         return (geo_model, curr_file_timestamp)
 
+    def is_layer_name_unique(self, new_name):
+        """ Is new layer name unique?
+            :return: True if new name is unique, False if it is not unique"""
+        for name in self.layer_names():
+            if name == new_name:
+                return False
+        return True
+
     def layer_names(self):
         r = []
         for block in self.blocks_model.blocks.values():
@@ -114,15 +127,15 @@ class LEModel(QObject):
         with undo.group("Add new region"):
             self.regions_model.add_region(reg)
             self.gui_curr_block.gui_selected_layer.set_gui_selected_region(reg)
-        self.region_list_changed.emit()
-        self.invalidate_scene.emit()
+            self.emit_region_list_changed()
+            self.emit_invalidate_scene()
         return reg
 
     def delete_region(self, reg):
-        with undo.group("Add new region"):
+        with undo.group("Delete new region"):
             self.regions_model.delete_region(reg)
-        self.region_list_changed.emit()
-        self.invalidate_scene.emit()
+            self.emit_region_list_changed()
+            self.emit_invalidate_scene()
 
     def is_region_used(self, reg):
         for block in self.blocks_model.blocks.values():
@@ -132,41 +145,48 @@ class LEModel(QObject):
                     dim -= 1
                     if dim < 0:
                         continue
+                else:
+                    if dim == 3:
+                        continue
                 if reg in layer.shape_regions[dim].values():
                     return True
         return False
 
     def delete_layer_top(self, layer):
         """ Delete specified layer and top interface.
-            Layer above deleted layer will be extended to bottom interface of deleted layer.
+            Layer above deleted layer (if it exists) will be extended to bottom interface of deleted layer.
             There must be at least one stratum layer above specified layer in parameter(fracture layer doesn't count)"""
         with undo.group("Delete layer and extend the layer above"):
             layers = layer.block.get_sorted_layers()
             idx = layers.index(layer)
-            if layers[idx - 1].is_stratum:
-                top_layer = layers[idx - 1]
-            else:
-                layer.block.delete_layer(layers[idx - 1])
-                top_layer = layers[idx - 2]
-            top_layer.set_bottom_in(layer.bottom_in)
+            if idx != 0 or (idx == 1 and layers[idx - 1].is_stratum):
+                if layers[idx - 1].is_stratum:
+                    above_layer = layers[idx - 1]
+                else:
+                    layer.block.delete_layer(layers[idx - 1])
+                    above_layer = layers[idx - 2]
+                above_layer.set_bottom_in(layer.bottom_in)
+            self.interfaces_model.delete_itf(layer.top_in.interface)
             layer.block.delete_layer(layer)
-        self.layers_changed.emit()
+            self.emit_layer_changed()
 
     def delete_layer_bot(self, layer):
         """ Delete specified layer and bottom interface.
-            Layer below deleted layer will be extended to top interface of deleted layer.
+            Layer below deleted layer (if it exists) will be extended to top interface of deleted layer.
             There must be at least one stratum layer below specified layer (fracture layer doesn't count)"""
         with undo.group("Delete layer and extend the layer below"):
             layers = layer.block.get_sorted_layers()
             idx = layers.index(layer)
-            if layers[idx + 1].is_stratum:
-                top_layer = layers[idx + 1]
-            else:
-                layer.block.delete_layer(layers[idx + 1])
-                top_layer = layers[idx + 2]
-            top_layer.set_top_in(layer.top_in)
+            if idx != len(layers) - 1 or ((idx == len(layers) - 2) and layers[idx + 1].is_stratum):
+                if layers[idx + 1].is_stratum:
+                    below_layer = layers[idx + 1]
+                else:
+                    layer.block.delete_layer(layers[idx + 1])
+                    below_layer = layers[idx + 2]
+                below_layer.set_top_in(layer.top_in)
+            self.interfaces_model.delete_itf(layer.bottom_in.interface)
             layer.block.delete_layer(layer)
-        self.layers_changed.emit()
+            self.emit_layer_changed()
 
     def delete_block(self, block):
         self.blocks_model.delete_block(block)
@@ -337,10 +357,113 @@ class LEModel(QObject):
 
             self.blocks_model.blocks[layer.block].add_layer(new_layer)
 
-            self.layers_changed.emit()
+            self.emit_layer_changed()
 
-    def delete_layer(self, layer):
-        self.gui_curr_block.delete_layer(layer)
-        self.layers_changed.emit()
+    def add_fracture_layer(self, i_node_set):
+        """Add fracture to interface specified by InterfaceNodeSetItem/InterpolatedNodeSetItem"""
+        with undo.group("Add Fracture"):
+            layer_name = "Fracture_1"
+            idx = 2
+            while not self.is_layer_name_unique(layer_name):
+                layer_name = f"Fracture_{idx}"
+                idx += 1
 
+            shape_regions = [{}, {}, {}]
+            for dim in range(3):
+                for shape in i_node_set.get_shapes()[dim].values():
+                    shape_regions[dim][shape.id] = RegionItem.none
 
+            new_layer = LayerItem(i_node_set.block,
+                                  layer_name,
+                                  i_node_set,
+                                  None,
+                                  shape_regions)
+
+            self.blocks_model.blocks[i_node_set.block].add_layer(new_layer)
+            self.emit_layer_changed()
+
+    def split_interface(self, i_node_set, layer_below, layer_above):
+        with undo.group("Split Interface"):
+            old_block = i_node_set.block
+            if isinstance(i_node_set, InterfaceNodeSetItem):
+                top_decomp = i_node_set.decomposition
+                bot_decomp, old_to_new_id = top_decomp.copy_itself()
+            else:
+                top_decomp = i_node_set.bottom_itf_node_set.decomposition
+                bot_decomp, old_to_new_id = top_decomp.copy_itself()
+
+            layers = old_block.get_sorted_layers()
+            idx = layers.index(layer_below)
+            selected_idx = layers.index(old_block.gui_selected_layer)
+            if selected_idx >= idx:
+                old_block.gui_selected_layer = layers[0]
+            new_block = BlockItem(self.regions_model)
+            new_block.gui_selected_layer = layer_below
+            for layer in layers[idx:]:
+                old_block.delete_layer(layer)
+                new_block.add_layer(layer)
+
+            if len(new_block.get_interface_node_sets()) == 0:
+                new_i_node_set = InterfaceNodeSetItem(bot_decomp, i_node_set.interface)
+                layer_below.set_top_in(new_i_node_set)
+                for layer in new_block.layers_dict.values():
+                    layer.update_shape_ids(old_to_new_id)
+                    if layer is not layer_below:
+                        layer.set_top_in(InterpolatedNodeSetItem(new_i_node_set,
+                                                                 new_i_node_set,
+                                                                 layer.top_in.interface))
+                    if layer.is_stratum:
+                        layer.set_bottom_in(InterpolatedNodeSetItem(new_i_node_set,
+                                                                    new_i_node_set,
+                                                                    layer.bottom_in.interface))
+            elif len(old_block.get_interface_node_sets()) == 0:
+                new_i_node_set = InterfaceNodeSetItem(top_decomp, i_node_set.interface)
+                layer_above.set_bottom_in(new_i_node_set)
+                for layer in old_block.layers_dict.values():
+                    layer.set_top_in(InterpolatedNodeSetItem(new_i_node_set,
+                                                           new_i_node_set,
+                                                           layer.top_in.interface))
+                    if layer is not layer_above and layer.is_stratum:
+                        layer.set_bottom_in(InterpolatedNodeSetItem(new_i_node_set,
+                                                                    new_i_node_set,
+                                                                    layer.bottom_in.interface))
+                for layer in new_block.layers_dict.values():
+                    layer.update_shape_ids(old_to_new_id)
+                    layer.top_in.change_decomposition(bot_decomp, bot_decomp)
+                    if layer.is_stratum:
+                        layer.bottom_in_in.change_decomposition(bot_decomp, bot_decomp)
+
+            else:
+                assert False, "This should not happen. Unless there can be more than 1 decomposition in block."
+
+            self.blocks_model.add_block(new_block)
+
+            bot_decomp.block = new_block
+            self.decompositions_model.add_decomposition(bot_decomp)
+
+            self.emit_layer_changed()
+            self.emit_scenes_changed(new_block.id, added=True)
+
+    @undo.undoable
+    def emit_layer_changed(self):
+        self._layers_changed.emit()
+        yield "Layers change signal emitted"
+        self._layers_changed.emit()
+
+    @undo.undoable
+    def emit_invalidate_scene(self):
+        self.invalidate_scene.emit()
+        yield "Layers change signal emitted"
+        self.invalidate_scene.emit()
+
+    @undo.undoable
+    def emit_region_list_changed(self):
+        self.region_list_changed.emit()
+        yield "Layers change signal emitted"
+        self.region_list_changed.emit()
+
+    @undo.undoable
+    def emit_scenes_changed(self, block, added=True):
+        self.scenes_changed.emit(block, added)
+        yield "Scene " + ("added" if added else "deleted") + "signal emitted"
+        self.scenes_changed.emit(block, not added)

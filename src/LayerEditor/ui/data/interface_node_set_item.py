@@ -1,3 +1,4 @@
+from LayerEditor.ui.tools import undo
 from gm_base.geometry_files.format_last import InterfaceNodeSet
 
 
@@ -8,6 +9,10 @@ class InterfaceNodeSetItem:
         """Node set index"""
         self.interface = interface
         """Interface index"""
+
+    def get_shapes(self):
+        """Topology must be the same so shape should be too"""
+        return self.decomposition.decomp.shapes
 
     @property
     def block(self):
@@ -23,3 +28,13 @@ class InterfaceNodeSetItem:
                 self.decomposition == other.decomposition):
             return True
         return False
+
+    @undo.undoable
+    def change_decomposition(self, top_decomp, bot_decomp=None):
+        """bot_decomp is present only so this method is identical to the one in InterpolatedNodeSetItem"""
+        old_decomp = self.decomposition
+        self.decomposition = top_decomp
+        yield "Changing Decomposition"
+        self.decomposition = old_decomp
+
+

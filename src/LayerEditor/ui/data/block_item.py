@@ -122,16 +122,23 @@ class BlockItem(IdObject):
 
     @undo.undoable
     def add_layer(self, new_layer: LayerItem):
+        old_block = new_layer.block
         self.layers_dict.add(new_layer)
-        yield "New Layer"
+        new_layer.block = self
+        yield "Add Layer"
         self.delete_layer(new_layer)
+        new_layer.block = old_block
 
     @undo.undoable
     def delete_layer(self, layer):
+        old_block = layer.block
+        if layer.block is self:
+            layer.block = None
         self.layers_dict.remove(layer)
-        if self.gui_selected_layer is layer:
+        if self.gui_selected_layer is layer and len(self.layers_dict.values()) > 0:
             self.set_gui_selected_layer(list(self.layers_dict.values())[0])
         yield "Delete Layer"
+        layer.block = old_block
         self.add_layer(layer)
 
     @undo.undoable

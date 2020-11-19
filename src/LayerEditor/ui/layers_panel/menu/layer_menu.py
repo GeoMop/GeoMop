@@ -18,13 +18,13 @@ class LayerMenu(QMenu):
         self.del_layer_top = QAction('Delete Layer and Top')
         self.del_layer_top.setStatusTip('Delete Layer and Top Interface')
         self.addAction(self.del_layer_top)
-        if layer.is_first() or layer.is_last_decomp(top=True):
+        if layer.is_last_decomp(top=True) or len(layer.block.layers_dict) == 1:
             self.del_layer_top.setDisabled(True)
 
         self.del_layer_bot = QAction('Delete Layer and Bottom')
         self.del_layer_bot.setStatusTip('Delete Layer and Bottom Interface')
         self.addAction(self.del_layer_bot)
-        if layer.is_last() or layer.is_last_decomp(top=False):
+        if layer.is_last_decomp(top=False) or len(layer.block.layers_dict) == 1:
             self.del_layer_bot.setDisabled(True)
 
         self.del_block_action = QAction('Delete Block', self)

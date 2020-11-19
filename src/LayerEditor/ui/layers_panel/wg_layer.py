@@ -56,8 +56,8 @@ class WGLayer(QWidget):
 
     def text_changed(self, new_name):
         new_name = new_name.strip()
-        unique = self.is_layer_name_unique(new_name)
-        if unique is None or unique:
+        unique = self.le_model.is_layer_name_unique(new_name)
+        if new_name == self.layer.name or unique:
             self.name.text_edit.mark_text_valid()
             self.name.setToolTip("")
         else:
@@ -66,24 +66,13 @@ class WGLayer(QWidget):
 
     def name_finished(self):
         new_name = self.name.text_edit.text().strip()
-        if self.is_layer_name_unique(new_name):
+        if self.le_model.is_layer_name_unique(new_name) and new_name != self.layer.name:
             self.layer.set_name(new_name)
             self._parent.update_layers_panel()
         else:
             self.name.text_edit.setText(self.layer.name)
             self.name.finish_editing()
             self.name.setToolTip("")
-
-    def is_layer_name_unique(self, new_name):
-        """ Is new layer name unique?
-            :return: True if new name is unique, False if it is not unique, None if new name is the same as old name"""
-        if self.layer.name == new_name:
-            return None
-        else:
-            for name in self.le_model.layer_names():
-                if name == new_name:
-                    return False
-            return True
 
     def del_layer_top(self):
         self.le_model.delete_layer_top(self.layer)

@@ -51,6 +51,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # scene
         self.diagram_view = DiagramView(self._layer_editor.le_model)
         """View is common for all layers and blocks."""
+        self._layer_editor.le_model.scenes_changed.connect(self.diagram_view.scenes_changed)
 
         self._hsplitter.addWidget(self.diagram_view)
 
@@ -120,7 +121,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # self.layers.clearDiagramSelection.connect(self.clear_diagram_selection)
 
         self._layer_editor.le_model.invalidate_scene.connect(self.curr_scene.update_scene)
-        self._layer_editor.le_model.layers_changed.connect(self.layers_changed)
+        self._layer_editor.le_model._layers_changed.connect(self.layers_changed)
 
         # self.wg_surface_panel.show_grid.connect(self._show_grid)
 
