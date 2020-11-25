@@ -1,9 +1,7 @@
-import sys
-
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QPen, QFont
-from PyQt5.QtWidgets import QWidget, QGridLayout, QLabel, QApplication, QCheckBox, QHBoxLayout, QButtonGroup, \
-    QScrollArea
+from PyQt5.QtGui import QPen
+from PyQt5.QtWidgets import QWidget, QGridLayout, QLabel, QCheckBox, QHBoxLayout, QButtonGroup, \
+    QScrollArea, QMessageBox
 
 from LayerEditor.ui.data.interface_node_set_item import InterfaceNodeSetItem
 from LayerEditor.ui.data.interpolated_node_set_item import InterpolatedNodeSetItem
@@ -39,13 +37,18 @@ class LayerPanel(QScrollArea):
         self.update_layers_panel()
 
     def update_layers_panel(self):
+        """Makes/remakes most LayerPanel. Scroll is preserved."""
         h_bar_value = self.horizontalScrollBar().value()
         v_bar_value = self.verticalScrollBar().value()
 
         widget = QWidget()
         self.main_layout = QGridLayout()
         self.main_layout.setAlignment(Qt.AlignCenter)
-        self.radio_button_group = QButtonGroup()
+        self.edit_buttons_group = QButtonGroup()
+        self.edit_buttons_group.buttonClicked.connect(self.change_active_decomp)
+        self.view_buttons_group = QButtonGroup()
+        self.view_buttons_group.setExclusive(False)
+        self.view_buttons_group.buttonClicked.connect(self.view_overlay)
 
         self.main_layout.addLayout(add_margins_around_widget(QLabel("View"), 5, 0, 5, 0), 0, 0)
         self.main_layout.addLayout(add_margins_around_widget(QLabel("Edit"), 5, 0, 5, 0), 0, 1)
@@ -56,9 +59,9 @@ class LayerPanel(QScrollArea):
         layer_panel_model = self._add_types_of_left_joiners(layer_panel_model)
         self._add_interfaces_and_layer_to_panel(layer_panel_model)
         self._add_right_joiners_and_elevation(layer_panel_model)
-        for button in self.radio_button_group.buttons():
+        for button in self.edit_buttons_group.buttons():
             if button.parent().block == self.le_model.gui_curr_block:
-                button.setChecked(True)
+                button.click()
 
         widget.setLayout(self.main_layout)
 
@@ -71,6 +74,9 @@ class LayerPanel(QScrollArea):
 
 
     def _make_layer_panel_model(self, le_model):
+        """Compiles list representing rows in LayerPanel from data layer.
+            First item in list is only interface or stratum layer.
+            Fracture layer is stored on as second item of interface row."""
         layer_panel_model = [[le_model.blocks_model.layers[0].top_in]]
         for layer in le_model.blocks_model.layers:
             if layer.is_stratum:
@@ -86,38 +92,56 @@ class LayerPanel(QScrollArea):
         return layer_panel_model
 
     def _add_types_of_left_joiners(self, layer_panel_model):
-        layer_panel_model[0].append(InterfaceType.TOP)
-        for i in range(1, len(layer_panel_model) - 1):
-            type = 3
-            if isinstance(layer_panel_model[i][0], (InterfaceNodeSetItem, InterpolatedNodeSetItem)):
-                if isinstance(layer_panel_model[i - 1][0], (InterfaceNodeSetItem, InterpolatedNodeSetItem)):
-                    if layer_panel_model[i - 1][0].block == layer_panel_model[i][0].block:
+        """ Extends data in layer_panel_model. Adds types of joining lines on left side to interface rows.
+            Also adds whether layer can be deleted with top or bot interface. This info is not definitive,
+            other data may still disable deleting."""
+        if len(layer_panel_model) == 1 or not isinstance(layer_panel_model[1][0], LayerItem):
+            layer_panel_model[0].append(InterfaceType.NONE)
+        else:
+            layer_panel_model[0].append(InterfaceType.TOP)
+            last_wg_layer_item = None  # starting row of split
+            split = 1  # 0 - no split 1 - one interface(possible start of split) 2,3 - split
+            for i in range(1, len(layer_panel_model) - 1):
+                type = 3
+                if isinstance(layer_panel_model[i][0], (InterfaceNodeSetItem, InterpolatedNodeSetItem)):
+                    if split == 0:
+                        last_wg_layer_item = layer_panel_model[i - 1]
+                    split += 1
+                    if isinstance(layer_panel_model[i - 1][0], LayerItem):
                         type -= 2
-                else:
-                    type -= 2
-                if isinstance(layer_panel_model[i + 1][0], (InterfaceNodeSetItem, InterpolatedNodeSetItem)):
-                    if layer_panel_model[i + 1][0].block == layer_panel_model[i][0].block:
+                    if isinstance(layer_panel_model[i + 1][0], LayerItem):
                         type -= 1
+                    layer_panel_model[i].append(type)
                 else:
-                    type -= 1
-                layer_panel_model[i].append(type)
+                    del_enable = split < 2
+                    layer_panel_model[i].append(del_enable)
+                    if last_wg_layer_item is not None:
+                        last_wg_layer_item.append(del_enable)
+                    split = 0
 
-        layer_panel_model[-1].append(InterfaceType.BOTTOM)
+            if isinstance(layer_panel_model[-2][0], LayerItem):
+                layer_panel_model[-1].append(InterfaceType.BOTTOM)
+            else:
+                layer_panel_model[-1].append(InterfaceType.NONE)
         return layer_panel_model
 
     def _add_interfaces_and_layer_to_panel(self, layer_panel_model):
+        """Adds widgets representing layers and interfaces to Layer panel"""
         for row, item in enumerate(layer_panel_model, start=1):
             if isinstance(item[0], InterfaceNodeSetItem):
                 self._add_edit_view(row, item[0].block)
             if isinstance(item[0], (InterfaceNodeSetItem, InterpolatedNodeSetItem)):
+
                 if len(item) == 3:
-                    self.main_layout.addWidget(WGInterface(self, item[1].name, item[2]), row, 2)
+                    self.main_layout.addWidget(WGInterface(self, item[1], item[2]), row, 2)
                 else:
                     self.main_layout.addWidget(WGInterface(self, None, item[1]), row, 2)
             else:
-                self.main_layout.addWidget(WGLayer(self, item[0]), row, 2)
+                wg_layer = WGLayer(self, item[0], *item[1:])
+                self.main_layout.addWidget(wg_layer, row, 2)
 
     def _add_right_joiners_and_elevation(self, layer_panel_model):
+        """Defines right joiners which join concussive unique blocks. Also adds ElevationLabels."""
         joiner = 0  # successive interface count
         last_interface = None   # None if ast item was layer otherwise last interface
         for row, item in enumerate(layer_panel_model, 1):
@@ -176,7 +200,7 @@ class LayerPanel(QScrollArea):
         else:
             layer_below = None
 
-        return ElevationLabel(self.le_model, i_node_sets, layer_below, layer_above, fracture)
+        return ElevationLabel(self, i_node_sets, layer_below, layer_above, fracture)
 
     def _add_joiner(self, n_join, end_row):
         """ Adds joiner of interfaces
@@ -196,21 +220,29 @@ class LayerPanel(QScrollArea):
             assert False, "This is not right!!! Something is broken."
 
     def _add_edit_view(self, row, block):
-        check_box = QCheckBox()
-        check_box.setCursor(Qt.PointingHandCursor)
-        self.main_layout.addLayout(add_margins_around_widget(check_box, 5, 2, 5, 0), row, 0)
-        radio_button = RadioButton(self, block)
-        self.radio_button_group.addButton(radio_button.radio_button)
+        view_button = QCheckBox()
+        view_button.setCursor(Qt.PointingHandCursor)
+        self.view_buttons_group.addButton(view_button)
+        self.main_layout.addLayout(add_margins_around_widget(view_button, 5, 2, 5, 0), row, 0)
+        radio_button = RadioButton(self, block, view_button)
+        self.edit_buttons_group.addButton(radio_button.radio_button)
         self.main_layout.addWidget(radio_button, row, 1)
 
     def get_current_block(self):
-        return self.radio_button_group.checkedButton().block
+        return self.edit_buttons_group.checkedButton().block
 
-if __name__ == '__main__':
-    app = QApplication(sys.argv)
-    font = QFont()
-    font.setPixelSize(20)
-    app.setFont(font)
-    widget = LayerPanel()
-    widget.show()
-    app.exec_()
+    def change_active_decomp(self, radio_button: RadioButton):
+        for button in self.view_buttons_group.buttons():
+            button.setEnabled(True)
+        radio_button = radio_button.parent()
+        self.le_model.change_curr_block(radio_button.block)
+        radio_button.view_button.setDisabled(True)
+
+    def view_overlay(self):
+        for button in self.view_buttons_group.buttons():
+            button.setChecked(False)
+        msg = QMessageBox(self)
+        msg.setWindowTitle("Sorry")
+        msg.setText("Overlaying not implemented yet...")
+        msg.exec_()
+

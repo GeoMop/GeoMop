@@ -14,8 +14,15 @@ class SplitLayerDlg(QtWidgets.QDialog):
     def __init__(self, top_y, bot_y, used_names, parent=None):
         super(SplitLayerDlg, self).__init__(parent)
         self.used_names = used_names
-        self.top_y = top_y
-        self.bot_y = bot_y
+        self.top_y = top_y if top_y is not None else 10000
+        self.bot_y = bot_y if bot_y is not None else -10000
+
+        if top_y is None:
+            default_elevation = bot_y + 100
+        elif bot_y is None:
+            default_elevation = top_y - 100
+        else:
+            default_elevation = (top_y + bot_y) / 2
 
         self.red_palette = QtGui.QPalette()
         self.red_palette.setColor(QtGui.QPalette.Text, Qt.red)
@@ -65,7 +72,7 @@ class SplitLayerDlg(QtWidgets.QDialog):
         grid.addWidget(self.elevation, 3, 2)
         grid.addWidget(self.elevation_image, 3, 3)
 
-        self.elevation.setText(str((top_y+bot_y)/2))
+        self.elevation.setText(str(default_elevation))
         
         self._tranform_button = QtWidgets.QPushButton("Split", self)
         self._tranform_button.clicked.connect(self.accept)

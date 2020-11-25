@@ -1,3 +1,4 @@
+from LayerEditor.ui.tools import undo
 from gm_base.geometry_files.format_last import Interface
 
 
@@ -18,3 +19,12 @@ class InterfaceItem:
         return Interface(dict(surface_id=self.surface.index if self.surface is not None else None,
                               transform_z=self.transform_z,
                               elevation=self.elevation))
+
+    @undo.undoable
+    def set_elevation(self, new_elevation):
+        old_elevation = self.elevation
+        self.elevation = new_elevation
+        yield "Changed Elevation"
+        self.elevation = old_elevation
+
+

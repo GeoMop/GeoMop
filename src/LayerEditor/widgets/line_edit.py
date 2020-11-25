@@ -12,14 +12,11 @@ class LineEdit(QLineEdit):
 
     def mark_text_invalid(self):
         if self.text_valid:
-            palette = self.palette()
-            palette.setColor(QPalette.Base, self.invalid_text_color)
-            self.setPalette(palette)
+            self.setStyleSheet(f"background-color: {self.invalid_text_color.name()}")
             self.text_valid = False
 
     def mark_text_valid(self):
         if not self.text_valid:
-            palette = self.palette()
-            palette.setColor(QPalette.Base, self.valid_text_color)
-            self.setPalette(palette)
+            self.styleSheet()
+            self.setStyleSheet(f"background-color: {self.valid_text_color.name}")
             self.text_valid = True

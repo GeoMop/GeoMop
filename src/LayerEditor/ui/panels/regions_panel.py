@@ -110,15 +110,6 @@ class RegionsPanel(QtWidgets.QToolBox):
         selected = self.le_model.gui_curr_block.selection._selected
         if selected:
             for layer in self.le_model.gui_curr_block.get_sorted_layers():
-                region = layer.get_shape_region(selected[0].dim, selected[0].shape_id)
-                is_region_same = True
-                for g_item in selected:
-                    if region != layer.get_shape_region(g_item.dim, g_item.shape_id):
-                        is_region_same = False
-                        break
-                if is_region_same:
-                    layer.gui_selected_region = region
-                else:
-                    layer.gui_selected_region = RegionItem.none
+                layer.gui_selected_region = layer.get_region_of_selected_shapes()
             self.update_tabs()
 

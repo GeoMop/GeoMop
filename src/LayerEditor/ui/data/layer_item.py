@@ -24,7 +24,7 @@ class LayerItem(IdObject):
         """Regions of shapes grouped by dimension"""
 
         ######### Not undoable ########### Not undoable ########## Not undoable ##########
-        self.gui_selected_region = RegionItem.none
+        self.gui_selected_region = self.get_region_of_selected_shapes()
         """Default region for new objects in diagram. Also used by LayerHeads for RegionsPanel"""
         """Not undoable"""
 
@@ -54,6 +54,22 @@ class LayerItem(IdObject):
             gl = FractureLayer(layer_config)
 
         return gl
+
+    def get_region_of_selected_shapes(self):
+        selected = self.block.selection._selected
+        if selected:
+            region = self.get_shape_region(selected[0].dim, selected[0].shape_id)
+            is_region_same = True
+            for g_item in selected:
+                if region != self.get_shape_region(g_item.dim, g_item.shape_id):
+                    is_region_same = False
+                    break
+            if is_region_same:
+                return region
+            else:
+                return RegionItem.none
+        else:
+            return RegionItem.none
 
     def set_region_to_selected_shapes(self, region: RegionItem, le_model):
         """Sets regions of shapes only in this layer."""

@@ -52,6 +52,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.diagram_view = DiagramView(self._layer_editor.le_model)
         """View is common for all layers and blocks."""
         self._layer_editor.le_model.scenes_changed.connect(self.diagram_view.scenes_changed)
+        self._layer_editor.le_model.active_block_changed.connect(self.change_curr_block)
 
         self._hsplitter.addWidget(self.diagram_view)
 
@@ -120,7 +121,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # self.layers.refreshArea.connect(self._refresh_area)
         # self.layers.clearDiagramSelection.connect(self.clear_diagram_selection)
 
-        self._layer_editor.le_model.invalidate_scene.connect(self.curr_scene.update_scene)
+        self._layer_editor.le_model.invalidate_scene.connect(self.update_scene)
         self._layer_editor.le_model._layers_changed.connect(self.layers_changed)
 
         # self.wg_surface_panel.show_grid.connect(self._show_grid)
@@ -151,6 +152,9 @@ class MainWindow(QtWidgets.QMainWindow):
     def layers_changed(self):
         self.update_all()
 
+    def update_scene(self):
+        self.curr_scene.update_scene()
+
     # def _show_grid(self, show_flag):
     #     """Show mash"""
     #     if show_flag:
@@ -173,6 +177,7 @@ class MainWindow(QtWidgets.QMainWindow):
         super(MainWindow, self).closeEvent(event)
 
     def undo(self):
+        temp = undo.stack()
         self._layer_editor.le_model.gui_curr_block.selection.deselect_all()
         # Deselect because selected region can change and that could create wrong behaviour #
         self.curr_scene.hide_aux_point_and_seg()
@@ -180,6 +185,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.update_all()
 
     def redo(self):
+        temp = undo.stack()
         self._layer_editor.le_model.gui_curr_block.selection.deselect_all()
         # the same reason as in undo
         self.curr_scene.hide_aux_point_and_seg()
@@ -190,6 +196,14 @@ class MainWindow(QtWidgets.QMainWindow):
         self.curr_scene.update_scene()
         self.wg_regions_panel.update_tabs()
         self.layers.update_layers_panel()
+
+    def change_curr_block(self, old_block_id):
+        self.diagram_view.setScene(self.diagram_view.scenes[self._layer_editor.le_model.gui_curr_block.id])
+        old_block = self._layer_editor.le_model.blocks_model.blocks.get(old_block_id)
+        old_block.selection.selection_changed.disconnect(self.wg_regions_panel.selection_changed)
+        curr_block = self._layer_editor.le_model.gui_curr_block
+        curr_block.selection.selection_changed.connect(self.wg_regions_panel.selection_changed)
+        self.wg_regions_panel.update_tabs()
 
     def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:
         if event.key() == QtCore.Qt.Key_Z and\

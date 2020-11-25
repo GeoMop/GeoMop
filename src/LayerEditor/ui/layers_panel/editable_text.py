@@ -9,9 +9,8 @@ from LayerEditor.widgets.line_edit import LineEdit
 
 
 class EditableText(QWidget):
-    def __init__(self, parent, text=None):
+    def __init__(self, text=None):
         super(EditableText, self).__init__()
-        self._parent = parent
         layout = QHBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(layout)
@@ -35,9 +34,3 @@ class EditableText(QWidget):
         self.layout().replaceWidget(self.text_edit, self.text_label)
         self.text_edit.hide()
         self.text_label.show()
-
-if __name__ == '__main__':
-    app = QApplication(sys.argv)
-    w = EditableText("test")
-    w.show()
-    app.exec_()

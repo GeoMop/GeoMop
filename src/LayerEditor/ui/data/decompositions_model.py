@@ -1,6 +1,6 @@
+from LayerEditor.ui.data.le_decomposition import LEDecomposition
 from LayerEditor.ui.tools import undo
 from gm_base.geometry_files.format_last import NodeSet
-from gm_base.polygons import polygons_io
 
 
 class DecompositionsModel:
@@ -8,15 +8,15 @@ class DecompositionsModel:
     def __init__(self, node_sets_data: list, topologies_data: list):
         self.decomps = []
         for node_set in node_sets_data:
-            self.decomps.append(polygons_io.deserialize(node_set.nodes,
-                                                               topologies_data[node_set.topology_id]))
+            self.decomps.append(LEDecomposition(node_set.nodes,
+                                                topologies_data[node_set.topology_id]))
 
     def save(self):
         node_sets = []
         topologies = []
         helper_blocks = []
         for idx, decomp in enumerate(self.decomps):
-            nodes, topology = polygons_io.serialize(decomp)
+            nodes, topology = decomp.serialize()
             decomp.temp_index = idx
             if decomp.block in helper_blocks:
                 top_id = topologies.index(topology)

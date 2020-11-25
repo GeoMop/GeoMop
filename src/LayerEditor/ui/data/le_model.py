@@ -4,6 +4,7 @@ from PyQt5.QtCore import QObject, QPointF, pyqtSignal
 from PyQt5.QtGui import QPolygonF
 
 from LayerEditor.ui.data.block_item import BlockItem
+from LayerEditor.ui.data.le_decomposition import LEDecomposition
 from LayerEditor.ui.tools import undo
 
 from LayerEditor.exceptions.data_inconsistent_exception import DataInconsistentException
@@ -33,6 +34,9 @@ class LEModel(QObject):
     scenes_changed = pyqtSignal(int, bool)
     """ Scene created or deleted
         carries block id of the scene and True if scene was created or False if scene was deleted"""
+    active_block_changed = pyqtSignal(int)
+    """ curr_block was changed, so scene has to be changed (plus maybe other stuff)
+        param holds id of the previous curr block"""
 
     def __init__(self, in_file=None):
         super(LEModel, self).__init__()
@@ -138,6 +142,7 @@ class LEModel(QObject):
             self.emit_invalidate_scene()
 
     def is_region_used(self, reg):
+        """Returns True if reg is assigned to any shape in any layer in any block"""
         for block in self.blocks_model.blocks.values():
             for layer in block.layers_dict.values():
                 dim = self.regions_model.regions[reg].dim
@@ -188,8 +193,27 @@ class LEModel(QObject):
             layer.block.delete_layer(layer)
             self.emit_layer_changed()
 
-    def delete_block(self, block):
+    def delete_layer(self, layer: LayerItem):
+        with undo.group("Delete Layer"):
+            if len(layer.block.layers_dict) == 1:
+                self._delete_block(layer.block)
+            else:
+                layer.block.delete_layer(layer)
+                self.emit_layer_changed()
+
+
+    def delete_block(self, block: BlockItem):
+        with undo.group("Delete Block"):
+            self._delete_block(block)
+
+    def _delete_block(self, block: BlockItem):
+        """Deletes block and all decompositions. Must be used inside `undo.group()`"""
+        for i_node_set in block.get_interface_node_sets():
+            self.decompositions_model.delete_decomposition(i_node_set.decomposition)
         self.blocks_model.delete_block(block)
+
+        self.emit_layer_changed()
+        self.emit_scenes_changed(block, False)
 
     # @classmethod
     # def reload_surfaces(cls, id=None):
@@ -323,6 +347,67 @@ class LEModel(QObject):
         geo_model.supplement.last_node_set = 0
         return geo_model
 
+    def append_layer(self, last_layer: LayerItem, new_layer_name: str, elevation: float):
+        """ Appends layer after last_layer
+            :last_layer: must be last layer in block"""
+        with undo.group("Split Layer"):
+            if last_layer.is_stratum:
+                top_in = last_layer.bottom_in
+            else:
+                top_in = last_layer.top_in
+            top_itf = top_in.interface
+            bot_itf = InterfaceItem(elevation)
+            self.interfaces_model.insert_after(bot_itf, top_itf)
+
+            if top_in.is_interpolated:
+                bot_in = InterpolatedNodeSetItem(top_in.top_itf_node_set, top_in.bottom_itf_node_set, bot_itf)
+            else:
+                bot_in = InterpolatedNodeSetItem(top_in, top_in, bot_itf)
+
+            shape_regions = [dict(last_layer.shape_regions[0]),
+                             dict(last_layer.shape_regions[1]),
+                             dict(last_layer.shape_regions[2])]
+
+            new_layer = LayerItem(last_layer.block,
+                                  new_layer_name,
+                                  top_in,
+                                  bot_in,
+                                  shape_regions)
+
+            self.blocks_model.blocks[last_layer.block].add_layer(new_layer)
+
+            self.emit_layer_changed()
+
+    def prepend_layer(self, first_layer: LayerItem, new_layer_name: str, elevation: float):
+        """ Prepends layer before firs_layer
+            :first_layer: must be first layer in block"""
+        with undo.group("Split Layer"):
+            bot_in = first_layer.top_in
+            bot_itf = bot_in.interface
+            top_itf = InterfaceItem(elevation)
+            self.interfaces_model.insert_before(top_itf, bot_itf)
+
+            if bot_in.is_interpolated:
+                top_in = InterpolatedNodeSetItem(bot_in.top_itf_node_set, bot_in.bottom_itf_node_set, top_itf)
+            else:
+                top_in = InterpolatedNodeSetItem(bot_in, bot_in, top_itf)
+                top_in = InterpolatedNodeSetItem(bot_in, bot_in, top_itf)
+
+            shape_regions = [dict(first_layer.shape_regions[0]),
+                             dict(first_layer.shape_regions[1]),
+                             dict(first_layer.shape_regions[2])]
+
+            new_layer = LayerItem(first_layer.block,
+                                  new_layer_name,
+                                  top_in,
+                                  bot_in,
+                                  shape_regions)
+
+            self.blocks_model.blocks[first_layer.block].add_layer(new_layer)
+
+            self.emit_layer_changed()
+
+
     def split_layer(self, layer: LayerItem, new_layer_name: str, elevation: float):
         with undo.group("Split Layer"):
             new_itf = InterfaceItem(elevation)
@@ -330,8 +415,6 @@ class LEModel(QObject):
             bottom_in = layer.bottom_in
 
             if isinstance(bottom_in, InterpolatedNodeSetItem):
-                """ Todo: it might be unnecessary to crate new InterpolatedNodeSetItem 
-                    if there really is a mistake in original and if they should have the same interface"""
                 middle_it_node_set = InterpolatedNodeSetItem(bottom_in.top_itf_node_set,
                                                              bottom_in.bottom_itf_node_set,
                                                              new_itf)
@@ -359,28 +442,53 @@ class LEModel(QObject):
 
             self.emit_layer_changed()
 
-    def add_fracture_layer(self, i_node_set):
-        """Add fracture to interface specified by InterfaceNodeSetItem/InterpolatedNodeSetItem"""
+    def add_fracture_layer(self, i_node_set, layer_name=None):
         with undo.group("Add Fracture"):
+            self._add_fracture_layer(i_node_set, layer_name)
+
+    def _add_fracture_layer(self, i_node_set, layer_name=None):
+        """ Add fracture to interface specified by InterfaceNodeSetItem/InterpolatedNodeSetItem.
+            Must be used inside `undo.group()`"""
+        if layer_name is None:
             layer_name = "Fracture_1"
             idx = 2
             while not self.is_layer_name_unique(layer_name):
                 layer_name = f"Fracture_{idx}"
                 idx += 1
 
-            shape_regions = [{}, {}, {}]
-            for dim in range(3):
-                for shape in i_node_set.get_shapes()[dim].values():
-                    shape_regions[dim][shape.id] = RegionItem.none
+        shape_regions = [{}, {}, {}]
+        for dim in range(3):
+            for shape in i_node_set.get_shapes()[dim].values():
+                shape_regions[dim][shape.id] = RegionItem.none
 
-            new_layer = LayerItem(i_node_set.block,
-                                  layer_name,
-                                  i_node_set,
-                                  None,
-                                  shape_regions)
+        new_layer = LayerItem(i_node_set.block,
+                              layer_name,
+                              i_node_set,
+                              None,
+                              shape_regions)
 
-            self.blocks_model.blocks[i_node_set.block].add_layer(new_layer)
+        self.blocks_model.blocks[i_node_set.block].add_layer(new_layer)
+        self.emit_layer_changed()
+
+        return new_layer
+
+    def add_fracture_to_new_block(self, i_node_set, layer_name=None):
+        with undo.group("Add Fracture to its own Surface"):
+            new_block = BlockItem(self.regions_model)
+            self.blocks_model.add_block(new_block)
+
+            decomp, old_to_new_id = i_node_set.block.decomposition.copy_itself()
+            decomp.block = new_block
+
+            self.decompositions_model.add_decomposition(decomp)
+
+            new_in = InterfaceNodeSetItem(decomp, i_node_set.interface)
+
+            new_layer = self._add_fracture_layer(new_in, layer_name)
+            new_block.gui_selected_layer = new_layer
+
             self.emit_layer_changed()
+            self.emit_scenes_changed(new_block, added=True)
 
     def split_interface(self, i_node_set, layer_below, layer_above):
         with undo.group("Split Interface"):
@@ -442,7 +550,12 @@ class LEModel(QObject):
             self.decompositions_model.add_decomposition(bot_decomp)
 
             self.emit_layer_changed()
-            self.emit_scenes_changed(new_block.id, added=True)
+            self.emit_scenes_changed(new_block, added=True)
+
+    def change_curr_block(self, block):
+        old_block = self.gui_curr_block
+        self.gui_curr_block = block
+        self.active_block_changed.emit(old_block.id)
 
     @undo.undoable
     def emit_layer_changed(self):
@@ -464,6 +577,6 @@ class LEModel(QObject):
 
     @undo.undoable
     def emit_scenes_changed(self, block, added=True):
-        self.scenes_changed.emit(block, added)
+        self.scenes_changed.emit(block.id, added)
         yield "Scene " + ("added" if added else "deleted") + "signal emitted"
-        self.scenes_changed.emit(block, not added)
+        self.scenes_changed.emit(block.id, not added)

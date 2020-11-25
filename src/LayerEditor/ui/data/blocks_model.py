@@ -10,6 +10,7 @@ class BlocksModel(QObject):
     layers_changed = pyqtSignal()
     def __init__(self, geo_model, le_model):
         super(BlocksModel, self).__init__()
+        self.le_model = le_model
         self.blocks = IdMap()
 
         for top in geo_model.topologies:
@@ -46,8 +47,9 @@ class BlocksModel(QObject):
 
     @undo.undoable
     def delete_block(self, block):
-        #TODO: was not able to test this testa when blocks can be created
         self.blocks.remove(block)
+        if self.le_model.gui_curr_block is block:
+            self.le_model.gui_curr_block = list(self.blocks.values())[0]
         yield "Remove Block"
         self.blocks.add(block)
 

@@ -77,7 +77,6 @@ class BlockItem(IdObject):
 
             return InterpolatedNodeSetItem(itf_node_set1, itf_node_set2, itf)
 
-
     def init_add_layer(self, layer_data: [StratumLayer, FractureLayer], le_model):
         """Add layer while initializing (isn't undoable)."""
         top_in = self.make_node_set_from_data(le_model, layer_data.top)

@@ -96,7 +96,7 @@ class GsPoint(QtWidgets.QGraphicsEllipseItem):
         ItemRotationHasChanged, ItemScaleChange, ItemScaleHasChanged,
         ItemTransformOriginPointChange, and ItemTransformOriginPointHasChanged.
         """
-        # print("change: ", change, "val: ", value)
+
         if change == QtWidgets.QGraphicsItem.ItemPositionHasChanged:
             self.move_to(value.x(), value.y())
         if change == QtWidgets.QGraphicsItem.ItemSelectedChange:
