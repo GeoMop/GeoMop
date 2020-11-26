@@ -7,10 +7,14 @@ import numpy as np
 import copy
 
 import gm_base.b_spline
-import bspline_approx as ba
+import bgem.bspline.bspline_approx as ba
+
+from LayerEditor.ui.data.le_model import LEModel
+from LayerEditor.ui.data.surface_item import SurfaceItem
 from gm_base.geomop_dialogs import GMErrorDialog
 import gm_base.icon as icon
 import gm_base.geometry_files.format_last as GL
+from LayerEditor.data import cfg
 
 """
 TODO:
@@ -234,21 +238,17 @@ class Surfaces(QtWidgets.QWidget):
     """
 
 
-    def __init__(self, layers, home_dir, parent=None):
+    def __init__(self, le_model, parent=None):
         """
-        :param layers: Layers data object (i.e. parent data object where we may read and write the data)
-        :param home_dir: Where to start Open file dialog.
-                        TODO: introduce a sort of file management object, that can provide this info and save recent ...
+        :param le_model: LEModel data object (i.e. parent data object where we may read and write the data)
         :param parent: Surface panel parent.
         """
         super().__init__(parent)
 
         # Data class for the surface panel.
         self.data = SurfFormData()
-        # Surfaces list in Layers.
-        self.layers = layers
-        # Home dir (this way fixed through one LayerEditor session.)
-        self.home_dir = home_dir
+        # Surfaces list in LEModel.
+        self.le_model = le_model
 
         # Setup child widgets
         grid = QtWidgets.QGridLayout(self)
@@ -490,7 +490,7 @@ class Surfaces(QtWidgets.QWidget):
         Event for changed surface in combo box. Called also when new item is added.
         """
         if new_idx is None\
-                or not (0 < new_idx < len(self.layers.surfaces)):
+                or not (0 < new_idx < len(self.le_model.surfaces_model.surfaces)):
             new_idx = self.wg_surf_combo.currentData()
 
         if not self.empty_forms():
@@ -505,14 +505,14 @@ class Surfaces(QtWidgets.QWidget):
         idx = self.wg_surf_combo.currentData()
         assert self.data._idx == idx
         assert idx >= 0
-        assert idx < len(self.layers.surfaces)
-        if not self.layers.delete_surface(idx):
+        assert idx < len(self.le_model.surfaces_model.surfaces)
+        if not self.le_model.delete_surface(idx):
             err_dialog = GMErrorDialog(self)
             err_dialog.open_error_dialog("Surface in use. Can not remove it.")
             return None
 
         # propose new idx
-        new_idx = min(idx, len(self.layers.surfaces) - 1)
+        new_idx = min(idx, len(self.le_model.surfaces_model.surfaces) - 1)
         self.data.init_from_surface(self.wg_surf_combo.get_surface(new_idx), new_idx)
         self._fill_forms()
 
@@ -530,7 +530,7 @@ class Surfaces(QtWidgets.QWidget):
         new_data.file_delimiter = self.data.file_delimiter
         data = self._load_file(new_data)
         if data:
-            new_data.set_name_from_file([surf.name for surf in self.layers.surfaces])
+            new_data.set_name_from_file([surf.name for surf in self.le_model.surfaces_model.surfaces])
             self.data = new_data
             self.wg_view_button.setChecked(True)
         self._fill_forms()
@@ -543,10 +543,11 @@ class Surfaces(QtWidgets.QWidget):
 
     def _load_file(self, surface_data):
         file, pattern = QtWidgets.QFileDialog.getOpenFileName(
-            self, "Choose grid file", self.home_dir, "File (*.*)")
+            self, "Choose grid file", cfg.data_dir, "File (*.*)")
         if not file:
             return
         try:
+            cfg.update_current_workdir(file)
             return surface_data.init_from_file(file)
         except Exception as e:
             err_dialog = GMErrorDialog(self)
@@ -556,7 +557,7 @@ class Surfaces(QtWidgets.QWidget):
     def apply(self):
         """Save changes to file and compute new elevation and error"""
         self.data.compute_approximation()
-        self.data.save_to_layers(self.layers)
+        self.data.save_to_le_model(self.le_model)
         self._fill_forms()
 
 
@@ -648,7 +649,7 @@ class Surfaces(QtWidgets.QWidget):
             self.wg_view_button.setEnabled(True)
             self.wg_view_button.set_icon()
 
-            self.wg_surf_combo.set_items(self.layers.surfaces, self.data._idx, self.data.name)
+            self.wg_surf_combo.set_items(self.le_model.surfaces_model.surfaces, self.data._idx, self.data.name)
             self.wg_surf_combo.setEnabled(True)
 
             self.wg_file_le.setText(self.data.grid_file)

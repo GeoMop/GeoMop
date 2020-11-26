@@ -5,6 +5,8 @@ import PyQt5.QtCore as QtCore
 import PyQt5.QtGui as QtGui
 
 from LayerEditor.ui.layers_panel.layers_panel import LayerPanel
+from LayerEditor.ui.panels._shpfiles import ShpFiles
+from LayerEditor.ui.panels.surfaces import Surfaces
 from LayerEditor.ui.panels.regions_panel import RegionsPanel
 from LayerEditor.ui.tools.cursor import Cursor
 from LayerEditor.ui.diagram_editor.diagram_view import DiagramView
@@ -64,11 +66,11 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.scroll_area2 = QtWidgets.QScrollArea()
         self.scroll_area2.setWidgetResizable(True)
-        #self.wg_surface_panel = panels.Surfaces(cfg.layers, cfg.config.data_dir, parent=self.scroll_area2)
-        #self.scroll_area2.setWidget(self.wg_surface_panel)
+        self.wg_surface_panel = Surfaces(self._layer_editor.le_model, parent=self.scroll_area2)
+        self.scroll_area2.setWidget(self.wg_surface_panel)
         self._vsplitter2.addWidget(self.scroll_area2)
 
-        #self.shp = panels.ShpFiles(cfg.diagram.shp, self._vsplitter2)
+        #self.shp = ShpFiles(cfg.diagram.shp, self._vsplitter2)
         #self._vsplitter2.addWidget(self.shp)
         #if cfg.diagram.shp.is_empty():
         #    self.shp.hide()

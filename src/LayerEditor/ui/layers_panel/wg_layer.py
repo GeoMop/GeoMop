@@ -49,7 +49,7 @@ class WGLayer(QWidget):
     def split_layer(self):
         top_y = self.layer.top_in.interface.elevation
         bot_y = self.layer.bottom_in.interface.elevation
-        dlg = SplitLayerDlg(top_y, bot_y, self.le_model.layer_names())
+        dlg = SplitLayerDlg(top_y, bot_y, self.le_model)
         ret = dlg.exec_()
         if ret == QDialog.Accepted:
             name = dlg.layer_name.text()

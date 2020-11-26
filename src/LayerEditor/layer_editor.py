@@ -38,6 +38,7 @@ class LayerEditor:
 
         save_fn = lambda: self.save_model()
         curr_file_fn = lambda: self.le_model.curr_file
+        #TODO: check default dir to autosave, this might be wrong
         self.autosave = Autosave(cfg.current_workdir, curr_file_fn, save_fn)
         self._restore_backup()
 

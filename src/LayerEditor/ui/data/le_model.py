@@ -5,6 +5,7 @@ from PyQt5.QtGui import QPolygonF
 
 from LayerEditor.ui.data.block_item import BlockItem
 from LayerEditor.ui.data.le_decomposition import LEDecomposition
+from LayerEditor.ui.data.surface_item import SurfaceItem
 from LayerEditor.ui.tools import undo
 
 from LayerEditor.exceptions.data_inconsistent_exception import DataInconsistentException
@@ -91,6 +92,15 @@ class LEModel(QObject):
             if name == new_name:
                 return False
         return True
+
+    def get_default_name(self, prefix):
+        """ Set default layer name to QLineEdit. """
+        lay_id = 1
+        name = prefix + f"_{lay_id}"
+        while not self.is_layer_name_unique(name):
+            lay_id += 1
+            name = prefix + f"_{lay_id}"
+        return name
 
     def layer_names(self):
         r = []
@@ -450,11 +460,7 @@ class LEModel(QObject):
         """ Add fracture to interface specified by InterfaceNodeSetItem/InterpolatedNodeSetItem.
             Must be used inside `undo.group()`"""
         if layer_name is None:
-            layer_name = "Fracture_1"
-            idx = 2
-            while not self.is_layer_name_unique(layer_name):
-                layer_name = f"Fracture_{idx}"
-                idx += 1
+            layer_name = self.get_default_name("Fracture")
 
         shape_regions = [{}, {}, {}]
         for dim in range(3):
@@ -551,6 +557,12 @@ class LEModel(QObject):
 
             self.emit_layer_changed()
             self.emit_scenes_changed(new_block, added=True)
+
+    def add_surface(self, surf: SurfaceItem):
+        self.surfaces_model.add_surface(surf)
+
+    def set_surface(self, idx, surf: SurfaceItem):
+        self.surfaces_model.replace_surface(idx, surf)
 
     def change_curr_block(self, block):
         old_block = self.gui_curr_block

@@ -90,8 +90,7 @@ class _Config:
         directory = os.path.dirname(os.path.realpath(file_name))
         if self.workspace is not None and self.analysis is not None:
             analysis_dir = os.path.join(self.workspace, self.analysis)
-        if analysis_directory is None or directory != analysis_dir:
-            self.current_workdir = directory
+        self.current_workdir = directory
 
     @property
     def workspace(self):
