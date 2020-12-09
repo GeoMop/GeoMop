@@ -14,7 +14,7 @@ class GeometryFactory:
     def __init__(self, base_dir, geometry = None):
         if geometry is None:
             self.geometry =  LayerGeometry()
-            self.geometry.version = [0, 5, 5]
+            self.geometry.version = [0, 5, 6]
         else:
             self.geometry = geometry
         self.used_interfaces = {}
@@ -59,7 +59,10 @@ class GeometryFactory:
                 approximation=bs_zsurface_write(s.approximation),
                 name=s.name,
                 grid_file=self.make_rel_path(s.grid_file),
-                approx_error=s.approx_error
+                approx_error=s.approx_error,
+                tolerance=s.tolerance,
+                xy_transform=s.xy_transform,
+                nuv=s.nuv
             ))
             self.geometry.surfaces.append(surface)
 

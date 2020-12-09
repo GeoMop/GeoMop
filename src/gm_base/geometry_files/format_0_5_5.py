@@ -1,17 +1,3 @@
-"""
-This should be the last format of the  Layer Geometry File.
-Classes in this file should already be final data layer used by
-Layer Editor, Analysis (through a frontend), and Geometry.
-
-Format of these classes should be same as the last numbered version
-assuming default (copy) conversion.
-
-TODO:
-- combine polygons and these classes into definitive format data classes
-- introduce common Undo/Redo mechanism
-- modify Layer Editor to operate on this data Layer
-"""
-
 import sys
 import os
 
@@ -84,16 +70,18 @@ class Surface(JsonData):
         """Surface name"""
         self.approximation = ClassFactory(SurfaceApproximation)
         """Serialization of the  Z_Surface."""
-        self.tolerance = 1.0
-        """Tolerance"""
+        self.regularization = 1.0
+        """Regularization weight."""
         self.approx_error = 0.0
         """L-inf error of aproximation"""
-        self.xy_transform = [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0]]
-        """Transformation matrix np array 2x3, shift vector in last column."""
-        self.nuv = (1, 1)
-        """Approximation grid dimensions. (u,v)"""
         super().__init__(config)
         
+    # @staticmethod
+    # def make_surface():
+    #     surf = Surface()
+    #     surf.approximation = None
+    #     return surf
+
     @property
     def quad(self):
         return self.approximation.quad
@@ -101,13 +89,10 @@ class Surface(JsonData):
     @classmethod
     def convert(cls, other):
         new_surf = lfc.convert_json_data(sys.modules[__name__], other, cls)
-        new_surf.tolerance = other.approx_error
-        if hasattr(new_surf, "regularization"):
-            del new_surf.regularization
-
-        new_surf.xy_transform = [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0]]
-        new_surf.nuv = (1, 1)
-
+        new_surf.approx_error = 0.0
+        new_surf.regularization = 1.0
+        new_surf.file_skip_lines = 0
+        new_surf.file_delimiter = ' '
         return new_surf
 
 class Interface(JsonData):
@@ -373,6 +358,7 @@ class LayerGeometry(JsonData):
 
     @classmethod
     def convert(cls, other):
+        basepath = getattr(other, 'base_path', os.getcwd())
         lg = lfc.convert_json_data(sys.modules[__name__], other, cls)
-        lg.version = [0, 5, 6]
+        lg.version = [0, 5, 5]
         return lg

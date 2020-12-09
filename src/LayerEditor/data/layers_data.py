@@ -79,7 +79,7 @@ class LayersGeometry:
         lg = IO.LayerGeometry()
 
         # TODO: version should be set in the IO.LayerGeometry constructor
-        lg.version = [0, 5, 5]
+        lg.version = [0, 5, 6]
 
         default_regions =
         lg.regions = [
