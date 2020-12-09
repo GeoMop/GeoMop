@@ -529,9 +529,10 @@ class Surfaces(QtWidgets.QWidget):
             return None
 
         # propose new idx
-        #new_idx = min(idx, len(self.layers.surfaces) - 1)
-        #self.data.init_from_surface(self.wg_surf_combo.get_surface(new_idx), new_idx)
+        new_idx = min(idx, len(self.layers.surfaces) - 1)
+        self.data = SurfFormData.init_from_surface(self.layers.surfaces[new_idx], new_idx)
         self._fill_forms()
+        self.show_grid.emit(self.wg_view_button.isChecked())
 
 
 
