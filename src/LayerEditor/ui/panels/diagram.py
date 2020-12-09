@@ -147,15 +147,15 @@ class Diagram(QtWidgets.QGraphicsScene):
         #         if pas:
         #             self.regionsUpdateRequired.emit()
 
-    def show_grid(self, quad, nuv):
+    def show_grid(self, quad, u_knots, v_knots):
         """Show grid of actual surface from surface panel."""
         if quad is None:
             return
         if self.grid is None:
-            self.grid = Grid(quad, nuv)
+            self.grid = Grid(quad, u_knots, v_knots)
             self.add_graphical_object(self.grid)
         else:
-            self.grid.set_quad(quad, nuv)
+            self.grid.set_quad(quad, u_knots, v_knots)
         return self.grid.boundingRect()
         
     def hide_grid(self):

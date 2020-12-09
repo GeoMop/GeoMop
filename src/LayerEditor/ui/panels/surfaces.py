@@ -5,12 +5,14 @@ import PyQt5.QtCore as QtCore
 import os
 import numpy as np
 import copy
+import shutil
 
-import gm_base.b_spline
-import bspline_approx as ba
+from bgem.bspline import bspline_approx as ba
 from gm_base.geomop_dialogs import GMErrorDialog
 import gm_base.icon as icon
 import gm_base.geometry_files.format_last as GL
+
+from LayerEditor.leconfig import cfg
 
 """
 TODO:
@@ -40,18 +42,8 @@ class SurfFormData(GL.Surface):
         # self.regularization = 1.0
         # self.approx_error = 0.0
 
-
-        # Approximation grid dimensions. (u,v)
-        self._nuv = None
-
-        # Approximation reglularization parameter
-        self.regularization = 1.0
-
         # Original quad
         self._quad = None
-
-        # Transformation matrix np array 2x3, shift vector in last column.
-        self._xy_transform = np.array([[1, 0, 0], [0, 1, 0]], dtype = float)
 
         # Elevation of the approximation.
         self._elevation = None
@@ -78,6 +70,10 @@ class SurfFormData(GL.Surface):
         except:
             return None
 
+        self.update_from_z_surf()
+
+        self._changed_forms = False
+
         return self
 
     def init_from_file(self, file):
@@ -85,16 +81,11 @@ class SurfFormData(GL.Surface):
                                                                self.file_skip_lines)
         self.grid_file = file
         self._quad = self._approx_maker.compute_default_quad()
-        self._nuv = self._approx_maker.compute_default_nuv()
         self._changed_forms = True
         return self
 
     def update_from_z_surf(self):
-        u = self.approximation.u_basis.n_intervals
-        v = self.approximation.v_basis.n_intervals
-        self._nuv = (u, v)
         self._quad = self.approximation.orig_quad
-        self._xy_transform = self.approximation.get_transform()[0]
         self._elevation = self.approximation.center()[2]
 
 
@@ -129,25 +120,26 @@ class SurfFormData(GL.Surface):
 
 
     def set_nuv(self, nuv):
-        self._nuv = nuv
+        self.nuv = nuv
         self._changed_forms = True
 
     def set_xy_transform(self, xy_transform):
-        self._xy_transform = xy_transform
+        self.xy_transform = xy_transform.tolist()
         self._changed_forms = True
 
     def get_actual_quad(self):
         if self._quad is None:
             return None
         quad_center = np.average(self._quad, axis=0)
-        xy_mat = self._xy_transform
+        xy_mat = np.array(self.xy_transform, dtype = float)
         return np.dot((self._quad - quad_center), xy_mat[0:2, 0:2].T) + quad_center + xy_mat[0:2, 2]
 
     def compute_approximation(self):
-        self.approximation = self._approx_maker.compute_approximation(
-            quad = self.get_actual_quad(),
-            nuv = self._nuv,
-            regularization_weight = self.regularization)
+        self.approximation = self._approx_maker.compute_adaptive_approximation(
+            quad = self._quad,
+            nuv = self.nuv,
+            adapt_type="std_dev",
+            std_dev=self.tolerance)
         self.update_from_z_surf()
         self.approx_error = self._approx_maker.error
         self._changed_forms = True
@@ -300,6 +292,7 @@ class Surfaces(QtWidgets.QWidget):
         # delimiter
         wg_delimiter_lbl = QtWidgets.QLabel("Delimiter:")
         self.wg_delimiter_cb = self._make_delimiter_combo()
+        self.set_delimiter()
 
         import_row.addWidget(wg_header_lbl)
         import_row.addWidget(self.wg_skip_lines_le)
@@ -324,7 +317,7 @@ class Surfaces(QtWidgets.QWidget):
         # approximation points
         wg_approx_lbl = QtWidgets.QLabel("Approx. dimensions:")
         grid.addWidget(wg_approx_lbl, 11, 0, 1, 2)
-        wg_approx_lbl = QtWidgets.QLabel("Regularization:")
+        wg_approx_lbl = QtWidgets.QLabel("Tolerance:")
         grid.addWidget(wg_approx_lbl, 11, 2, 1, 1)
 
         row_nuv = QtWidgets.QHBoxLayout()
@@ -337,10 +330,10 @@ class Surfaces(QtWidgets.QWidget):
         row_nuv.addWidget(QtWidgets.QLabel("v:"))
         row_nuv.addWidget(self.wg_v_approx, stretch=1)
 
-        self.wg_reg_weight_le = self._make_double_edit(self.set_regularization)
-        self.wg_reg_weight_le.setValidator(QtGui.QDoubleValidator())
+        self.wg_tolerance_le = self._make_double_edit(self.set_tolerance)
+        self.wg_tolerance_le.setValidator(QtGui.QDoubleValidator())
 
-        grid.addWidget(self.wg_reg_weight_le, 12, 2, 1, 1)
+        grid.addWidget(self.wg_tolerance_le, 12, 2, 1, 1)
 
         self.wg_apply_button = self._make_button(
             None, "Apply", 'Compute approximation and save to the surface list.',
@@ -363,6 +356,19 @@ class Surfaces(QtWidgets.QWidget):
         inner_grid.addWidget(self.wg_d_error, 0, 2)
         inner_grid.addWidget(self.wg_error, 0, 3)
 
+        wg_actual_dim_lbl = QtWidgets.QLabel("Actual dimensions:")
+        inner_grid.addWidget(wg_actual_dim_lbl, 1, 0, 1, 2)
+
+        row_actual_nuv = QtWidgets.QHBoxLayout()
+        inner_grid.addLayout(row_actual_nuv, 2, 0 , 1, 4)
+
+        self.wg_actual_u = self._make_read_only_line()
+        self.wg_actual_v = self._make_read_only_line()
+        row_actual_nuv.addWidget(QtWidgets.QLabel("u:"))
+        row_actual_nuv.addWidget(self.wg_actual_u, stretch=1)
+        row_actual_nuv.addWidget(QtWidgets.QLabel("v:"))
+        row_actual_nuv.addWidget(self.wg_actual_v, stretch=1)
+
         grid.addLayout(inner_grid, 15, 0, 1, 3)
         
         self.wg_message = QtWidgets.QLabel("", self)
@@ -377,10 +383,20 @@ class Surfaces(QtWidgets.QWidget):
 
     def get_curr_quad(self):
         """
-        Return quad, u, v for grid plot in mainwindow._show_grid."""
-        nuv = self.data._nuv
+        Return quad, u_knots, v_knots for grid plot in mainwindow._show_grid."""
+        approx = self.data.approximation
+        if approx is not None:
+            ur = approx.u_basis.knots_idx_range
+            u_knots = [approx.u_basis.knots[i] / approx.u_basis.domain_size
+                       for i in range(ur[0] + 1, ur[1])]
+            vr = approx.v_basis.knots_idx_range
+            v_knots = [approx.v_basis.knots[i] / approx.v_basis.domain_size
+                       for i in range(vr[0] + 1, vr[1])]
+        else:
+            u_knots = []
+            v_knots = []
         quad = self.data.get_actual_quad()
-        return quad, nuv
+        return quad, u_knots, v_knots
 
 
     def get_surface_id(self):
@@ -424,7 +440,7 @@ class Surfaces(QtWidgets.QWidget):
     def _make_delimiter_combo(self):
         cb = QtWidgets.QComboBox()
         delimiters = [
-            ("space/tab", ' \t'),
+            ("space/tab", '[ \t]'),
             ("comma", ","),
             ("semi-comma", ";"),
             ("|","|")
@@ -482,8 +498,8 @@ class Surfaces(QtWidgets.QWidget):
     ####################################################
     # Event handlers
 
-    def set_regularization(self):
-        self.data.regularization = self.float_convert(self.wg_reg_weight_le)
+    def set_tolerance(self):
+        self.data.tolerance = self.float_convert(self.wg_tolerance_le)
 
     def change_surface(self, new_idx = None):
         """
@@ -499,6 +515,7 @@ class Surfaces(QtWidgets.QWidget):
         if new_idx is not None:
             self.data = SurfFormData.init_from_surface(self.layers.surfaces[new_idx], new_idx)
         self._fill_forms()
+        self.show_grid.emit(self.wg_view_button.isChecked())
 
     def rm_surface(self):
         assert self.data._idx != -1
@@ -513,8 +530,9 @@ class Surfaces(QtWidgets.QWidget):
 
         # propose new idx
         new_idx = min(idx, len(self.layers.surfaces) - 1)
-        self.data.init_from_surface(self.wg_surf_combo.get_surface(new_idx), new_idx)
+        self.data = SurfFormData.init_from_surface(self.layers.surfaces[new_idx], new_idx)
         self._fill_forms()
+        self.show_grid.emit(self.wg_view_button.isChecked())
 
 
 
@@ -542,10 +560,24 @@ class Surfaces(QtWidgets.QWidget):
         self._fill_forms()
 
     def _load_file(self, surface_data):
+        # save layer data first
+        if cfg.curr_file is None:
+            QtWidgets.QMessageBox.information(
+                self, 'Save layer data',
+                'Layer data file must be save first.')
+            cfg.main_window._layer_editor.save_file()
+        if cfg.curr_file is None:
+            return
+
         file, pattern = QtWidgets.QFileDialog.getOpenFileName(
             self, "Choose grid file", self.home_dir, "File (*.*)")
         if not file:
             return
+
+        file = self._check_file_path(file)
+        if not file:
+            return
+
         try:
             return surface_data.init_from_file(file)
         except Exception as e:
@@ -553,11 +585,44 @@ class Surfaces(QtWidgets.QWidget):
             err_dialog.open_error_dialog("Wrong grid file structure!", error=e)
             return None
 
+    def _check_file_path(self, file):
+        """
+        Check if file is in project directory.
+        If not try copy it.
+        Returns new path or empty string if it is not possible.
+        """
+        layer_file_dir = os.path.dirname(cfg.curr_file)
+        relpath = os.path.relpath(file, start=layer_file_dir)
+        if relpath.startswith("../") or (os.sep == "\\" and relpath.startswith("..\\")):
+            basename = os.path.basename(file)
+            path_in_dir = os.path.join(layer_file_dir, basename)
+            if os.path.exists(path_in_dir):
+                QtWidgets.QMessageBox.critical(
+                    self, 'File already exists',
+                    'File "{}" already exists in project directory.'.format(basename))
+                return ""
+
+            msg = QtWidgets.QMessageBox(self)
+            msg.setWindowTitle("Copy file")
+            msg.setText('File must be in project directory.\n'
+                        "Do you want to copy it?")
+            msg.setStandardButtons(QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No)
+            msg.setDefaultButton(QtWidgets.QMessageBox.Yes)
+            ret = msg.exec()
+            if ret == QtWidgets.QMessageBox.Yes:
+                shutil.copyfile(file, path_in_dir)
+                return path_in_dir
+            else:
+                return ""
+
+        return file
+
     def apply(self):
         """Save changes to file and compute new elevation and error"""
         self.data.compute_approximation()
         self.data.save_to_layers(self.layers)
         self._fill_forms()
+        self.show_grid.emit(self.wg_view_button.isChecked())
 
 
     @classmethod
@@ -632,6 +697,7 @@ class Surfaces(QtWidgets.QWidget):
         if self.data.name == "":
             # Empty form
             self.wg_view_button.setEnabled(False)
+            self.wg_surf_combo.clear()
             self.wg_surf_combo.setEnabled(False)
             self.wg_file_le.setText("")
             self.wg_file_le.setEnabled(False)
@@ -643,7 +709,7 @@ class Surfaces(QtWidgets.QWidget):
                 form.setText("")
                 form.setEnabled(False)
 
-            self.wg_reg_weight_le.setEnabled(False)
+            self.wg_tolerance_le.setEnabled(False)
         else:
             self.wg_view_button.setEnabled(True)
             self.wg_view_button.set_icon()
@@ -662,22 +728,22 @@ class Surfaces(QtWidgets.QWidget):
             self.wg_reload_button.setEnabled(True)
             self.wg_apply_button.setEnabled(True)
 
-            for form, val in zip(self.wg_xyscale_mat, self.data._xy_transform.flat):
+            for form, val in zip(self.wg_xyscale_mat, np.array(self.data.xy_transform, dtype = float).flat):
                 form.setText(str(val))
                 form.setEnabled(True)
 
-            self.wg_reg_weight_le.setEnabled(True)
-            self.wg_reg_weight_le.setText(str(self.data.regularization))
+            self.wg_tolerance_le.setEnabled(True)
+            self.wg_tolerance_le.setText(str(self.data.tolerance))
 
-        if self.data._nuv is None:
+        if self.data.nuv is None:
             self.wg_u_approx.setText("")
             self.wg_u_approx.setEnabled(False)
             self.wg_v_approx.setText("")
             self.wg_v_approx.setEnabled(False)
         else:
-            self.wg_u_approx.setText(str(self.data._nuv[0]))
+            self.wg_u_approx.setText(str(self.data.nuv[0]))
             self.wg_u_approx.setEnabled(True)
-            self.wg_v_approx.setText(str(self.data._nuv[1]))
+            self.wg_v_approx.setText(str(self.data.nuv[1]))
             self.wg_v_approx.setEnabled(True)
 
         if self.data._elevation is None:
@@ -699,12 +765,26 @@ class Surfaces(QtWidgets.QWidget):
         else:
             self._set_message("")
 
+        if self.data.approximation is not None:
+            u = self.data.approximation.u_basis.n_intervals
+            v = self.data.approximation.v_basis.n_intervals
+            self.wg_actual_u.setText(str(u))
+            self.wg_actual_v.setText(str(v))
+        else:
+            self.wg_actual_u.setText("")
+            self.wg_actual_v.setText("")
 
 
+    def refresh(self, layers):
+        """
+        Refresh after open or new file.
+        :param layers: Layers data object
+        :return:
+        """
+        self.layers = layers
+        if layers.surfaces:
+            self.data = SurfFormData.init_from_surface(self.layers.surfaces[0], 0)
+        else:
+            self.data = SurfFormData()
 
-
-
-
-
-
-
+        self._fill_forms()

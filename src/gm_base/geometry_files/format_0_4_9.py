@@ -174,7 +174,7 @@ class Region(JsonData):
         """region name"""
         self.dim = RegionDim.invalid
         """ Real dimension of the region. (0,1,2,3)"""
-        #self.topo_dim = TopologyDim.invalid
+        self.topo_dim = TopologyDim.invalid
         #"""For backward compatibility. Dimension (0,1,2) in Stratum layer: node, segment, polygon"""
         self.boundary = False
         """Is boundary region"""

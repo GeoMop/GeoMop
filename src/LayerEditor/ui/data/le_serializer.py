@@ -5,7 +5,7 @@ from gm_base.geometry_files.format_last import  LayerType, TopologyType, Interpo
 from gm_base.geometry_files.geometry_factory import GeometryFactory
 from .diagram_structures import Diagram
 from .layers_structures import FractureInterface
-import gm_base.polygons.polygons_io as polygons_io
+import gm_base.polygons.polygons_io_old as polygons_io
 #import gm_base.geometry_files.format_last as gs
 import gm_base.geometry_files.layers_io as layers_io
 

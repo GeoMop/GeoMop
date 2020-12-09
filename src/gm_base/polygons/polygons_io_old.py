@@ -1,5 +1,9 @@
+# Old version with gm_base.polygons.polygons
+# Will be removed after change LE data layer
+
+
 import gm_base.geometry_files.format_last as gs
-import bgem.polygons.polygons as polygons
+import gm_base.polygons.polygons as polygons
 
 
 #from gm_base.polygons.decomp import Point
@@ -114,4 +118,3 @@ def reconstruction_from_old_input(polydec, topology):
 
         assert len(candidates) == 1
     polydec.decomp.check_consistency()
-

@@ -348,8 +348,7 @@ class LayerGeometry(JsonData):
 
     @classmethod
     def surface_to_new_surf(cls, id, surf, basepath):
-        import gm_base.b_spline
-        from bspline_approx import SurfaceApprox
+        from bgem.bspline.bspline_approx import SurfaceApprox
         from gm_base.geometry_files.bspline_io import bs_zsurface_write
 
         if not os.path.isabs(surf.grid_file):

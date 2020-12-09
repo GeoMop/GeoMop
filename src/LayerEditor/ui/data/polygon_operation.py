@@ -72,7 +72,10 @@ class PolygonOperation():
 
     def remove_point(self, diagram, point):
         """remove set point from decomposition"""
-        self.decomposition.remove_free_point(point.de_id)
+        #self.decomposition.remove_free_point(point.de_id)
+        # update to new version of polygons
+        pt = self.decomposition.points[point.de_id]
+        self.decomposition._rm_point(pt)
         
     def add_line(self, diagram, line, label=None, not_history=True):
         """Add new line to decomposition"""
@@ -145,15 +148,15 @@ class PolygonOperation():
             
     def get_polygon_origin_id(self, polygon):
         """Return polygon id in origin structure"""
-        return self.decomposition.polygons[polygon.helpid].index
+        return self.decomposition.polygons[polygon.helpid].id
     
     def get_line_origin_id(self, line):
         """Return line id in origin structure"""
-        return line.segment.index
+        return line.segment.id
         
     def get_point_origin_id(self, point_id):
         """Return point id in origin structure"""
-        return self.decomposition.points[point_id].index
+        return self.decomposition.points[point_id].id
     
     def _find_in_polygon(self, diagram, point, polygon_id=None):
         """Find polygon for set point"""

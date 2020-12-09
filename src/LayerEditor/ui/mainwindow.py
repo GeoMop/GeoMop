@@ -156,6 +156,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self._refresh_area()
         if not cfg.diagram.position_set():
             self.display_area()
+        self.wg_surface_panel.refresh(cfg.layers)
 
     def paint_new_data(self):
         """Propagate new diagram scene to canvas"""
@@ -304,10 +305,10 @@ class MainWindow(QtWidgets.QMainWindow):
     def _show_grid(self, show_flag):
         """Show mash"""
         if show_flag:
-            quad, nuv = self.wg_surface_panel.get_curr_quad()
+            quad, u_knots, v_knots = self.wg_surface_panel.get_curr_quad()
             if quad is None:
                 return
-            rect = self.diagramScene.show_grid(quad, nuv)
+            rect = self.diagramScene.show_grid(quad, u_knots, v_knots)
             view_rect = self.diagramView.sceneRect()
             if not view_rect.contains(rect):
                 view_rect = view_rect.united(rect)
