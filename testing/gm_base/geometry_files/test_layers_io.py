@@ -26,7 +26,7 @@ class TestGeometryStructures:
         with open(f_ref, 'w') as f:
             json.dump(data, f, indent=4, sort_keys=True)
 
-        return filecmp.cmp(f_ref, f_out)
+        return filecmp.cmp(f_ref, f_out, shallow=False)
 
 
 

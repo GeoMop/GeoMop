@@ -7,7 +7,6 @@ import PyQt5.QtGui as QtGui
 import PyQt5.QtWidgets as QtWidgets
 from ...data import LayerSplitType
 from LayerEditor.leconfig import cfg
-import gm_base.b_spline
 import numpy as np
 
 class LayersHelpers():

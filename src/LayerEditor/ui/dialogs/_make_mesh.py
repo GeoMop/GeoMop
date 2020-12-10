@@ -110,10 +110,15 @@ class MakeMeshDlg(QtWidgets.QDialog):
         if self._step_checkbox.isChecked():
             args.append("--mesh-step")
             args.append(self._step_edit.text())
-        args.append(cfg.curr_file)
+        args.append("--filename_base")
+        args.append(os.path.splitext(cfg.curr_file)[0])
 
         self._output_edit.clear()
         self._proc.start(cmd, args)
+
+        # write serialized data to stdin of process
+        self._proc.write(cfg.le_serializer.save(cfg).encode())
+        self._proc.closeWriteChannel()
 
     def _set_status(self, status):
         self._status_label.setText("Status: {}".format(status))

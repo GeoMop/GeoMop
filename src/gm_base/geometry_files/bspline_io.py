@@ -1,4 +1,3 @@
-import gm_base.b_spline
 import sys
 
 import bgem.bspline.bspline as bs
