@@ -26,7 +26,7 @@ class BlocksModel(QObject):
             block.init_add_layer(layer, le_model)
 
         for block in self.blocks.values():
-            block.gui_selected_layer = block.get_sorted_layers()[0]
+            block.gui_layer_selector.value = block.get_sorted_layers()[0]
 
     @property
     def layers(self):
@@ -45,11 +45,20 @@ class BlocksModel(QObject):
             layers.append(layer.save())
         return layers
 
+    def get_sorted_blocks(self):
+        return sorted(list(self.blocks.values()),
+                      key=lambda x: x.get_sorted_layers()[0].top_in.interface.elevation,
+                      reverse=True)
+
     @undo.undoable
     def delete_block(self, block):
+        if self.le_model.gui_block_selector.value is block:
+            sorted_blocks = self.get_sorted_blocks()
+            if block is sorted_blocks[0]:
+                self.le_model.change_curr_block(sorted_blocks[1])
+            else:
+                self.le_model.change_curr_block(sorted_blocks[0])
         self.blocks.remove(block)
-        if self.le_model.gui_curr_block is block:
-            self.le_model.gui_curr_block = list(self.blocks.values())[0]
         yield "Remove Block"
         self.blocks.add(block)
 

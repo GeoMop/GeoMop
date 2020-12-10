@@ -38,7 +38,7 @@ class RegionsModel:
         del self.regions[reg]
         for block in self.le_model.blocks_model.blocks.values():
             for layer in block.layers_dict.values():
-                if layer.gui_selected_region == reg:
+                if layer.gui_region_selector.value == reg:
                     layer.set_gui_selected_region(RegionItem.none)
         yield "Delete Region"
         self.add_region(reg)

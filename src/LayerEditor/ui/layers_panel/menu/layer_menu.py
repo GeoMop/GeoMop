@@ -35,5 +35,7 @@ class LayerMenu(QMenu):
         self.del_block_action = QAction('Delete Block', self)
         self.del_block_action.setStatusTip('Delete this block')
         self.addAction(self.del_block_action)
-        if len(le_model.blocks_model.blocks) <= 1:
+        blocks_model = le_model.blocks_model
+        n_blocks = len(blocks_model.blocks)
+        if n_blocks <= 1 or n_blocks - 1 > blocks_model.get_sorted_blocks().index(wg_layer.layer.block) > 0:
             self.del_block_action.setDisabled(True)

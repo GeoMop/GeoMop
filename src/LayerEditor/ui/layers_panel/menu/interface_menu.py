@@ -32,17 +32,17 @@ class InterfaceMenu(QMenu):
 
         if itf_label.layer_above is None:
             self.prepend_layer_action = QAction('Prepend Layer ...', self)
+            self.prepend_layer_action.setStatusTip('Add layer above')
+            self.addAction(self.prepend_layer_action)
         else:
-            self.prepend_layer_action = QAction('Split Layer Above ...', self)
-        self.prepend_layer_action.setStatusTip('Add layer above')
-        self.addAction(self.prepend_layer_action)
+            self.prepend_layer_action = None
 
         if itf_label.layer_below is None:
             self.append_layer_action = QAction('Append Layer ...', self)
+            self.append_layer_action.setStatusTip('Add layer below')
+            self.addAction(self.append_layer_action)
         else:
-            self.append_layer_action = QAction('Split Layer Below ...', self)
-        self.append_layer_action.setStatusTip('Add layer below')
-        self.addAction(self.append_layer_action)
+            self.append_layer_action = None
 
         # self.remove_interface_top_action = QAction('Remove Interface and Top Layer', self)
         # self.remove_interface_top_action.setStatusTip('Remove Interface and Top Layer')

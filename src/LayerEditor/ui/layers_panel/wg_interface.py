@@ -23,8 +23,8 @@ class WGInterface(QWidget):
         self.le_model = parent.le_model
         self.placement = placement
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        self.setCursor(Qt.PointingHandCursor)
         if fracture_layer is not None:
+            self.setCursor(Qt.PointingHandCursor)
             self.name = EditableText(fracture_layer.name)
             self.name.text_label.setContentsMargins(5, 0, 5, 0)
             palette = self.name.palette()

@@ -34,7 +34,7 @@ class RegionsPanel(QtWidgets.QToolBox):
         # Tab widgets.
 
         self.currentChanged.connect(self._curr_layer_changed)
-        self.le_model.gui_curr_block.selection.selection_changed.connect(self.selection_changed)
+        self.le_model.gui_block_selector.value.selection.selection_changed.connect(self.selection_changed)
         self.le_model.region_list_changed.connect(self._update_region_list)
 
         self.update_tabs()
@@ -48,13 +48,14 @@ class RegionsPanel(QtWidgets.QToolBox):
         with nosignal(self):
             while self.count() > 0:
                 self.removeItem(0)
-            layers = self.le_model.gui_curr_block.get_sorted_layers()
+            layers = self.le_model.gui_block_selector.value.get_sorted_layers()
             for layer in layers:
                 tab_widget = RegionLayerTab(self.le_model, layer, self)
                 self.addItem(tab_widget, "")
                 self._update_tab_head(tab_widget)
             # Update content.
-        idx = self.le_model.gui_curr_block.get_sorted_layers().index(self.le_model.gui_curr_block.gui_selected_layer)
+        curr_block = self.le_model.gui_block_selector.value
+        idx = curr_block.get_sorted_layers().index(curr_block.gui_layer_selector.value)
         self.setCurrentIndex(idx)
 
     def _update_region_list(self):
@@ -68,7 +69,7 @@ class RegionsPanel(QtWidgets.QToolBox):
         :return:
         """
         color = tab.region_color
-        item_idx = self.le_model.gui_curr_block.get_sorted_layers().index(tab.layer)
+        item_idx = self.le_model.gui_block_selector.value.get_sorted_layers().index(tab.layer)
         pixmap = QtGui.QPixmap(16, 16)
         pixmap.fill(color)
         iconPix = QtGui.QIcon(pixmap)
@@ -80,8 +81,8 @@ class RegionsPanel(QtWidgets.QToolBox):
         Add new region to all combo and select it in current tab.
         Handle combo changed signal in current tab.
         """
-        max_selected_dim = self.le_model.gui_curr_block.selection.max_selected_dim()
-        if self.le_model.gui_curr_block.gui_selected_layer.is_stratum:
+        max_selected_dim = self.le_model.gui_block_selector.value.selection.max_selected_dim()
+        if self.le_model.gui_block_selector.value.gui_layer_selector.value.is_stratum:
             max_selected_dim += 1
         dialog = AddRegionDlg(max_selected_dim, self.le_model.regions_model.get_region_names(), self)
         dialog_result = dialog.exec_()
@@ -103,13 +104,13 @@ class RegionsPanel(QtWidgets.QToolBox):
 
     def _curr_layer_changed(self):
         """item Changed handler"""
-        self.le_model.gui_curr_block.gui_selected_layer = self.current_tab.layer
+        self.le_model.gui_block_selector.value.gui_layer_selector.value = self.current_tab.layer
         self.le_model.invalidate_scene.emit()
 
     def selection_changed(self):
-        selected = self.le_model.gui_curr_block.selection._selected
+        selected = self.le_model.gui_block_selector.value.selection._selected
         if selected:
-            for layer in self.le_model.gui_curr_block.get_sorted_layers():
-                layer.gui_selected_region = layer.get_region_of_selected_shapes()
+            for layer in self.le_model.gui_block_selector.value.get_sorted_layers():
+                layer.gui_region_selector.value = layer.get_region_of_selected_shapes()
             self.update_tabs()
 

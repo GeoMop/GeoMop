@@ -42,8 +42,10 @@ class ElevationLabel(QWidget):
         self.menu.fracture_action.triggered.connect(self.add_remove_fracture)
         self.menu.split_interface_action.triggered.connect(self.split_interface)
         self.menu.change_elevation.triggered.connect(self.change_elevation)
-        self.menu.append_layer_action.triggered.connect(self.append_layer)
-        self.menu.prepend_layer_action.triggered.connect(self.prepend_layer)
+        if self.menu.append_layer_action is not None:
+            self.menu.append_layer_action.triggered.connect(self.append_layer)
+        if self.menu.prepend_layer_action is not None:
+            self.menu.prepend_layer_action.triggered.connect(self.prepend_layer)
         # self.menu.remove_interface_bot_action.triggered.connect(self.del_itf_bot)
         # self.menu.remove_interface_top_action.triggered.connect(self.del_itf_top)
 

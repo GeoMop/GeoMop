@@ -60,7 +60,7 @@ class GsPolygon(QtWidgets.QGraphicsPolygonItem):
 
         self.painter_path = self._get_polygon_draw_path(self.polygon_data)
 
-        color = self.block.gui_selected_layer.get_shape_region(self.dim, self.shape_id).color
+        color = self.block.gui_layer_selector.value.get_shape_region(self.dim, self.shape_id).color
         self.region_brush = GsPolygon.brush_table(color)
 
         self.depth = self.polygon_data.depth()

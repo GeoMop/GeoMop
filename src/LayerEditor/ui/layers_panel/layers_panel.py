@@ -60,7 +60,7 @@ class LayerPanel(QScrollArea):
         self._add_interfaces_and_layer_to_panel(layer_panel_model)
         self._add_right_joiners_and_elevation(layer_panel_model)
         for button in self.edit_buttons_group.buttons():
-            if button.parent().block == self.le_model.gui_curr_block:
+            if button.parent().block == self.le_model.gui_block_selector.value:
                 button.click()
 
         widget.setLayout(self.main_layout)

@@ -69,7 +69,7 @@ class GsPoint(QtWidgets.QGraphicsEllipseItem):
         self.setPos(self.pt.xy[0], -self.pt.xy[1])
         self.setFlag(QtWidgets.QGraphicsItem.ItemSendsGeometryChanges)
 
-        color = self.block.gui_selected_layer.get_shape_region(self.dim, self.shape_id).color
+        color = self.block.gui_layer_selector.value.get_shape_region(self.dim, self.shape_id).color
         self.region_brush, self.region_pen = GsPoint.pen_table(color)
 
         self.setZValue(self.STD_ZVALUE)

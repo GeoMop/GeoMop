@@ -2,6 +2,7 @@ from LayerEditor.ui.data.interface_node_set_item import InterfaceNodeSetItem
 from LayerEditor.ui.data.interpolated_node_set_item import InterpolatedNodeSetItem
 from LayerEditor.ui.data.layer_item import LayerItem
 from LayerEditor.ui.data.region_item import RegionItem
+from LayerEditor.ui.data.tools.selector import Selector
 
 from LayerEditor.ui.tools import undo
 from LayerEditor.ui.tools.id_map import IdMap, IdObject
@@ -24,17 +25,11 @@ class BlockItem(IdObject):
         self.selection = Selection()
         """Selection is common for all layers in this block."""
 
-        self.gui_selected_layer = None
+        self.gui_layer_selector = Selector(None)
         """Currently active layer. Region changes are made on this layer."""
 
-    def _get_average_elevation(self, layer):
-        if layer.is_stratum:
-            return (layer.top_in.interface.elevation + layer.bottom_in.interface.elevation) / 2
-        else:
-            return layer.top_in.interface.elevation
-
     def get_sorted_layers(self):
-        return sorted(list(self.layers_dict.values()), key=self._get_average_elevation, reverse=True)
+        return sorted(list(self.layers_dict.values()), key=lambda x: x.get_average_elevation(), reverse=True)
 
     def get_interface_node_sets(self):
         """Returns all InterfaceNodeSetItems which hold decompositions (neat ;) )"""
@@ -110,14 +105,21 @@ class BlockItem(IdObject):
             if shape_id in layer.shape_regions[shape_dim]:
                 return
             else:
-                region = layer.gui_selected_region
+                region = layer.gui_region_selector.value
                 dim = shape_dim
                 if layer.is_stratum:
                     dim += 1
                 if region.dim == dim:
-                    layer.set_region_to_shape(shape_dim, shape_id, layer.gui_selected_region)
+                    layer.set_region_to_shape(shape_dim, shape_id, layer.gui_region_selector.value)
                 else:
                     layer.set_region_to_shape(shape_dim, shape_id, RegionItem.none)
+
+    def validate_selectors(self):
+        self.gui_layer_selector.validate(self.get_sorted_layers())
+
+        regions = list(self.regions_model.regions.values())
+        for layer in self.layers_dict.values():
+            layer.gui_region_selector.validate(regions)
 
     @undo.undoable
     def add_layer(self, new_layer: LayerItem):
@@ -134,7 +136,7 @@ class BlockItem(IdObject):
         if layer.block is self:
             layer.block = None
         self.layers_dict.remove(layer)
-        if self.gui_selected_layer is layer and len(self.layers_dict.values()) > 0:
+        if self.gui_layer_selector.value is layer and len(self.layers_dict.values()) > 0:
             self.set_gui_selected_layer(list(self.layers_dict.values())[0])
         yield "Delete Layer"
         layer.block = old_block
@@ -142,8 +144,8 @@ class BlockItem(IdObject):
 
     @undo.undoable
     def set_gui_selected_layer(self, layer):
-        old_layer = self.gui_selected_layer
-        self.gui_selected_layer = layer
+        old_layer = self.gui_layer_selector.value
+        self.gui_layer_selector.value = layer
         yield "Set Active Layer in this Block"
-        self.gui_selected_layer = old_layer
+        self.gui_layer_selector.value = old_layer
 

@@ -60,7 +60,7 @@ class GsSegment(QtWidgets.QGraphicsLineItem):
         self.setFlag(QtWidgets.QGraphicsItem.ItemSendsGeometryChanges)
         self.setLine(0, 0, pt_to.xy[0] - pt_from.xy[0], -pt_to.xy[1] + pt_from.xy[1])
 
-        color = self.block.gui_selected_layer.get_shape_region(self.dim, self.shape_id).color
+        color = self.block.gui_layer_selector.value.get_shape_region(self.dim, self.shape_id).color
         self.region_pen, self.region_selected_pen  = GsSegment.pen_table(color)
 
         super().update()

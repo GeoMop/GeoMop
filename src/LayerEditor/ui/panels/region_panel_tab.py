@@ -52,7 +52,7 @@ class RegionLayerTab(QtWidgets.QWidget):
     @property
     def curr_region(self):
         """ Current region. """
-        return self.layer.gui_selected_region
+        return self.layer.gui_region_selector.value
 
     @property
     def region_color(self):
@@ -213,7 +213,7 @@ class RegionLayerTab(QtWidgets.QWidget):
         self._set_region_to_selected_shapes(region)
 
     def _set_region_to_selected_shapes(self, region):
-        self.layer.gui_selected_region = region
+        self.layer.gui_region_selector.value = region
         self.layer.set_region_to_selected_shapes(region, self.le_model)
         self._parent.update_tabs()
 
@@ -261,12 +261,11 @@ class RegionLayerTab(QtWidgets.QWidget):
         selected_color = color_dialog.getColor()
 
         if selected_color.isValid():
-            with undo.group("Set Color"):
+            with undo.group("Set Color", self.le_model.invalidate_scene.emit, None):
                 self.curr_region.set_color(selected_color.name())
                 self.layer.set_gui_selected_region(self.curr_region)
                 # This line doesnt do anything at first but it gets registered in undo redo system.
                 # That will cause region panel to switch to region which was changed by undoing/redoing.
-                self.le_model.emit_invalidate_scene()
         self._parent.update_tabs()
 
 

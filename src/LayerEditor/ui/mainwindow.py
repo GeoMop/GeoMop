@@ -4,6 +4,7 @@ import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtCore as QtCore
 import PyQt5.QtGui as QtGui
 
+from LayerEditor.ui.diagram_editor.diagram_scene import DiagramScene
 from LayerEditor.ui.layers_panel.layers_panel import LayerPanel
 from LayerEditor.ui.panels._shpfiles import ShpFiles
 from LayerEditor.ui.panels.surfaces import Surfaces
@@ -53,7 +54,6 @@ class MainWindow(QtWidgets.QMainWindow):
         # scene
         self.diagram_view = DiagramView(self._layer_editor.le_model)
         """View is common for all layers and blocks."""
-        self._layer_editor.le_model.scenes_changed.connect(self.diagram_view.scenes_changed)
         self._layer_editor.le_model.active_block_changed.connect(self.change_curr_block)
 
         self._hsplitter.addWidget(self.diagram_view)
@@ -124,9 +124,9 @@ class MainWindow(QtWidgets.QMainWindow):
         # self.layers.clearDiagramSelection.connect(self.clear_diagram_selection)
 
         self._layer_editor.le_model.invalidate_scene.connect(self.update_scene)
-        self._layer_editor.le_model._layers_changed.connect(self.layers_changed)
+        self._layer_editor.le_model.layers_changed.connect(self.layers_changed)
 
-        # self.wg_surface_panel.show_grid.connect(self._show_grid)
+        self.wg_surface_panel.show_grid.connect(self._show_grid)
 
     def update_recent_files(self, from_row=1):
         """Update recently opened files."""
@@ -157,19 +157,19 @@ class MainWindow(QtWidgets.QMainWindow):
     def update_scene(self):
         self.curr_scene.update_scene()
 
-    # def _show_grid(self, show_flag):
-    #     """Show mash"""
-    #     if show_flag:
-    #         quad, nuv = self.wg_surface_panel.get_curr_quad()
-    #         if quad is None:
-    #             return
-    #         rect = self.diagramScene.show_grid(quad, nuv)
-    #         view_rect = self.diagramView.sceneRect()
-    #         if not view_rect.contains(rect):
-    #             view_rect = view_rect.united(rect)
-    #             self.display_rect(view_rect)
-    #     else:
-    #         self.diagramScene.hide_grid()
+    def _show_grid(self, show_flag):
+        """Show mash"""
+        if show_flag:
+            quad, nuv = self.wg_surface_panel.get_curr_quad()
+            if quad is None:
+                return
+            rect = self.diagram_view.show_grid(quad, nuv)
+            view_rect = self.diagram_view.sceneRect()
+            if not view_rect.contains(rect):
+                view_rect = view_rect.united(rect)
+                self.diagram_view.ensureVisible(view_rect)
+        else:
+            self.diagram_view.hide_grid()
 
     def closeEvent(self, event):
         """Performs actions before app is closed."""
@@ -179,33 +179,37 @@ class MainWindow(QtWidgets.QMainWindow):
         super(MainWindow, self).closeEvent(event)
 
     def undo(self):
-        temp = undo.stack()
-        self._layer_editor.le_model.gui_curr_block.selection.deselect_all()
+        self._layer_editor.le_model.gui_block_selector.value.selection.deselect_all()
         # Deselect because selected region can change and that could create wrong behaviour #
         self.curr_scene.hide_aux_point_and_seg()
         undo.stack().undo()
         self.update_all()
 
     def redo(self):
-        temp = undo.stack()
-        self._layer_editor.le_model.gui_curr_block.selection.deselect_all()
+        self._layer_editor.le_model.gui_block_selector.value.selection.deselect_all()
         # the same reason as in undo
         self.curr_scene.hide_aux_point_and_seg()
         undo.stack().redo()
         self.update_all()
 
     def update_all(self):
+        self._layer_editor.le_model.validate_selectors()
+        self.diagram_view.update_view()
         self.curr_scene.update_scene()
         self.wg_regions_panel.update_tabs()
         self.layers.update_layers_panel()
+        self.wg_surface_panel.update_forms()
 
     def change_curr_block(self, old_block_id):
-        self.diagram_view.setScene(self.diagram_view.scenes[self._layer_editor.le_model.gui_curr_block.id])
         old_block = self._layer_editor.le_model.blocks_model.blocks.get(old_block_id)
-        old_block.selection.selection_changed.disconnect(self.wg_regions_panel.selection_changed)
-        curr_block = self._layer_editor.le_model.gui_curr_block
-        curr_block.selection.selection_changed.connect(self.wg_regions_panel.selection_changed)
-        self.wg_regions_panel.update_tabs()
+        if old_block is not self._layer_editor.le_model.gui_block_selector.value:
+            old_block.selection.selection_changed.disconnect(self.wg_regions_panel.selection_changed)
+
+            curr_block = self._layer_editor.le_model.gui_block_selector.value
+            curr_block.selection.selection_changed.connect(self.wg_regions_panel.selection_changed)
+
+            self.diagram_view.setScene(DiagramScene(curr_block, self._layer_editor.le_model.init_area, self.diagram_view))
+            self.wg_regions_panel.update_tabs()
 
     def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:
         if event.key() == QtCore.Qt.Key_Z and\

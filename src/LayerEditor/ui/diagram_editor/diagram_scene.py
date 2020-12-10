@@ -17,6 +17,7 @@ class DiagramScene(QtWidgets.QGraphicsScene):
 
     def __init__(self, block, bounding_rect, parent):
         super().__init__(bounding_rect, parent)
+        block.selection.set_diagram(self)
         self.selection = block.selection
         self.block = block
         self.shapes = [{}, {}, {}]  # [points, segments, polygons]
@@ -35,24 +36,25 @@ class DiagramScene(QtWidgets.QGraphicsScene):
 
         # polygons
         self.decomposition = block.decomposition
-        res = self.decomposition.get_last_polygon_changes()
         self.decomposition.set_tolerance(self.TOLERANCE)
-        self.outer_id = res[1]
-        """Decomposition of the a plane into polygons."""
+
+        self.gs_surf_grid = None
+        # holds graphics object for surface grid so it can be deleted when not needed
+
         self.update_scene()
         self.pixmap_item = None
-        temp = QGraphicsRectItem(self.sceneRect())
-        temp.setBrush(QBrush(Qt.NoBrush))
-        pen = temp.pen()
+        self.b_box = QGraphicsRectItem(self.sceneRect())
+        self.b_box.setBrush(QBrush(Qt.NoBrush))
+        pen = self.b_box.pen()
         pen.setCosmetic(True)
-        temp.setPen(pen)
-        self.addItem(temp)
+        self.b_box.setPen(pen)
+        self.addItem(self.b_box)
 
     def get_shape_color(self, shape_key):
-        if self.block.gui_selected_layer is None:
+        if self.block.gui_layer_selector.value is None:
             return "black"
         dim, shape_id = shape_key
-        region = self.block.gui_selected_layer.shape_regions[dim][shape_id]
+        region = self.block.gui_layer_selector.value.shape_regions[dim][shape_id]
 
         if region is None:
             region = RegionItem.none
@@ -211,6 +213,17 @@ class DiagramScene(QtWidgets.QGraphicsScene):
             super(DiagramScene, self).keyPressEvent(event)
 
     def update_scene(self):
+        # Show grid in this scene defined by parent view
+        parent_surf_grid = self.parent().gs_surf_grid
+        if parent_surf_grid is not self.gs_surf_grid:
+            self.removeItem(self.gs_surf_grid)
+            if parent_surf_grid is not None:
+                self.removeItem(self.gs_surf_grid)
+                self.addItem(parent_surf_grid)
+                self.setSceneRect(self.itemsBoundingRect().adjusted(-1000, -1000, 1000, 1000))
+                self.b_box.setRect(self.sceneRect())
+            self.gs_surf_grid = parent_surf_grid
+
         # points
         to_remove = []
         de_points = self.decomposition.points
@@ -257,7 +270,7 @@ class DiagramScene(QtWidgets.QGraphicsScene):
             self.removeItem(self.polygons[polygon_id])
             del self.polygons[polygon_id]
         for polygon_id, polygon in de_polygons.items():
-            if polygon_id == self.outer_id:
+            if polygon.outer_wire.is_root():
                 continue
             if polygon_id in self.polygons:
                 self.polygons[polygon_id].update()

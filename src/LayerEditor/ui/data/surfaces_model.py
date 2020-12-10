@@ -7,7 +7,7 @@ class SurfacesModel:
     def __init__(self, surfaces_list):
         self.surfaces = []
         for surface in surfaces_list:
-            self.surfaces.append(SurfaceItem(surface))
+            self.surfaces.append(SurfaceItem(surface, self))
 
     def save(self):
         surfaces = []
@@ -27,8 +27,8 @@ class SurfacesModel:
         self.surfaces.remove(surf)
 
     @undo.undoable
-    def replace_surface(self, idx, surf):
-        old_surf = self.surfaces[idx]
-        self.surfaces[idx] = surf
-        yield "Replace Surface"
-        self.surfaces[idx] = old_surf
+    def delete_surface(self, surf):
+        idx = self.surfaces.index(surf)
+        del self.surfaces[idx]
+        yield "Delete Surface"
+        self.surfaces.insert(idx, surf)
