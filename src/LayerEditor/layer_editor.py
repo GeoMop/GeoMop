@@ -151,8 +151,9 @@ class LayerEditor:
         self.mainwindow.show_status_message("File '" + action.data() + "' is opened")
 
     def save_model(self, filename=""):
-        geo_model = self.le_model.save()
-        geo_model.supplement = UserSupplement(self.mainwindow.diagram_view.save())
+        geo_model, supplement_config = self.le_model.save()
+        supplement_config.update(self.mainwindow.diagram_view.save())
+        geo_model.supplement = UserSupplement(supplement_config)
         errors = LEModel.check_geo_model_consistency(geo_model)
         if len(errors) > 0:
             raise DataInconsistentException("Some file consistency errors occure", errors)

@@ -1,6 +1,7 @@
 import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtGui as QtGui
 import PyQt5.QtCore as QtCore
+import logging
 
 import os
 import numpy as np
@@ -109,20 +110,25 @@ class Surfaces(QtWidgets.QWidget):
     """Signal is sent when mash should be shown or repaint.    
     :param bool force: if force not set, don't call mash if already exist
     """
+    first_surface_added = QtCore.pyqtSignal(QtCore.QRectF)
+    """ Signal for changing init area rect based on first loaded surface.
+        :param QRectF init_area: area of the first surface
+    """
 
-    def __init__(self, le_model, parent=None):
+    def __init__(self, le_model, main_window, parent=None):
         """
         :param le_model: LEModel data object (i.e. parent data object where we may read and write the data)
         :param parent: Surface panel parent.
         """
         super().__init__(parent)
-
+        self.mainwindow = main_window
         # Data class for the surface panel.
         # This is copy of one of surfaces in LEData or default SurfaceItem if no surface exists.
         if le_model.gui_surface_selector.value is None:
             self.data = SurfaceItem()
         else:
-            self.data = le_model.gui_surface_selector.value
+            curr_surf = le_model.gui_surface_selector.value
+            self.data = self.data = SurfaceItem(curr_surf, copied_from=curr_surf)
         # Surfaces list in LEModel.
         self.le_model = le_model
 
@@ -136,12 +142,11 @@ class Surfaces(QtWidgets.QWidget):
         grid.addWidget(wg_suface_lbl, 0, 0, 1, 3)
         grid.addLayout(surf_row, 1, 0, 1, 3)
 
-        self.wg_view_button = WgShowButton("Switch visibilty of the surface grid.", parent = self)
+        self.wg_view_button = WgShowButton("Switch visibilty of the surface grid.", parent=self)
         self.wg_view_button.toggled.connect(self.show_grid)
 
         # surface combobox
         self.wg_surf_combo = SurfacesComboBox(self)
-        self.wg_surf_combo.lineEdit().editingFinished.connect(self.data.set_name)
         self.wg_surf_combo.currentIndexChanged.connect(self.change_surface)
 
         self.wg_add_button = self._make_button(
@@ -260,7 +265,6 @@ class Surfaces(QtWidgets.QWidget):
 
         sp1 =  QtWidgets.QSpacerItem(0, 0, QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Expanding)
         grid.addItem(sp1, 17, 0, 1, 3)
-        
 
         self.update_forms()
 
@@ -361,7 +365,7 @@ class Surfaces(QtWidgets.QWidget):
         edit = QtWidgets.QLineEdit()
         edit.editingFinished.connect(self.nuv_changed)
         nuv_validator = QtGui.QIntValidator()
-        nuv_validator.setRange(2, 600)
+        nuv_validator.setRange(1, 999)
         edit.setValidator(nuv_validator)
         return edit
 
@@ -419,9 +423,6 @@ class Surfaces(QtWidgets.QWidget):
         self.update_forms()
         self.show_grid.emit(self.wg_view_button.isChecked())
 
-
-
-
     def add_surface_from_file(self):
         """
         Handle wg_add_button. Open a file and add new unsaved surface into combo and current panel content.
@@ -433,10 +434,20 @@ class Surfaces(QtWidgets.QWidget):
         new_data.file_delimiter = self.data.file_delimiter
         data = self._load_file(new_data)
         if data:
+            if not self.le_model.surfaces_model.surfaces:
+                quad = new_data.get_actual_quad()
+                points = [QtCore.QPointF(point[0], -point[1]) for point in quad]
+                points.append(QtCore.QPointF(quad[0][0], -quad[0][1]))
+                rect = QtGui.QPolygonF(points).boundingRect()
+                x_adjust = rect.width() / 6
+                y_adjust = rect.height() / 6
+                rect.adjust(-x_adjust, -y_adjust, x_adjust, y_adjust)
+                self.first_surface_added.emit(rect)
             new_data.set_name_from_file(self.le_model)
             self.data = new_data
             self.wg_view_button.setChecked(True)
         self.update_forms()
+        self.show_grid.emit(self.wg_view_button.isChecked())
 
     def reload(self):
         self._load_file(self.data)
@@ -445,12 +456,12 @@ class Surfaces(QtWidgets.QWidget):
 
     def _load_file(self, surface_data):
         # save layer data first
-        if cfg.curr_file is None:
+        if self.le_model.curr_file is None:
             QtWidgets.QMessageBox.information(
                 self, 'Save layer data',
                 'Layer data file must be save first.')
-            cfg.main_window._layer_editor.save_file()
-        if cfg.curr_file is None:
+            self.mainwindow._layer_editor.save_file()
+        if self.le_model.curr_file is None:
             return
 
         file, pattern = QtWidgets.QFileDialog.getOpenFileName(
@@ -476,7 +487,7 @@ class Surfaces(QtWidgets.QWidget):
         If not try copy it.
         Returns new path or empty string if it is not possible.
         """
-        layer_file_dir = os.path.dirname(cfg.curr_file)
+        layer_file_dir = os.path.dirname(self.le_model.curr_file)
         relpath = os.path.relpath(file, start=layer_file_dir)
         if relpath.startswith("../") or (os.sep == "\\" and relpath.startswith("..\\")):
             basename = os.path.basename(file)
@@ -512,6 +523,12 @@ class Surfaces(QtWidgets.QWidget):
         msg.setWindowModality(QtCore.Qt.WindowModal)
         msg.show()
         QtWidgets.QApplication.processEvents()
+
+        # log = logging.getLogger()
+        # log.setLevel(logging.INFO)
+        # handler = logging.StreamHandler()
+        # handler.setLevel(logging.INFO)
+        # log.addHandler(handler)
 
         self.data.compute_approximation()
 
@@ -551,7 +568,7 @@ class Surfaces(QtWidgets.QWidget):
     def nuv_changed(self):
         u = self.int_convert(self.wg_u_approx)
         v = self.int_convert(self.wg_v_approx)
-        self.data.set_nuv( (u,v) )
+        self.data.set_nuv((u, v))
         if self.data._changed_forms:
             self._set_message("There are modified fields.")
         self.show_grid.emit(self.wg_view_button.isChecked())
@@ -605,6 +622,11 @@ class Surfaces(QtWidgets.QWidget):
                 form.setEnabled(False)
 
             self.wg_tolerance_le.setEnabled(False)
+
+            self.wg_u_approx.setText("")
+            self.wg_u_approx.setEnabled(False)
+            self.wg_v_approx.setText("")
+            self.wg_v_approx.setEnabled(False)
         else:
             self.wg_view_button.setEnabled(True)
             self.wg_view_button.set_icon()
@@ -631,16 +653,11 @@ class Surfaces(QtWidgets.QWidget):
             self.wg_tolerance_le.setEnabled(True)
             self.wg_tolerance_le.setText(str(self.data.tolerance))
 
-        if self.data.nuv is None:
-            self.wg_u_approx.setText("")
-            self.wg_u_approx.setEnabled(False)
-            self.wg_v_approx.setText("")
-            self.wg_v_approx.setEnabled(False)
-        else:
-            self.wg_u_approx.setText(str(self.data.nuv[0]))
-            self.wg_u_approx.setEnabled(True)
-            self.wg_v_approx.setText(str(self.data.nuv[1]))
-            self.wg_v_approx.setEnabled(True)
+            if self.data.nuv is not None:
+                self.wg_u_approx.setText(str(self.data.nuv[0]))
+                self.wg_u_approx.setEnabled(True)
+                self.wg_v_approx.setText(str(self.data.nuv[1]))
+                self.wg_v_approx.setEnabled(True)
 
         if self.data._elevation is None:
             self.wg_elevation.setText("")

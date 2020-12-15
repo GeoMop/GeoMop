@@ -1,5 +1,5 @@
 from PyQt5 import QtGui, QtWidgets, QtCore
-from PyQt5.QtCore import pyqtSignal, QPoint, QPointF
+from PyQt5.QtCore import pyqtSignal, QPointF, QRectF
 from PyQt5.QtGui import QPolygonF
 
 from LayerEditor.ui.diagram_editor.diagram_scene import DiagramScene
@@ -34,12 +34,12 @@ class DiagramView(QtWidgets.QGraphicsView):
         self.centerOn(QPointF(le_model.init_zoom_pos_data["x"],
                               -le_model.init_zoom_pos_data["y"]))
 
-    def show_grid(self, quad, nuv):
+    def show_grid(self, quad, u_knots, v_knots):
         """ Create grid of currently selected surface from surface panel.
             This object is shown in update of a scene."""
         if quad is None:
             return
-        self.gs_surf_grid = Grid(quad, nuv)
+        self.gs_surf_grid = Grid(quad, u_knots, v_knots)
         self.scene().update_scene()
         return self.gs_surf_grid.boundingRect()
 
@@ -81,5 +81,16 @@ class DiagramView(QtWidgets.QGraphicsView):
     def update_view(self):
         if self.scene().block is not self.le_model.gui_block_selector.value:
             self.setScene(DiagramScene(self.le_model.gui_block_selector.value, self.le_model.init_area, self))
+
+    def set_init_area(self, rect: QRectF):
+        self.le_model.init_area = rect
+        empty = True
+        for decomp in self.le_model.decompositions_model.decomps:
+            if not decomp.empty():
+                empty = False
+        if empty:
+            self.scene().setSceneRect(rect)
+
+
 
 

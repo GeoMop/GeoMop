@@ -1,6 +1,6 @@
 import os
 
-from PyQt5.QtCore import QObject, QPointF, pyqtSignal
+from PyQt5.QtCore import QObject, QPointF, pyqtSignal, QRectF
 from PyQt5.QtGui import QPolygonF
 
 from LayerEditor.ui.data.block_item import BlockItem
@@ -22,7 +22,7 @@ from LayerEditor.ui.data.regions_model import RegionsModel
 from LayerEditor.ui.data.surfaces_model import SurfacesModel
 from gm_base.geometry_files import layers_io
 from gm_base.geometry_files.format_last import InterfaceNodeSet, LayerGeometry, NodeSet, Region, RegionDim, Interface, \
-    InterpolatedNodeSet, StratumLayer, Topology
+    InterpolatedNodeSet, StratumLayer, Topology, UserSupplement
 
 
 class LEModel(QObject):
@@ -272,7 +272,7 @@ class LEModel(QObject):
 
     def save(self):
         geo_model = LayerGeometry()
-        geo_model.version = [0, 5, 5]
+        geo_model.version = [0, 5, 6]
         surfaces = self.surfaces_model.save()
         geo_model.surfaces = surfaces
         node_sets, topologies = self.decompositions_model.save()
@@ -284,11 +284,20 @@ class LEModel(QObject):
         geo_model.interfaces = interfaces_data
         geo_model.layers = self.blocks_model.save()
 
+        last_node_set = self.decompositions_model.decomps.index(self.gui_block_selector.value.decomposition)
+
+        if self.gui_surface_selector.value in self.surfaces_model.surfaces:
+            curr_surf_idx = self.surfaces_model.surfaces.index(self.gui_surface_selector.value)
+        else:
+            curr_surf_idx = None
+
+        supplement_config = {"last_node_set": last_node_set, "surface_idx": curr_surf_idx}
+
         self.surfaces_model.clear_indexing()
         self.decompositions_model.clear_indexing()
         self.regions_model.clear_indexing()
         self.interfaces_model.clear_indexing()
-        return geo_model
+        return geo_model, supplement_config
 
     @classmethod
     def open_file(cls, file):
@@ -336,7 +345,7 @@ class LEModel(QObject):
     @staticmethod
     def make_default_geo_model():
         geo_model = LayerGeometry()
-        geo_model.version = [0, 5, 5]
+        geo_model.version = [0, 5, 6]
 
         lname = "Layer_1"
         default_region = Region(dict(color="gray", name="NONE", not_used=True, dim=RegionDim.none))

@@ -26,14 +26,8 @@ class SurfaceItem(format_last.Surface):
         ### Common with GL Surface
         super().__init__()
         self._parent = _parent
-        # Approximation grid dimensions. (u,v)
-        self._nuv = None
-        # Approximation reglularization parameter
-        self.regularization = 1.0
         # Original quad
         self._quad = None
-        # Transformation matrix np array 2x3, shift vector in last column.
-        self._xy_transform = np.array([[1, 0, 0], [0, 1, 0]], dtype=float)
         # Elevation of the approximation.
         self._elevation = None
         # Approx object.
@@ -59,15 +53,19 @@ class SurfaceItem(format_last.Surface):
             else:
                 self.approximation = bspline_io.bs_zsurface_read(surf_data.approximation)
             self.update_from_z_surf()
+            self._changed_forms = False
             """Serialization of the  Z_Surface."""
-            self.regularization = surf_data.regularization
+            self.tolerance = surf_data.tolerance
             """Regularization weight."""
             self.approx_error = surf_data.approx_error
             """L-inf error of aproximation"""
+            self.xy_transform = surf_data.xy_transform
+            """Transformation matrix np array 2x3, shift vector in last column."""
+            self.nuv = surf_data.nuv
+            """Approximation grid dimensions. (u,v)"""
             self._approx_maker = ba.SurfaceApprox.approx_from_file(self.grid_file,
                                                                    self.file_delimiter,
                                                                    self.file_skip_lines)
-
 
     def get_index_from_list(self, lst: list):
         """Returns index of this object in provided list. If this object isn't in `lst` then return -1"""
@@ -99,19 +97,14 @@ class SurfaceItem(format_last.Surface):
                                                                self.file_skip_lines)
         self.grid_file = file
         self._quad = self._approx_maker.compute_default_quad()
-        self._nuv = self._approx_maker.compute_default_nuv()
         self._changed_forms = True
         return self
 
     def update_from_z_surf(self):
-        u = self.approximation.u_basis.n_intervals
-        v = self.approximation.v_basis.n_intervals
-        self._nuv = (u, v)
         self._quad = self.approximation.orig_quad
-        self._xy_transform = self.approximation.get_transform()[0]
         self._elevation = self.approximation.center()[2]
 
-    def set_name(self, name):
+    def set_name(self, name=None):
         self.name = name
         self._changed_forms = True
 
@@ -121,25 +114,25 @@ class SurfaceItem(format_last.Surface):
         self.name = le_model.get_default_name(init_name)
 
     def set_nuv(self, nuv):
-        self._nuv = nuv
+        self.nuv = nuv
         self._changed_forms = True
 
     def set_xy_transform(self, xy_transform):
-        self._xy_transform = xy_transform
+        self.xy_transform = xy_transform.tolist()
         self._changed_forms = True
 
     def get_actual_quad(self):
         if self._quad is None:
             return None
         quad_center = np.average(self._quad, axis=0)
-        xy_mat = self._xy_transform
+        xy_mat = np.array(self.xy_transform, dtype = float)
         return np.dot((self._quad - quad_center), xy_mat[0:2, 0:2].T) + quad_center + xy_mat[0:2, 2]
 
     def compute_approximation(self):
-        self.approximation = self._approx_maker.compute_approximation(
-            quad = self.get_actual_quad(),
-            nuv = self._nuv,
-            regularization_weight = self.regularization)
+        self.approximation = self._approx_maker.compute_adaptive_approximation(quad=self._quad,
+                                                                               nuv=self.nuv,
+                                                                               adapt_type="std_dev",
+                                                                               std_dev=self.tolerance)
         self.update_from_z_surf()
         self.approx_error = self._approx_maker.error
         self._changed_forms = True
@@ -164,5 +157,7 @@ class SurfaceItem(format_last.Surface):
                                         file_delimiter=self.file_delimiter,
                                         name=self.name,
                                         approximation=bspline_io.bs_zsurface_write(self.approximation),
-                                        regularization=self.regularization,
-                                        approx_error=self.approx_error))
+                                        approx_error=self.approx_error,
+                                        tolerance=self.tolerance,
+                                        xy_transform=self.xy_transform,
+                                        nuv=self.nuv))

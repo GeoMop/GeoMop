@@ -66,7 +66,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.scroll_area2 = QtWidgets.QScrollArea()
         self.scroll_area2.setWidgetResizable(True)
-        self.wg_surface_panel = Surfaces(self._layer_editor.le_model, parent=self.scroll_area2)
+        self.wg_surface_panel = Surfaces(self._layer_editor.le_model, self, parent=self.scroll_area2)
         self.scroll_area2.setWidget(self.wg_surface_panel)
         self._vsplitter2.addWidget(self.scroll_area2)
 
@@ -115,6 +115,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # signals
         self.diagram_view.cursorChanged.connect(self._cursor_changed)
+        self.wg_surface_panel.first_surface_added.connect(self.diagram_view.set_init_area)
         # self.shp.background_changed.connect(self.background_changed)
         # self.shp.item_removed.connect(self.del_background_item)
         # self.layers.viewInterfacesChanged.connect(self.refresh_view_data)
@@ -167,7 +168,7 @@ class MainWindow(QtWidgets.QMainWindow):
             view_rect = self.diagram_view.sceneRect()
             if not view_rect.contains(rect):
                 view_rect = view_rect.united(rect)
-                self.diagram_view.ensureVisible(view_rect)
+                self.diagram_view.fitInView(view_rect, QtCore.Qt.KeepAspectRatio)
         else:
             self.diagram_view.hide_grid()
 

@@ -220,7 +220,6 @@ class DiagramScene(QtWidgets.QGraphicsScene):
             if parent_surf_grid is not None:
                 self.removeItem(self.gs_surf_grid)
                 self.addItem(parent_surf_grid)
-                self.setSceneRect(self.itemsBoundingRect().adjusted(-1000, -1000, 1000, 1000))
                 self.b_box.setRect(self.sceneRect())
             self.gs_surf_grid = parent_surf_grid
 
