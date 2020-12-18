@@ -26,17 +26,16 @@ class RegionsModel:
         self.regions.add(reg)
 
     @undo.undoable
-    def add_region(self, name="", dim=0, color=None):
-        reg = RegionItem(color=color, name=name, dim=dim)
+    def add_region(self, reg):
         self.regions.add(reg)
-        yield "Add new Region", reg
+        yield "Add new Region"
         self.delete_region(reg)
 
     @undo.undoable
-    def delete_region(self, reg: RegionItem):
+    def delete_region(self, reg):
         del self.regions[reg]
         yield "Delete Region"
-        self.copy_region_from_data(reg)
+        self.add_region(reg)
 
     def get_region_names(self):
         return [reg.name for reg in self.regions.values()]

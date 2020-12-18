@@ -92,19 +92,19 @@ class BlockItem(IdObject):
 
         return layer
 
-    def init_regions_for_new_shape(self, shape: [GsPoint, GsSegment, GsPolygon]):
+    def init_regions_for_new_shape(self, shape_dim, shape_id):
         for layer in self.layers:
-            if shape.shape_id in layer.shape_regions[shape.dim]:
+            if shape_id in layer.shape_regions[shape_dim]:
                 return
             else:
                 region = layer.gui_selected_region
-                dim = shape.dim
+                dim = shape_dim
                 if layer.is_stratum:
                     dim += 1
                 if region.dim == dim:
-                    layer.set_region_to_shape(shape.dim, shape.shape_id, layer.gui_selected_region)
+                    layer.set_region_to_shape(shape_dim, shape_id, layer.gui_selected_region)
                 else:
-                    layer.set_region_to_shape(shape.dim, shape.shape_id, RegionItem.none)
+                    layer.set_region_to_shape(shape_dim, shape_id, RegionItem.none)
 
     #TODO: make this undoable
     def insert_layer(self, layer_data, index):

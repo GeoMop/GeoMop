@@ -28,7 +28,7 @@ class GsPolygon(QtWidgets.QGraphicsPolygonItem):
             Needs ref to block for updating color and initializing regions"""
         self.polygon_data = polygon
         self.block = block
-        self.block.init_regions_for_new_shape(self)
+        self.block.init_regions_for_new_shape(self.dim, self.shape_id)
         #polygon.g_polygon = self
         self.painter_path = None
         self.depth = 0

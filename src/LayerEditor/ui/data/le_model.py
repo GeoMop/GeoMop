@@ -101,7 +101,8 @@ class LEModel(QObject):
     def add_region(self, name, dim):
         """ Add new region according to the provided data from the current tab and select it."""
         with undo.group("Add new region"):
-            reg = self.regions_model.add_region(name, dim)
+            reg = RegionItem(name=name, dim=dim)
+            self.regions_model.add_region(reg)
             self.gui_curr_block.gui_selected_layer.set_gui_selected_region(reg)
         self.region_list_changed.emit()
         self.invalidate_scene.emit()
