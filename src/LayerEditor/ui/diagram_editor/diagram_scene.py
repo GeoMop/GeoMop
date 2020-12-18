@@ -3,7 +3,7 @@ from PyQt5.QtCore import Qt, QPoint
 from PyQt5.QtGui import QBrush, QPen
 from PyQt5.QtWidgets import QGraphicsRectItem
 
-from LayerEditor.ui.data.region import Region
+from LayerEditor.ui.data.region_item import RegionItem
 from LayerEditor.ui.data.regions_model import RegionsModel
 from LayerEditor.ui.tools import better_undo
 from LayerEditor.ui.tools.cursor import Cursor
@@ -71,7 +71,7 @@ class DiagramScene(QtWidgets.QGraphicsScene):
         region = self.block.gui_selected_layer.shape_regions[dim][shape_id]
 
         if region is None:
-            region = Region.none
+            region = RegionItem.none
         return region.color
 
     # def get_shape_region(self, shape_key):
