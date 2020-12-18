@@ -58,3 +58,9 @@ class Selection(QObject):
     def deselect_item_if_exists(self, g_item):
         if g_item in self._selected:
             self._selected.remove(g_item)
+
+    def get_selected_shape_dim_id(self):
+        r = []
+        for g_item in self._selected:
+            r.append((g_item.dim, g_item.shape_id))
+        return r

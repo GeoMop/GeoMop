@@ -1,9 +1,6 @@
 from PyQt5 import QtWidgets, QtGui, QtCore
-from PyQt5.QtCore import Qt
 import numpy as np
 
-from LayerEditor.ui.data.region_item import RegionItem
-from LayerEditor.ui.data.regions_model import RegionsModel
 from LayerEditor.ui.tools.cursor import Cursor
 
 
@@ -63,7 +60,7 @@ class GsSegment(QtWidgets.QGraphicsLineItem):
         self.setFlag(QtWidgets.QGraphicsItem.ItemSendsGeometryChanges)
         self.setLine(0, 0, pt_to.xy[0] - pt_from.xy[0], -pt_to.xy[1] + pt_from.xy[1])
 
-        color = self.block.gui_selected_layer.get_shape_region(self).color
+        color = self.block.gui_selected_layer.get_shape_region(self.dim, self.shape_id).color
         self.region_pen, self.region_selected_pen  = GsSegment.pen_table(color)
 
         super().update()
@@ -81,10 +78,7 @@ class GsSegment(QtWidgets.QGraphicsLineItem):
         displacement = np.array([x - self.pos().x(), -y + self.pos().y()])
         if self.scene().decomposition.check_displacment([self.segment.vtxs[0], self.segment.vtxs[1]], displacement):
             self.scene().decomposition.move_points([self.segment.vtxs[0], self.segment.vtxs[1]], displacement)
-        else:
-            return self.pos()
-        # for gseg in self.pt.g_segments():
-        #     gseg.update()
+
         if self.scene():
             self.scene().update_all_points()
             self.scene().update_all_segments()

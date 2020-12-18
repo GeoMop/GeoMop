@@ -49,23 +49,6 @@ class DiagramView(QtWidgets.QGraphicsView):
     def zoom(self):
         return self.transform().m11()
 
-    """
-    def show_map(self):
-        file = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "..", "res", "bukov_situace.svg")
-        map = QtSvg.QGraphicsSvgItem(file)
-
-        # map transform
-        # 622380 - 247.266276267186
-        # 1128900 - 972.212997362655
-        # 1128980 - 1309.97292588439
-        map.setTransformOriginPoint(247.266276267186, 972.212997362655)
-        map.setScale((1128980 - 1128900) / (1309.97292588439 - 972.212997362655))
-        map.setPos(-622380 - 247.266276267186, 1128900 - 972.212997362655)
-
-        self._scene.addItem(map)
-        map.setCursor(QtCore.Qt.CrossCursor)
-    """
-
     def mouseMoveEvent(self, event: QtGui.QMouseEvent) -> None:
         super(DiagramView, self).mouseMoveEvent(event)
         pos = self.mapToScene(event.pos())
