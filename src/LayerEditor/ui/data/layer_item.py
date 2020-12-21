@@ -78,10 +78,10 @@ class LayerItem(IdObject):
         else:
             return RegionItem.none
 
-    def set_region_to_selected_shapes(self, region: RegionItem, le_model):
+    def set_region_to_selected_shapes(self, region: RegionItem):
         """Sets regions of shapes only in this layer."""
         assert isinstance(undo.stack()._receiver, deque), "groups cannot be nested"
-        with undo.group(f"Set region of selected to {region.id}", le_model.invalidate_scene.emit, None):
+        with undo.group(f"Set region of selected to {region.id}"):
             for orig_dim, shape_id in self.block.selection.get_selected_shape_dim_id():
                 dim = orig_dim
                 if self.is_stratum:

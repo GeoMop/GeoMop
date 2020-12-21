@@ -1,9 +1,11 @@
 from PyQt5 import QtGui, QtWidgets, QtCore
 from PyQt5.QtCore import pyqtSignal, QPointF, QRectF
 from PyQt5.QtGui import QPolygonF
+from PyQt5.QtWidgets import QGraphicsItemGroup
 
 from LayerEditor.ui.diagram_editor.diagram_scene import DiagramScene
 from LayerEditor.ui.diagram_editor.graphics_items.grid import Grid
+from LayerEditor.ui.diagram_editor.graphics_items.shp_background import ShpBackground
 
 
 class DiagramView(QtWidgets.QGraphicsView):
@@ -12,10 +14,9 @@ class DiagramView(QtWidgets.QGraphicsView):
     def __init__(self, le_model):
         super(DiagramView, self).__init__()
         self.le_model = le_model
-        self.scenes = {}  # {topology_id: DiagramScene}
-        # dict of all scenes
         self.gs_surf_grid = None
         self._empty = True
+        self.root_shp_item = QGraphicsItemGroup()
 
         self.setTransformationAnchor(QtWidgets.QGraphicsView.AnchorUnderMouse)
         self.setResizeAnchor(QtWidgets.QGraphicsView.AnchorUnderMouse)
@@ -84,12 +85,24 @@ class DiagramView(QtWidgets.QGraphicsView):
 
     def set_init_area(self, rect: QRectF):
         self.le_model.init_area = rect
-        empty = True
-        for decomp in self.le_model.decompositions_model.decomps:
-            if not decomp.empty():
-                empty = False
-        if empty:
-            self.scene().setSceneRect(rect)
+        self.scene().setSceneRect(rect)
+
+    def refresh_shp_backgrounds(self):
+        """refresh updated shape files on background and return rect of affected shapes"""
+        rect = QRectF()
+        for shp in self.le_model.shapes_model.shapes:
+            if shp.shpdata.object is None:
+                s = ShpBackground(shp.shpdata, shp.color)
+                self.root_shp_item.addToGroup(s)
+                shp.refreshed = True
+                rect = rect.united(s.boundingRect())
+            elif not shp.refreshed:
+                shp.shpdata.object.color = shp.color
+                shp.shpdata.object.update()
+                shp.refreshed = True
+                rect = rect.united(shp.shpdata.object.boundingRect())
+        return rect
+
 
 
 

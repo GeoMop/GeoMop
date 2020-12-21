@@ -49,6 +49,7 @@ class DiagramScene(QtWidgets.QGraphicsScene):
         pen.setCosmetic(True)
         self.b_box.setPen(pen)
         self.addItem(self.b_box)
+        self.addItem(parent.root_shp_item)
 
     def get_shape_color(self, shape_key):
         if self.block.gui_layer_selector.value is None:
@@ -220,7 +221,6 @@ class DiagramScene(QtWidgets.QGraphicsScene):
             if parent_surf_grid is not None:
                 self.removeItem(self.gs_surf_grid)
                 self.addItem(parent_surf_grid)
-                self.b_box.setRect(self.sceneRect())
             self.gs_surf_grid = parent_surf_grid
 
         # points
@@ -279,6 +279,10 @@ class DiagramScene(QtWidgets.QGraphicsScene):
                 self.addItem(gpol)
 
         self.update()
+
+    def setSceneRect(self, rect: QtCore.QRectF) -> None:
+        super(DiagramScene, self).setSceneRect(rect)
+        self.b_box.setRect(rect)
 
     def delete_selected(self):
         self.decomposition.delete_items(self.selection.get_selected_shape_dim_id())

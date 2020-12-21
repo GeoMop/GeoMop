@@ -1,6 +1,7 @@
 import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtGui as QtGui
 
+from gm_base.geometry_files.format_last import Region
 from .region_panel_tab import RegionLayerTab, nosignal
 from ..data.region_item import RegionItem
 from ..dialogs.regions import AddRegionDlg
@@ -89,7 +90,7 @@ class RegionsPanel(QtWidgets.QToolBox):
         if dialog_result == QtWidgets.QDialog.Accepted:
             name = dialog.region_name.text()
             dim = dialog.region_dim.currentData()
-            region = self.le_model.add_region(RegionItem(name=name, dim=dim))
+            region = self.le_model.add_region(RegionItem(Region({"name": name, "dim": dim})))
             self.current_tab._set_region_to_selected_shapes(region)
 
     def remove_region(self):

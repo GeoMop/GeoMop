@@ -261,7 +261,7 @@ class RegionLayerTab(QtWidgets.QWidget):
         selected_color = color_dialog.getColor()
 
         if selected_color.isValid():
-            with undo.group("Set Color", self.le_model.invalidate_scene.emit, None):
+            with undo.group("Set Color"):
                 self.curr_region.set_color(selected_color.name())
                 self.layer.set_gui_selected_region(self.curr_region)
                 # This line doesnt do anything at first but it gets registered in undo redo system.
