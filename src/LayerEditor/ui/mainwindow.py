@@ -155,8 +155,6 @@ class MainWindow(QtWidgets.QMainWindow):
             if not rect.intersects(view_rect):
                 self.diagram_view.fitInView(rect, QtCore.Qt.KeepAspectRatio)
 
-            #TODO: self._move()   # move view so shapefile would be visible
-
     def del_background_item(self, idx_item):
         """Remove background item"""
         obj = self._layer_editor.le_model.shapes_model.shapes[idx_item].shpdata.object
