@@ -9,6 +9,7 @@ import signal
 from LayerEditor.exceptions.data_inconsistent_exception import DataInconsistentException
 from LayerEditor.ui.data.le_model import LEModel
 from LayerEditor.ui.diagram_editor.diagram_view import DiagramView
+from LayerEditor.ui.dialogs.make_mesh import MakeMeshDlg
 from LayerEditor.ui.panels import RegionsPanel
 from LayerEditor.ui.tools import undo
 from LayerEditor.ui.tools.cursor import Cursor
@@ -135,15 +136,18 @@ class LayerEditor:
                 err_dialog = GMErrorDialog(self.mainwindow)
                 err_dialog.open_error_report_dialog(errors, msg="Shape file parsing errors:", title=shp_file[0])
 
-    #
-    # def make_mesh(self):
-    #     """open Make mesh dialog"""
-    #     # if self.save_file() is False:
-    #     #     return
-    #
-    #     dlg = MakeMeshDlg(self.mainwindow)
-    #     dlg.exec()
-    #
+
+    def make_mesh(self):
+        """open Make mesh dialog"""
+        # if self.save_file() is False:
+        #     return
+        if self.le_model.curr_file is None:
+            if self.save_as() is not True:
+                return
+
+        dlg = MakeMeshDlg(self)
+        dlg.exec()
+
     def open_recent(self, action):
         """open recent file menu action"""
         if action.data() == self.le_model.curr_file:

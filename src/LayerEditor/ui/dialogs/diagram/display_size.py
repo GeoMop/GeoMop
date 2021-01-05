@@ -6,8 +6,8 @@ import PyQt5.QtGui as QtGui
 import PyQt5.QtCore as QtCore
 
 class DisplaySizeDlg(QtWidgets.QDialog):
-    def __init__(self,  rect, parent=None):
-        super(DisplaySizeDlg, self).__init__(parent)
+    def __init__(self, rect):
+        super(DisplaySizeDlg, self).__init__()
         self.setWindowTitle("Display Size Settings")
 
         grid = QtWidgets.QGridLayout(self)

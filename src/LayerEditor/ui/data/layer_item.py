@@ -12,7 +12,7 @@ class LayerItem(IdObject):
     """Data about one geological layer"""
     def __init__(self, block, name, top_in, bottom_in, shape_regions):
 
-        self.block = block
+        self._block = block
         """This layer is part of this block"""
         self.name = name
         """Layer name"""
@@ -25,12 +25,25 @@ class LayerItem(IdObject):
         """Regions of shapes grouped by dimension"""
 
         ######### Not undoable ########### Not undoable ########## Not undoable ##########
-        self.gui_region_selector = Selector(self.get_region_of_selected_shapes())
+        self.block = block
+        # self.gui_region_selector = Selector(RegionItem.none)
         """Default region for new objects in diagram. Also used by LayerHeads for RegionsPanel"""
-        """Not undoable"""
+        """Set by property `self.block` commented line is for documentation purpose only"""
 
         self.is_stratum = self.bottom_in is not None
         """Is this layer stratum layer?"""
+
+    @property
+    def block(self):
+        return self._block
+
+    @block.setter
+    def block(self, value):
+        self._block = value
+        if value is None:
+            self.gui_region_selector = Selector(RegionItem.none)
+        else:
+            self.gui_region_selector = Selector(self.get_region_of_selected_shapes())
 
     def get_average_elevation(self):
         if self.is_stratum:

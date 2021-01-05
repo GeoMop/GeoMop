@@ -1,6 +1,6 @@
 from PyQt5 import QtGui, QtWidgets, QtCore
 from PyQt5.QtCore import pyqtSignal, QPointF, QRectF
-from PyQt5.QtGui import QPolygonF
+from PyQt5.QtGui import QPolygonF, QPen
 from PyQt5.QtWidgets import QGraphicsItemGroup
 
 from LayerEditor.ui.diagram_editor.diagram_scene import DiagramScene
@@ -17,6 +17,7 @@ class DiagramView(QtWidgets.QGraphicsView):
         self.gs_surf_grid = None
         self._empty = True
         self.root_shp_item = QGraphicsItemGroup()
+        self._show_init_area = True
 
         self.setTransformationAnchor(QtWidgets.QGraphicsView.AnchorUnderMouse)
         self.setResizeAnchor(QtWidgets.QGraphicsView.AnchorUnderMouse)
@@ -28,12 +29,12 @@ class DiagramView(QtWidgets.QGraphicsView):
 
         self.el_map = {}
 
-        self.setScene(DiagramScene(le_model.gui_block_selector.value, self.le_model.init_area, self))
-
         scale = le_model.init_zoom_pos_data["zoom"]
         self.scale(scale, scale)
         self.centerOn(QPointF(le_model.init_zoom_pos_data["x"],
                               -le_model.init_zoom_pos_data["y"]))
+
+        self.setScene(DiagramScene(le_model.gui_block_selector.value, self.le_model.init_area, self))
 
     def show_grid(self, quad, u_knots, v_knots):
         """ Create grid of currently selected surface from surface panel.
@@ -47,6 +48,26 @@ class DiagramView(QtWidgets.QGraphicsView):
     def hide_grid(self):
         self.gs_surf_grid = None
         self.scene().update_scene()
+
+    def set_show_init_area(self, state):
+        self._show_init_area = state
+        self.scene().init_area.setVisible(state)
+
+    def display_all(self):
+        rect = self.scene().user_items_rect()
+
+        if not self.scene().sceneRect().contains(rect):
+            # if there is stuff outside scene rect `fitInView()` doesn't work properly
+            # solution project items rect through center and find bounding rect with projected rect included
+            center = self.scene().sceneRect().center()
+            new_rect = QRectF(rect)
+            new_rect.moveCenter(-(new_rect.center() - center))
+            rect = rect.united(new_rect)
+
+        self.fitInView(rect, QtCore.Qt.KeepAspectRatio)
+
+    def display_area(self):
+        self.fitInView(self.scene().sceneRect(), QtCore.Qt.KeepAspectRatio)
 
     def wheelEvent(self, event):
         if event.angleDelta().y() > 0:

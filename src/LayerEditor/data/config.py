@@ -21,6 +21,11 @@ class _Config:
     """Count of recent files"""
 
     CONFIG_DIR = os.path.join(base_cfg.__config_dir__, 'LayerEditor')
+    """Dir where config file is saved"""
+
+    geomop_root = os.path.dirname(os.path.dirname(
+        os.path.dirname(os.path.realpath(__file__))))
+    """Path to the root directory of the GeoMop installation."""
 
     def __init__(self, **kwargs):
         self._workspace = kwargs.get('_workspace', None)
@@ -28,6 +33,8 @@ class _Config:
         """directory of the most recently opened data file"""
         self.recent_files = kwargs.get('recent_files', [])
         """a list of recently opened files"""
+
+        self.init_area_visible = kwargs.get("init_area_visible", True)
 
     def save(self):
         """Save config data"""

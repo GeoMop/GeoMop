@@ -6,6 +6,8 @@ import PyQt5.QtGui as QtGui
 
 from LayerEditor.ui.diagram_editor.diagram_scene import DiagramScene
 from LayerEditor.ui.layers_panel.layers_panel import LayerPanel
+from LayerEditor.ui.menus.mesh import MeshMenu
+from LayerEditor.ui.menus.edit import EditMenu
 from LayerEditor.ui.panels.shapes_panel import ShapesPanel
 from LayerEditor.ui.panels.surfaces import Surfaces
 from LayerEditor.ui.panels.regions_panel import RegionsPanel
@@ -80,18 +82,18 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Menu bar
         self._menu = self.menuBar()
-        # self._edit_menu = EditMenu(self, self.diagramScene)
+        self._edit_menu = EditMenu(self)
         self._file_menu = MainFileMenu(self, self._layer_editor)
         # self._analysis_menu = AnalysisMenu(self, cfg.config)
         # self._settings_menu = MainSettingsMenu(self, self._layer_editor)
-        # self._mesh_menu = MeshMenu(self, self._layer_editor)
+        self._mesh_menu = MeshMenu(self, self._layer_editor)
         self.update_recent_files(0)
         if first:
             self._menu.addMenu(self._file_menu)
-            # self._menu.addMenu(self._edit_menu)
+            self._menu.addMenu(self._edit_menu)
             # self._menu.addMenu(self._analysis_menu)
             # self._menu.addMenu(self._settings_menu)
-            # self._menu.addMenu(self._mesh_menu)
+            self._menu.addMenu(self._mesh_menu)
 
         # status bar
         self._column = QtWidgets.QLabel(self)

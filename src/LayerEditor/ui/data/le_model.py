@@ -424,7 +424,7 @@ class LEModel(QObject):
                              dict(layer.shape_regions[1]),
                              dict(layer.shape_regions[2])]
 
-            new_layer = LayerItem(layer.block,
+            new_layer = LayerItem(None,
                                   new_layer_name,
                                   middle_it_node_set,
                                   bottom_in,
