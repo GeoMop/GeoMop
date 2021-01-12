@@ -214,11 +214,14 @@ class RegionLayerTab(QtWidgets.QWidget):
 
     def _set_region_to_selected_shapes(self, region):
         self.layer.gui_region_selector.value = region
-        self.layer.set_region_to_selected_shapes(region)
+        selected_shapes = self.le_model.blocks_model.gui_block_selector.value.selection.get_selected_shape_dim_id()
+        self.layer.set_region_to_selected_shapes(region, selected_shapes)
         self._parent.update_tabs()
         self.le_model.invalidate_scene.emit()
 
     def is_region_name_unique(self, new_name):
+        """ Returns True if new name is unique otherwise False.
+            If the name is the same as current name None is returned"""
         if new_name == self.curr_region.name:
             return None
         for name in self.le_model.regions_model.get_region_names():

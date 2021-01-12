@@ -7,7 +7,7 @@ class InterfacesModel:
         self.interfaces = []
         for itf in interfaces_data:
             surface = le_model.surfaces_model.surfaces[itf.surface_id] if itf.surface_id is not None else None
-            self.interfaces.append(InterfaceItem(itf.elevation, itf.transform_z, surface,))
+            self.interfaces.append(InterfaceItem(itf.transform_z, surface, itf.elevation))
 
     def save(self):
         interfaces_data = []
@@ -19,7 +19,6 @@ class InterfacesModel:
     def clear_indexing(self):
         for interface in self.interfaces:
             interface.index = None
-
 
     def insert_after(self, new_itf: InterfaceItem, after_itf: InterfaceItem):
         idx = self.interfaces.index(after_itf) + 1

@@ -53,7 +53,8 @@ class BlockItem(IdObject):
 
     @property
     def layer_names(self):
-        for layer in self.get_sorted_layers():
+        """Return unordered set of layer names in block."""
+        for layer in self.layers_dict.values():
             yield layer.name
 
     def make_node_set_from_data(self, le_model, node_set: [InterfaceNodeSet, InterpolatedNodeSet]):

@@ -36,7 +36,7 @@ class DiagramScene(QtWidgets.QGraphicsScene):
 
         # polygons
         self.decomposition = block.decomposition
-        self.decomposition.set_tolerance(self.TOLERANCE)
+        self.decomposition.poly_decomp.set_tolerance(self.TOLERANCE)
 
         self.gs_surf_grid = None
         # holds graphics object for surface grid so it can be deleted when not needed
@@ -150,7 +150,7 @@ class DiagramScene(QtWidgets.QGraphicsScene):
         return below_item
 
     def update_zoom(self, value):
-        self.decomposition.set_tolerance(self.TOLERANCE/value)
+        self.decomposition.poly_decomp.set_tolerance(self.TOLERANCE/value)
         for g_seg in self.segments.values():
             g_seg.update_zoom(value)
 
@@ -302,3 +302,4 @@ class DiagramScene(QtWidgets.QGraphicsScene):
     def delete_selected(self):
         self.decomposition.delete_items(self.selection.get_selected_shape_dim_id())
         self.update_scene()
+        self.selection.deselect_all()

@@ -1,22 +1,22 @@
+from LayerEditor.ui.data.i_node_set_item import INodeSetItem
 from LayerEditor.ui.tools import undo
 from gm_base.geometry_files.format_last import InterfaceNodeSet
 
 
-class InterfaceNodeSetItem:
+class InterfaceNodeSetItem(INodeSetItem):
     is_interpolated = False
     def __init__(self, decomp, interface):
-        self.decomposition = decomp
+        super(InterfaceNodeSetItem, self).__init__(interface)
+        self._decomposition = decomp
         """Node set index"""
-        self.interface = interface
-        """Interface index"""
 
     def get_shapes(self):
         """Topology must be the same so shape should be too"""
-        return self.decomposition.decomp.shapes
+        return self.decomposition.poly_decomp.decomp.shapes
 
     @property
-    def block(self):
-        return self.decomposition.block
+    def decomposition(self):
+        return self._decomposition
 
     def save(self):
         return InterfaceNodeSet(dict(nodeset_id=self.decomposition.temp_index,

@@ -72,7 +72,6 @@ class LayerPanel(QScrollArea):
         self.horizontalScrollBar().setValue(h_bar_value)
         self.verticalScrollBar().setValue(v_bar_value)
 
-
     def _make_layer_panel_model(self, le_model):
         """Compiles list representing rows in LayerPanel from data layer.
             First item in list is only interface or stratum layer.
@@ -235,7 +234,7 @@ class LayerPanel(QScrollArea):
         for button in self.view_buttons_group.buttons():
             button.setEnabled(True)
         radio_button = radio_button.parent()
-        self.le_model.change_curr_block(radio_button.block)
+        self.le_model.blocks_model.gui_block_selector.value = radio_button.block
         radio_button.view_button.setDisabled(True)
 
     def view_overlay(self):

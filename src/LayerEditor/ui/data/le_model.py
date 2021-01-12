@@ -36,9 +36,6 @@ class LEModel(QObject):
     scenes_changed = pyqtSignal()
     """ Scene created or deleted
         carries block id of the scene and True if scene was created or False if scene was deleted"""
-    active_block_changed = pyqtSignal(int)
-    """ curr_block was changed, so scene has to be changed (plus maybe other stuff)
-        param holds id of the previous curr block"""
 
     def __init__(self, in_file=None):
         super(LEModel, self).__init__()
@@ -55,7 +52,8 @@ class LEModel(QObject):
         """Manages interfaces"""
         self.regions_model = RegionsModel(self, geo_model.regions)
         """Manages regions."""
-        self.blocks_model = BlocksModel(geo_model, self)
+        curr_block = self.decompositions_model.decomps[geo_model.supplement.last_node_set].block
+        self.blocks_model = BlocksModel(geo_model, self, curr_block)
         """Manages blocks."""
         self.shapes_model = ShapesModel(geo_model.supplement.shps)
 
@@ -72,12 +70,16 @@ class LEModel(QObject):
             self.gui_surface_selector = Selector(self.surfaces_model.surfaces[geo_model.supplement.surface_idx])
         """helper attribute, holds currently active surface"""
 
-    def validate_selectors(self):
-        for block in self.blocks_model.blocks.values():
-            block.validate_selectors()
+    @property
+    def gui_block_selector(self):
+        return self.blocks_model.gui_block_selector
 
-        if not self.gui_block_selector.validate(self.blocks_model.get_sorted_blocks()):
-            self.active_block_changed.emit(self.gui_block_selector.old_value.id)
+    @gui_block_selector.setter
+    def gui_block_selector(self, selector: Selector):
+        self.blocks_model.gui_block_selector = selector
+
+    def validate_selectors(self):
+        self.blocks_model.validate_selectors()
 
     def load_geo_model(self, in_file=None):
         if in_file is None:
@@ -117,9 +119,10 @@ class LEModel(QObject):
         return name
 
     def layer_names(self):
-        r = []
+        """Return unordered set of all layer names"""
+        r = set()
         for block in self.blocks_model.blocks.values():
-            r.extend(block.layer_names)
+            r.update(block.layer_names)
         return r
 
     def confront_file_timestamp(self):
@@ -167,15 +170,22 @@ class LEModel(QObject):
 
     def is_region_used(self, reg):
         """Returns True if reg is assigned to any shape in any layer in any block"""
+        if reg is RegionItem.none:
+            return True
+        region_dim = self.regions_model.regions[reg].dim
+        stratum_dim = region_dim - 1
+
         for block in self.blocks_model.blocks.values():
             for layer in block.layers_dict.values():
-                dim = self.regions_model.regions[reg].dim
                 if layer.is_stratum:
-                    dim -= 1
-                    if dim < 0:
+                    dim = stratum_dim
+                    if region_dim == 0:
+                        # Region.dim == 0 cannot be assigned to stratum layer! SKIP
                         continue
                 else:
-                    if dim == 3:
+                    dim = region_dim
+                    if region_dim == 3:
+                        # Region.dim == 3 cannot be assigned to fracture layer! SKIP
                         continue
                 if reg in layer.shape_regions[dim].values():
                     return True
@@ -320,13 +330,12 @@ class LEModel(QObject):
         geo_model.regions.append(default_region)
 
         regions = ([], [], [0])  # No node, segment, polygon or regions.
-        inter = Interface(dict(elevation=0.0, surface_id=None))
-        inter.transform_z = [1.0, 0.0]
+        inter = Interface(dict(elevation=0.0, transform_z=[1.0, 0.0], surface_id=None))
         geo_model.interfaces.append(inter)
         ns_top = InterfaceNodeSet(dict(nodeset_id=0, interface_id=0))
 
-        inter = Interface(dict(elevation=-100.0, surface_id=None))
-        inter.transform_z = [1.0, 0.0]
+        inter = Interface(dict(elevation=-100.0, transform_z=[1.0, -100.0], surface_id=None))
+
         geo_model.interfaces.append(inter)
 
         ns_bot = InterpolatedNodeSet(dict(surf_nodesets=(ns_top, ns_top), interface_id=1))
@@ -351,7 +360,7 @@ class LEModel(QObject):
             else:
                 top_in = last_layer.top_in
             top_itf = top_in.interface
-            bot_itf = InterfaceItem(elevation)
+            bot_itf = InterfaceItem(elevation=elevation)
             self.interfaces_model.insert_after(bot_itf, top_itf)
 
             if top_in.is_interpolated:
@@ -378,7 +387,7 @@ class LEModel(QObject):
         with undo.group("Prepend Layer"):
             bot_in = first_layer.top_in
             bot_itf = bot_in.interface
-            top_itf = InterfaceItem(elevation)
+            top_itf = InterfaceItem(elevation=elevation)
             self.interfaces_model.insert_before(top_itf, bot_itf)
 
             if bot_in.is_interpolated:
@@ -402,7 +411,7 @@ class LEModel(QObject):
 
     def split_layer(self, layer: LayerItem, new_layer_name: str, elevation: float):
         with undo.group("Split Layer"):
-            new_itf = InterfaceItem(elevation)
+            new_itf = InterfaceItem(elevation=elevation)
             self.interfaces_model.insert_after(new_itf, layer.top_in.interface)
             bottom_in = layer.bottom_in
 
@@ -546,15 +555,6 @@ class LEModel(QObject):
                 return False
         self.surfaces_model.delete_surface(surf)
         return True
-
-    def change_curr_block(self, block=None):
-        """Changes currently active block to `block`. If `block` is None the first block will be used."""
-        if block is None:
-            block = self.blocks_model.get_sorted_blocks()[0]
-        if block is not self.gui_block_selector.value:
-            old_block = self.gui_block_selector.value
-            self.gui_block_selector.value = block
-            self.active_block_changed.emit(old_block.id)
 
     def add_shape_file(self, filename):
         if not self.shapes_model.is_file_open(filename):

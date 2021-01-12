@@ -43,7 +43,8 @@ class LayerItem(IdObject):
         if value is None:
             self.gui_region_selector = Selector(RegionItem.none)
         else:
-            self.gui_region_selector = Selector(self.get_region_of_selected_shapes())
+            region = self.get_region_of_shapes(self._block.selection.get_selected_shape_dim_id())
+            self.gui_region_selector = Selector(region)
 
     def get_average_elevation(self):
         if self.is_stratum:
@@ -75,13 +76,14 @@ class LayerItem(IdObject):
 
         return gl
 
-    def get_region_of_selected_shapes(self):
-        selected = self.block.selection._selected
-        if selected:
-            region = self.get_shape_region(selected[0].dim, selected[0].shape_id)
+    def get_region_of_shapes(self, shapes):
+        """ Returns common region of shapes.
+            :shapes: list of shape dims and ids over which the check is made [(dim, id), ...]"""
+        if shapes:
+            region = self.get_shape_region(shapes[0][0], shapes[0][1])
             is_region_same = True
-            for g_item in selected:
-                if region != self.get_shape_region(g_item.dim, g_item.shape_id):
+            for dim, shape_id in shapes:
+                if region != self.get_shape_region(dim, shape_id):
                     is_region_same = False
                     break
             if is_region_same:
@@ -91,11 +93,13 @@ class LayerItem(IdObject):
         else:
             return RegionItem.none
 
-    def set_region_to_selected_shapes(self, region: RegionItem):
-        """Sets regions of shapes only in this layer."""
+    def set_region_to_selected_shapes(self, region: RegionItem, shapes):
+        """ Sets regions of shapes only in this layer.
+            :region: RagionItem to set
+            :shapes: A list of shape dims and ids [(dim, id), ...]"""
         assert isinstance(undo.stack()._receiver, deque), "groups cannot be nested"
         with undo.group(f"Set region of selected to {region.id}"):
-            for orig_dim, shape_id in self.block.selection.get_selected_shape_dim_id():
+            for orig_dim, shape_id in shapes:
                 dim = orig_dim
                 if self.is_stratum:
                     dim += 1
@@ -105,33 +109,27 @@ class LayerItem(IdObject):
     def get_shape_region(self, dim, shape_id) -> RegionItem:
         return self.shape_regions[dim][shape_id]
 
-    def is_first(self):
-        """Does this layer have top interface which is first in block?"""
-        layers = self.block.get_sorted_layers()
-        idx = layers.index(self)
-        if idx == 0:
-            return True
-        if idx == 1:
-            if layers[0].is_stratum or not self.is_stratum:
-                return False
-            else:
-                return True
-        else:
-            return False
-
-    def is_last(self):
-        """Does this layer have bot interface which is last in block?"""
-        layers = self.block.get_sorted_layers()
-        idx = layers.index(self)
-        if idx == len(layers) - 1:
-            return True
-        if idx == len(layers) - 2:
-            if layers[len(layers) - 1].is_stratum or not self.is_stratum:
-                return False
-            else:
-                return True
-        else:
-            return False
+    # def is_first(self):
+    #     """Does this layer have top interface which is first in block?"""
+    #     layers = self.block.get_sorted_layers()
+    #     idx = layers.index(self)
+    #     if idx == 0:
+    #         return True
+    #     if idx == 1:
+    #         return not layers[0].is_stratum and self.is_stratum
+    #     else:
+    #         return False
+    #
+    # def is_last(self):
+    #     """Does this layer have bot interface which is last in block?"""
+    #     layers = self.block.get_sorted_layers()
+    #     idx = layers.index(self)
+    #     if idx == len(layers) - 1:
+    #         return True
+    #     if idx == len(layers) - 2:
+    #         return not layers[len(layers) - 1].is_stratum and self.is_stratum
+    #     else:
+    #         return False
 
     def is_last_decomp(self, top: bool):
         """ Returns True if top/bottom is last InterfaceNodeSetItem (which holds decomposition) in block.
@@ -140,15 +138,9 @@ class LayerItem(IdObject):
         if len(itf_node_sets) > 1:
             return False
         elif top:
-            if self.top_in.is_interpolated:
-                return False
-            else:
-                return True
+            return not self.top_in.is_interpolated
         else:
-            if self.bottom_in.is_interpolated:
-                return False
-            else:
-                return True
+            return not self.bottom_in.is_interpolated
 
     @undo.undoable
     def update_shape_ids(self, old_to_new_id):

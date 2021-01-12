@@ -1,16 +1,21 @@
 from PyQt5.QtCore import QObject, pyqtSignal
 
 from LayerEditor.ui.data.block_item import BlockItem
+from LayerEditor.ui.data.tools.selector import Selector
 from LayerEditor.ui.tools import undo
 from LayerEditor.ui.tools.id_map import IdMap
 from gm_base.geometry_files.format_last import InterpolatedNodeSet
 
 
 class BlocksModel(QObject):
-    def __init__(self, geo_model, le_model):
+    def __init__(self, geo_model, le_model, selected_block):
         super(BlocksModel, self).__init__()
         self.le_model = le_model
         self.blocks = IdMap()
+
+        self.gui_block_selector = Selector(selected_block)
+        """ helper attribute, holds currently active block
+            if curr_block was changed, signal value_changed is emitted in Selector"""
 
         for top in geo_model.topologies:
             self.blocks.add(BlockItem(le_model.regions_model))
@@ -49,15 +54,16 @@ class BlocksModel(QObject):
                       key=lambda x: x.get_sorted_layers()[0].top_in.interface.elevation,
                       reverse=True)
 
+    def validate_selectors(self):
+        for block in self.blocks.values():
+            block.validate_selectors()
+
+        self.gui_block_selector.validate(self.get_sorted_blocks())
+
     @undo.undoable
     def delete_block(self, block):
-        if self.le_model.gui_block_selector.value is block:
-            sorted_blocks = self.get_sorted_blocks()
-            if block is sorted_blocks[0]:
-                self.le_model.change_curr_block(sorted_blocks[1])
-            else:
-                self.le_model.change_curr_block(sorted_blocks[0])
         self.blocks.remove(block)
+        self.gui_block_selector.validate(self.get_sorted_blocks())
         yield "Remove Block"
         self.blocks.add(block)
 

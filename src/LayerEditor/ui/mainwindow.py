@@ -56,7 +56,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # scene
         self.diagram_view = DiagramView(self._layer_editor.le_model)
         """View is common for all layers and blocks."""
-        self._layer_editor.le_model.active_block_changed.connect(self.change_curr_block)
+        self._layer_editor.le_model.gui_block_selector.value_changed.connect(self.change_curr_block)
 
         self._hsplitter.addWidget(self.diagram_view)
 
@@ -218,16 +218,15 @@ class MainWindow(QtWidgets.QMainWindow):
         self.layers.update_layers_panel()
         self.wg_surface_panel.update_forms()
 
-    def change_curr_block(self, old_block_id):
-        old_block = self._layer_editor.le_model.blocks_model.blocks.get(old_block_id)
-        if old_block is not self._layer_editor.le_model.gui_block_selector.value:
-            old_block.selection.selection_changed.disconnect(self.wg_regions_panel.selection_changed)
+    def change_curr_block(self):
+        old_block = self._layer_editor.le_model.gui_gui_block_selector.old_value
+        old_block.selection.selection_changed.disconnect(self.wg_regions_panel.selection_changed)
 
-            curr_block = self._layer_editor.le_model.gui_block_selector.value
-            curr_block.selection.selection_changed.connect(self.wg_regions_panel.selection_changed)
+        curr_block = self._layer_editor.le_model.gui_block_selector.value
+        curr_block.selection.selection_changed.connect(self.wg_regions_panel.selection_changed)
 
-            self.diagram_view.setScene(DiagramScene(curr_block, self._layer_editor.le_model.init_area, self.diagram_view))
-            self.wg_regions_panel.update_tabs()
+        self.diagram_view.setScene(DiagramScene(curr_block, self._layer_editor.le_model.init_area, self.diagram_view))
+        self.wg_regions_panel.update_tabs()
 
     def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:
         if event.key() == QtCore.Qt.Key_Z and\

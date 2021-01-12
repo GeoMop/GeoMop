@@ -58,6 +58,7 @@ class RegionsPanel(QtWidgets.QToolBox):
         curr_block = self.le_model.gui_block_selector.value
         idx = curr_block.get_sorted_layers().index(curr_block.gui_layer_selector.value)
         self.setCurrentIndex(idx)
+        self.le_model.invalidate_scene.emit()
 
     def _update_region_list(self):
         for idx in range(self.count()):
@@ -109,9 +110,9 @@ class RegionsPanel(QtWidgets.QToolBox):
         self.le_model.invalidate_scene.emit()
 
     def selection_changed(self):
-        selected = self.le_model.gui_block_selector.value.selection._selected
+        selected = self.le_model.gui_block_selector.value.selection.get_selected_shape_dim_id()
         if selected:
             for layer in self.le_model.gui_block_selector.value.get_sorted_layers():
-                layer.gui_region_selector.value = layer.get_region_of_selected_shapes()
+                layer.gui_region_selector.value = layer.get_region_of_shapes(selected)
             self.update_tabs()
 
