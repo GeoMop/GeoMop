@@ -26,8 +26,6 @@ class DiagramScene(QtWidgets.QGraphicsScene):
         self.polygons = {}
         """Maps to all graphical objects grouped by type {id:QGraphicsItem}"""
 
-        self.regions_model = block.regions_model
-
         self.last_point = None
         self.aux_pt, self.aux_seg = self.create_aux_segment()
         self.hide_aux_line()

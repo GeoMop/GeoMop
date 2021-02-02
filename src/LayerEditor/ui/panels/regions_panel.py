@@ -91,7 +91,7 @@ class RegionsPanel(QtWidgets.QToolBox):
         if dialog_result == QtWidgets.QDialog.Accepted:
             name = dialog.region_name.text()
             dim = dialog.region_dim.currentData()
-            region = self.le_model.add_region(RegionItem(Region({"name": name, "dim": dim})))
+            region = self.le_model.add_region(RegionItem.create_from_data(Region({"name": name, "dim": dim})))
             self.current_tab._set_region_to_selected_shapes(region)
 
     def remove_region(self):

@@ -1,3 +1,4 @@
+from LayerEditor.ui.data.abstract_item import AbstractItem
 from gm_base.polygons import polygons_io
 from bgem.polygons.polygons import PolygonDecomposition
 
@@ -5,12 +6,13 @@ from LayerEditor.ui.tools import undo
 import gm_base.geometry_files.format_last as gs
 
 
-class LEDecomposition:
-    def __init__(self, nodes=None, topology=None):
+class LEDecomposition(AbstractItem):
+    def __init__(self):
+        super(LEDecomposition, self).__init__()
         self.poly_decomp = PolygonDecomposition()
-        if nodes is not None and topology is not None:
-            self.deserialize(nodes, topology)
         self.block = None
+        # keeps track of which block this topology belongs to
+
 
     @property
     def points(self):
@@ -29,6 +31,11 @@ class LEDecomposition:
             return True
         else:
             return False
+
+    def deserialize(self, nodes, topology, block):
+        """ Initializes decomp with data from format_last.py"""
+        self.poly_decomp = polygons_io.deserialize(nodes, topology)
+        self.block = block
 
     def new_point(self, pos, last_point):
         """Add continuous line and point, from self.last_point
@@ -52,7 +59,7 @@ class LEDecomposition:
                 if dim == 2 and id_old == 0:
                     # skip root polygon
                     continue
-                for layer in self.block.layers_dict.values():
+                for layer in self.block.items():
                     region = layer.get_shape_region(dim, id_old)
                     layer.set_region_to_shape(dim, id_new, region)
 
@@ -88,17 +95,11 @@ class LEDecomposition:
             for shape in self.poly_decomp.decomp.shapes[dim].values():
                 old_to_new_id[dim][shape.id] = shape.index
 
-        cpy = LEDecomposition(nodes, topology)
+        cpy = LEDecomposition.create_from_data(nodes, topology, self.block)
 
-        cpy.block = self.block
         undo.stack().setreceiver(receiver)  # bgem changes the receiver which is not desired this fixes it
         return cpy, old_to_new_id
 
-    # Moved here from polygon_io.py
     def serialize(self):
-        return polygons_io.serialize(self)
+        return polygons_io.serialize(self.poly_decomp)
 
-    def deserialize(self, nodes, topology):
-        polgon_decomp = polygons_io.deserialize(nodes, topology)
-        for key, value in polgon_decomp.__dict__.items():
-            self.__dict__[key] = value

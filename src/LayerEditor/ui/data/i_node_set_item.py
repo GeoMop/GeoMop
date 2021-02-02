@@ -1,3 +1,4 @@
+from LayerEditor.ui.tools import undo
 
 
 class INodeSetItem:
@@ -12,6 +13,10 @@ class INodeSetItem:
     @property
     def block(self):
         return self.decomposition.block
+
+    @undo.undoable
+    def change_decomposition(self, top_decomp, bot_decomp):
+        assert False, "Abstract function! Must be overridden by child class!"
 
 
 

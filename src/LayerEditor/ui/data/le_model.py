@@ -3,7 +3,7 @@ import os
 from PyQt5.QtCore import QObject, QPointF, pyqtSignal
 from PyQt5.QtGui import QPolygonF
 
-from LayerEditor.ui.data.block_item import BlockItem
+from LayerEditor.ui.data.block_layers_model import BlockLayersModel
 from LayerEditor.ui.data.shp_structures import ShapesModel
 from LayerEditor.ui.data.surface_item import SurfaceItem
 from LayerEditor.ui.data.tools.selector import Selector
@@ -43,31 +43,32 @@ class LEModel(QObject):
 
         self.curr_file = in_file
         """Current file (could be moved to config?)."""
-        self.decompositions_model = DecompositionsModel(geo_model.node_sets, geo_model.topologies)
+        self.regions_model = RegionsModel.create_from_data(geo_model.regions)
+        """Manages regions."""
+        self.blocks_model = BlocksModel.create_from_data(geo_model.topologies, self.regions_model)
+        """Manages blocks."""
+        self.decompositions_model = DecompositionsModel.create_from_data(geo_model.node_sets,
+                                                                         geo_model.topologies,
+                                                                         self.blocks_model)
         """Manages decompositions, this is similar to self.node_sets in format last"""
 
-        self.surfaces_model = SurfacesModel(geo_model.surfaces)
+        self.surfaces_model = SurfacesModel.create_from_data(geo_model.surfaces)
         """Manages surfaces"""
-        self.interfaces_model = InterfacesModel(self, geo_model.interfaces)
+        self.interfaces_model = InterfacesModel.create_from_data(geo_model.interfaces, self.surfaces_model)
         """Manages interfaces"""
-        self.regions_model = RegionsModel(self, geo_model.regions)
-        """Manages regions."""
-        curr_block = self.decompositions_model.decomps[geo_model.supplement.last_node_set].block
-        self.blocks_model = BlocksModel(geo_model, self, curr_block)
-        """Manages blocks."""
         self.shapes_model = ShapesModel(geo_model.supplement.shps)
+
+        self.blocks_model.deserialize_layers(geo_model, self)
 
         self.init_area = QPolygonF([QPointF(point[0], -point[1]) for point in geo_model.supplement.init_area]).boundingRect()
         """Initialization area (polygon x,y coordinates) for scene"""
         self.init_zoom_pos_data = geo_model.supplement.zoom
         """Used only for initializing DiagramView after that is None and DiagramView holds those informations"""
 
-        self.gui_block_selector = Selector(self.decompositions_model.decomps[geo_model.supplement.last_node_set].block)
-        """helper attribute, holds currently active block"""
         if geo_model.supplement.surface_idx is None:
             self.gui_surface_selector = Selector(None)
         else:
-            self.gui_surface_selector = Selector(self.surfaces_model.surfaces[geo_model.supplement.surface_idx])
+            self.gui_surface_selector = Selector(self.surfaces_model[geo_model.supplement.surface_idx])
         """helper attribute, holds currently active surface"""
 
     @property
@@ -121,7 +122,7 @@ class LEModel(QObject):
     def layer_names(self):
         """Return unordered set of all layer names"""
         r = set()
-        for block in self.blocks_model.blocks.values():
+        for block in self.blocks_model.items():
             r.update(block.layer_names)
         return r
 
@@ -156,7 +157,7 @@ class LEModel(QObject):
 
     def add_region(self, reg):
         with undo.group("Add new region"):
-            self.regions_model.add_region(reg)
+            self.regions_model.add(reg)
             self.gui_block_selector.value.gui_layer_selector.value.set_gui_selected_region(reg)
         self.region_list_changed.emit()
         self.invalidate_scene.emit()
@@ -164,7 +165,7 @@ class LEModel(QObject):
 
     def delete_region(self, reg):
         with undo.group("Delete new region"):
-            self.regions_model.delete_region(reg)
+            self.regions_model.remove(reg)
         self.region_list_changed.emit()
         self.invalidate_scene.emit()
 
@@ -172,11 +173,11 @@ class LEModel(QObject):
         """Returns True if reg is assigned to any shape in any layer in any block"""
         if reg is RegionItem.none:
             return True
-        region_dim = self.regions_model.regions[reg].dim
+        region_dim = reg.dim
         stratum_dim = region_dim - 1
 
-        for block in self.blocks_model.blocks.values():
-            for layer in block.layers_dict.values():
+        for block in self.blocks_model.items():
+            for layer in block.items():
                 if layer.is_stratum:
                     dim = stratum_dim
                     if region_dim == 0:
@@ -202,11 +203,11 @@ class LEModel(QObject):
                 if layers[idx - 1].is_stratum:
                     above_layer = layers[idx - 1]
                 else:
-                    layer.block.delete_layer(layers[idx - 1])
+                    layer.block.remove(layers[idx - 1])
                     above_layer = layers[idx - 2]
                 above_layer.set_bottom_in(layer.bottom_in)
-            self.interfaces_model.delete_itf(layer.top_in.interface)
-            layer.block.delete_layer(layer)
+            self.interfaces_model.remove(layer.top_in.interface)
+            layer.block.remove(layer)
         self.layers_changed.emit()
 
     def delete_layer_bot(self, layer):
@@ -220,26 +221,26 @@ class LEModel(QObject):
                 if layers[idx + 1].is_stratum:
                     below_layer = layers[idx + 1]
                 else:
-                    layer.block.delete_layer(layers[idx + 1])
+                    layer.block.remove(layers[idx + 1])
                     below_layer = layers[idx + 2]
                 below_layer.set_top_in(layer.top_in)
-            self.interfaces_model.delete_itf(layer.bottom_in.interface)
-            layer.block.delete_layer(layer)
+            self.interfaces_model.remove(layer.bottom_in.interface)
+            layer.block.remove(layer)
         self.layers_changed.emit()
 
     def delete_layer(self, layer: LayerItem):
-        if len(layer.block.layers_dict) == 1:
+        if len(layer.block) == 1:
             self.delete_block(layer.block)
         else:
             with undo.group("Delete Layer"):
-                layer.block.delete_layer(layer)
+                layer.block.remove(layer)
             self.layers_changed.emit()
 
-    def delete_block(self, block: BlockItem):
+    def delete_block(self, block: BlockLayersModel):
         with undo.Group("Delete Block"):
             for i_node_set in block.get_interface_node_sets():
-                self.decompositions_model.delete_decomposition(i_node_set.decomposition)
-            self.blocks_model.delete_block(block)
+                self.decompositions_model.remove(i_node_set.decomposition)
+            self.blocks_model.remove(block)
 
         self.layers_changed.emit()
         self.scenes_changed.emit()
@@ -247,23 +248,23 @@ class LEModel(QObject):
     def save(self):
         geo_model = LayerGeometry()
         geo_model.version = [0, 5, 6]
-        surfaces = self.surfaces_model.save()
+        surfaces = self.surfaces_model.serialize()
         geo_model.surfaces = surfaces
-        node_sets, topologies = self.decompositions_model.save()
+        node_sets, topologies = self.decompositions_model.serialize()
         geo_model.topologies = topologies
         geo_model.node_sets = node_sets
-        regions_data = self.regions_model.save()
+        regions_data = self.regions_model.serialize()
         geo_model.regions = regions_data
-        interfaces_data = self.interfaces_model.save()
+        interfaces_data = self.interfaces_model.serialize()
         geo_model.interfaces = interfaces_data
-        geo_model.layers = self.blocks_model.save()
+        geo_model.layers = self.blocks_model.serialize()
 
-        last_node_set = self.decompositions_model.decomps.index(self.gui_block_selector.value.decomposition)
+        last_node_set = self.gui_block_selector.value.decomposition.index
 
-        if self.gui_surface_selector.value in self.surfaces_model.surfaces:
-            curr_surf_idx = self.surfaces_model.surfaces.index(self.gui_surface_selector.value)
-        else:
+        if self.gui_surface_selector.value is None:
             curr_surf_idx = None
+        else:
+            curr_surf_idx = self.gui_surface_selector.value.index
 
         shps = self.shapes_model.serialize()
 
@@ -360,8 +361,8 @@ class LEModel(QObject):
             else:
                 top_in = last_layer.top_in
             top_itf = top_in.interface
-            bot_itf = InterfaceItem(elevation=elevation)
-            self.interfaces_model.insert_after(bot_itf, top_itf)
+            bot_itf = InterfaceItem.create_from_data((1.0, elevation), None)
+            self.interfaces_model.add(bot_itf)
 
             if top_in.is_interpolated:
                 bot_in = InterpolatedNodeSetItem(top_in.top_itf_node_set, top_in.bottom_itf_node_set, bot_itf)
@@ -372,13 +373,12 @@ class LEModel(QObject):
                              dict(last_layer.shape_regions[1]),
                              dict(last_layer.shape_regions[2])]
 
-            new_layer = LayerItem(last_layer.block,
-                                  new_layer_name,
+            new_layer = LayerItem(new_layer_name,
                                   top_in,
                                   bot_in,
                                   shape_regions)
 
-            self.blocks_model.blocks[last_layer.block].add_layer(new_layer)
+            last_layer.block.add(new_layer)
         self.layers_changed.emit()
 
     def prepend_layer(self, first_layer: LayerItem, new_layer_name: str, elevation: float):
@@ -387,8 +387,8 @@ class LEModel(QObject):
         with undo.group("Prepend Layer"):
             bot_in = first_layer.top_in
             bot_itf = bot_in.interface
-            top_itf = InterfaceItem(elevation=elevation)
-            self.interfaces_model.insert_before(top_itf, bot_itf)
+            top_itf = InterfaceItem.create_from_data((1.0, elevation), None)
+            self.interfaces_model.add(top_itf)
 
             if bot_in.is_interpolated:
                 top_in = InterpolatedNodeSetItem(bot_in.top_itf_node_set, bot_in.bottom_itf_node_set, top_itf)
@@ -400,19 +400,18 @@ class LEModel(QObject):
                              dict(first_layer.shape_regions[1]),
                              dict(first_layer.shape_regions[2])]
 
-            new_layer = LayerItem(first_layer.block,
-                                  new_layer_name,
+            new_layer = LayerItem(new_layer_name,
                                   top_in,
                                   bot_in,
                                   shape_regions)
 
-            self.blocks_model.blocks[first_layer.block].add_layer(new_layer)
+            first_layer.block.add(new_layer)
         self.layers_changed.emit()
 
     def split_layer(self, layer: LayerItem, new_layer_name: str, elevation: float):
         with undo.group("Split Layer"):
-            new_itf = InterfaceItem(elevation=elevation)
-            self.interfaces_model.insert_after(new_itf, layer.top_in.interface)
+            new_itf = InterfaceItem.create_from_data((1.0, elevation), None)
+            self.interfaces_model.add(new_itf)
             bottom_in = layer.bottom_in
 
             if isinstance(bottom_in, InterpolatedNodeSetItem):
@@ -433,13 +432,12 @@ class LEModel(QObject):
                              dict(layer.shape_regions[1]),
                              dict(layer.shape_regions[2])]
 
-            new_layer = LayerItem(None,
-                                  new_layer_name,
+            new_layer = LayerItem(new_layer_name,
                                   middle_it_node_set,
                                   bottom_in,
                                   shape_regions)
 
-            self.blocks_model.blocks[layer.block].add_layer(new_layer)
+            layer.block.add(new_layer)
         self.layers_changed.emit()
 
     def add_fracture_layer(self, i_node_set, layer_name=None):
@@ -458,24 +456,23 @@ class LEModel(QObject):
             for shape in i_node_set.get_shapes()[dim].values():
                 shape_regions[dim][shape.id] = RegionItem.none
 
-        new_layer = LayerItem(i_node_set.block,
-                              layer_name,
+        new_layer = LayerItem(layer_name,
                               i_node_set,
                               None,
                               shape_regions)
 
-        self.blocks_model.blocks[i_node_set.block].add_layer(new_layer)
+        i_node_set.block.add(new_layer)
         return new_layer
 
     def add_fracture_to_new_block(self, i_node_set, layer_name=None):
         with undo.group("Add Fracture to its own Surface"):
-            new_block = BlockItem(self.regions_model)
-            self.blocks_model.add_block(new_block)
+            new_block = BlockLayersModel(self.regions_model)
+            self.blocks_model.add(new_block)
 
             decomp, old_to_new_id = i_node_set.block.decomposition.copy_itself()
             decomp.block = new_block
 
-            self.decompositions_model.add_decomposition(decomp)
+            self.decompositions_model.add(decomp)
 
             new_in = InterfaceNodeSetItem(decomp, i_node_set.interface)
 
@@ -499,16 +496,16 @@ class LEModel(QObject):
             selected_idx = layers.index(old_block.gui_layer_selector.value)
             if selected_idx >= idx:
                 old_block.gui_layer_selector.value = layers[0]
-            new_block = BlockItem(self.regions_model)
+            new_block = BlockLayersModel(self.regions_model)
             new_block.gui_layer_selector.value = layer_below
             for layer in layers[idx:]:
-                old_block.delete_layer(layer)
-                new_block.add_layer(layer)
+                old_block.remove(layer)
+                new_block.add(layer)
 
             if len(new_block.get_interface_node_sets()) == 0:
                 new_i_node_set = InterfaceNodeSetItem(bot_decomp, i_node_set.interface)
                 layer_below.set_top_in(new_i_node_set)
-                for layer in new_block.layers_dict.values():
+                for layer in new_block.items():
                     layer.update_shape_ids(old_to_new_id)
                     if layer is not layer_below:
                         layer.set_top_in(InterpolatedNodeSetItem(new_i_node_set,
@@ -521,7 +518,7 @@ class LEModel(QObject):
             elif len(old_block.get_interface_node_sets()) == 0:
                 new_i_node_set = InterfaceNodeSetItem(top_decomp, i_node_set.interface)
                 layer_above.set_bottom_in(new_i_node_set)
-                for layer in old_block.layers_dict.values():
+                for layer in old_block.items():
                     layer.set_top_in(InterpolatedNodeSetItem(new_i_node_set,
                                                            new_i_node_set,
                                                            layer.top_in.interface))
@@ -529,7 +526,7 @@ class LEModel(QObject):
                         layer.set_bottom_in(InterpolatedNodeSetItem(new_i_node_set,
                                                                     new_i_node_set,
                                                                     layer.bottom_in.interface))
-                for layer in new_block.layers_dict.values():
+                for layer in new_block.items():
                     layer.update_shape_ids(old_to_new_id)
                     layer.top_in.change_decomposition(bot_decomp, bot_decomp)
                     if layer.is_stratum:
@@ -538,22 +535,22 @@ class LEModel(QObject):
             else:
                 assert False, "This should not happen. Unless there can be more than 1 decomposition in block."
 
-            self.blocks_model.add_block(new_block)
+            self.blocks_model.add(new_block)
 
             bot_decomp.block = new_block
-            self.decompositions_model.add_decomposition(bot_decomp)
+            self.decompositions_model.add(bot_decomp)
 
             self.layers_changed.emit()
             self.scenes_changed.emit()
 
     def add_surface(self, surf: SurfaceItem):
-        self.surfaces_model.add_surface(surf)
+        self.surfaces_model.add(surf)
 
     def delete_surface(self, surf):
-        for itf in self.interfaces_model.interfaces:
+        for itf in self.interfaces_model.items():
             if itf.surface is surf:
                 return False
-        self.surfaces_model.delete_surface(surf)
+        self.surfaces_model.remove(surf)
         return True
 
     def add_shape_file(self, filename):
@@ -565,7 +562,7 @@ class LEModel(QObject):
     def decompositions_empty(self, ignore_shapes=False, ignore_surf=False, ignore_decomps=False):
         if not ignore_shapes and not self.shapes_model.is_empty():
             return False
-        if not ignore_surf and not self.surfaces_model.is_empty():
+        if not ignore_surf and self.surfaces_model:
             return False
         if not ignore_decomps:
             for decomp in self.decompositions_model.decomps:

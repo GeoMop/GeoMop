@@ -1,4 +1,5 @@
 """Extends and improves `undo`"""
+from contextlib import contextmanager
 
 from bgem.external.undo import *
 from bgem.external.undo import _Group, _Action
@@ -103,3 +104,11 @@ def undoable_prepend(generator):
         return ret
 
     return inner
+
+@contextmanager
+def pause_undo():
+    receiver = stack()._receiver
+    stack().setreceiver([])
+    yield
+    stack()._receiver = receiver
+

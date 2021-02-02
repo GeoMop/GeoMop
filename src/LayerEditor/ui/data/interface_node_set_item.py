@@ -18,8 +18,12 @@ class InterfaceNodeSetItem(INodeSetItem):
     def decomposition(self):
         return self._decomposition
 
+    @decomposition.setter
+    def decomposition(self, decomp):
+        self._decomposition = decomp
+
     def save(self):
-        return InterfaceNodeSet(dict(nodeset_id=self.decomposition.temp_index,
+        return InterfaceNodeSet(dict(nodeset_id=self.decomposition.index,
                                      interface_id=self.interface.index))
 
     def __eq__(self, other):

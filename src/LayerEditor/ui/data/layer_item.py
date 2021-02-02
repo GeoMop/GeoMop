@@ -1,19 +1,19 @@
 from collections import deque
 
+from LayerEditor.ui.data.abstract_item import AbstractItem
 from LayerEditor.ui.data.interface_node_set_item import InterfaceNodeSetItem
+from LayerEditor.ui.data.interpolated_node_set_item import InterpolatedNodeSetItem
 from LayerEditor.ui.data.region_item import RegionItem
 from LayerEditor.ui.data.tools.selector import Selector
 from LayerEditor.ui.tools import undo
 from LayerEditor.ui.tools.id_map import IdObject
-from gm_base.geometry_files.format_last import StratumLayer, FractureLayer
+from gm_base.geometry_files.format_last import StratumLayer, FractureLayer, InterfaceNodeSet, InterpolatedNodeSet
 
 
-class LayerItem(IdObject):
+class LayerItem(AbstractItem):
     """Data about one geological layer"""
-    def __init__(self, block, name, top_in, bottom_in, shape_regions):
-
-        self._block = block
-        """This layer is part of this block"""
+    def __init__(self, name="", top_in=None, bottom_in=None, shape_regions=None):
+        super(LayerItem, self).__init__()
         self.name = name
         """Layer name"""
         self.top_in = top_in
@@ -25,26 +25,61 @@ class LayerItem(IdObject):
         """Regions of shapes grouped by dimension"""
 
         ######### Not undoable ########### Not undoable ########## Not undoable ##########
-        self.block = block
-        # self.gui_region_selector = Selector(RegionItem.none)
+        self.gui_region_selector = Selector(RegionItem.none)
         """Default region for new objects in diagram. Also used by LayerHeads for RegionsPanel"""
         """Set by property `self.block` commented line is for documentation purpose only"""
 
-        self.is_stratum = self.bottom_in is not None
+    @property
+    def is_stratum(self):
         """Is this layer stratum layer?"""
+        return self.bottom_in is not None
+
+    def deserialize(self, layer_data: [StratumLayer, FractureLayer], le_model):
+        """ Initializes layer.
+            :data: (name, top_in, bottom_in, shape_regions)"""
+        top_in = self.make_node_set_from_data(le_model, layer_data.top)
+        if hasattr(layer_data, "bottom"):
+            bottom_in = self.make_node_set_from_data(le_model, layer_data.bottom)
+        else:
+            bottom_in = None
+
+        shape_regions = [{}, {}, {}]
+
+        for shape_id, region_id in enumerate(layer_data.node_region_ids):
+            shape_regions[0][shape_id] = le_model.regions_model[region_id]
+
+        for shape_id, region_id in enumerate(layer_data.segment_region_ids):
+            shape_regions[1][shape_id] = le_model.regions_model[region_id]
+
+        for shape_id, region_id in enumerate(layer_data.polygon_region_ids):
+            shape_regions[2][shape_id] = le_model.regions_model[region_id]
+
+        with undo.pause_undo():
+            self.set_name(layer_data.name)
+            self.set_top_in(top_in)
+            self.set_bottom_in(bottom_in)
+            self.shape_regions = shape_regions
+
+    def make_node_set_from_data(self, le_model, node_set: [InterfaceNodeSet, InterpolatedNodeSet]):
+        if isinstance(node_set, InterfaceNodeSet):
+            return InterfaceNodeSetItem(le_model.decompositions_model[node_set.nodeset_id],
+                                        le_model.interfaces_model[node_set.interface_id])
+        else:
+            interfaces = le_model.interfaces_model
+            decomp = le_model.decompositions_model[node_set.surf_nodesets[0].nodeset_id]
+            itf = interfaces[node_set.surf_nodesets[0].interface_id]
+            itf_node_set1 = InterfaceNodeSetItem(decomp, itf)
+            decomp = le_model.decompositions_model[node_set.surf_nodesets[1].nodeset_id]
+            itf = interfaces[node_set.surf_nodesets[1].interface_id]
+            itf_node_set2 = InterfaceNodeSetItem(decomp, itf)
+
+            itf = interfaces[node_set.interface_id]
+
+            return InterpolatedNodeSetItem(itf_node_set1, itf_node_set2, itf)
 
     @property
     def block(self):
-        return self._block
-
-    @block.setter
-    def block(self, value):
-        self._block = value
-        if value is None:
-            self.gui_region_selector = Selector(RegionItem.none)
-        else:
-            region = self.get_region_of_shapes(self._block.selection.get_selected_shape_dim_id())
-            self.gui_region_selector = Selector(region)
+        return None if self.top_in is None else self.top_in.decomposition.block
 
     def get_average_elevation(self):
         if self.is_stratum:
@@ -52,7 +87,7 @@ class LayerItem(IdObject):
         else:
             return self.top_in.interface.elevation
 
-    def save(self):
+    def serialize(self):
         layer_config = dict(name=self.name, top=self.top_in.save())
         shape_region_idx = ([], [], [])
         if isinstance(self.top_in, InterfaceNodeSetItem):
@@ -61,7 +96,7 @@ class LayerItem(IdObject):
             decomp = self.top_in.top_itf_node_set.decomposition
 
         for dim in range(3):
-            for shape in sorted(decomp.decomp.shapes[dim].values(), key=lambda x: x.index):
+            for shape in sorted(decomp.poly_decomp.decomp.shapes[dim].values(), key=lambda x: x.index):
                 region = self.shape_regions[dim][shape.id]
                 shape_region_idx[dim].append(region.index)
         layer_config["node_region_ids"] = shape_region_idx[0]
@@ -180,9 +215,20 @@ class LayerItem(IdObject):
     @undo.undoable
     def set_top_in(self, new_in):
         """Sets new top InterfaceNodeSetItem/InterpolatedNodeSetItem"""
+        old_block = self.block
+        new_block = new_in.decomposition.block
+        if old_block is not new_block:
+            if old_block is not None:
+                old_block.remove(self)
+            new_block.add(self)
+
         old_ni = self.top_in
         self.top_in = new_in
         yield f"top_ni changed in layer {self.id}"
+        if old_block is not new_block:
+            if old_block is not None:
+                new_block.remove(self)
+            old_block.add(self)
         self.set_top_in(old_ni)
 
     @undo.undoable

@@ -149,7 +149,7 @@ class RegionLayerTab(QtWidgets.QWidget):
         """
         with nosignal(self.wg_region_combo) as combo:
             combo.clear()
-            for reg in self.le_model.regions_model.regions.values():
+            for reg in self.le_model.regions_model.items():
                 combo.addItem(self.make_combo_label(reg), reg)
         self._update_region_content()
 

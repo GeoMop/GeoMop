@@ -35,7 +35,7 @@ def add_surface_to_grid(dialog, grid, row, interface=None):
         dialog.zs = surfaces[id].approximation
         _compute_depth()
 
-    surfaces = dialog.le_model.surfaces_model.surfaces
+    surfaces = dialog.le_model.surfaces_model.sorted_items_elevation()
     is_surface = len(surfaces ) >0
     dialog.grid = QtWidgets.QRadioButton("Grid")
     dialog.grid.clicked.connect(_enable_controls)
