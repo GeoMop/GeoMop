@@ -9,6 +9,7 @@ class DiagramView(QtWidgets.QGraphicsView):
     cursorChanged = pyqtSignal(float, float)
     def __init__(self, le_model):
         super(DiagramView, self).__init__()
+        self.le_model = le_model
         self.scenes = {}  # {topology_id: DiagramScene}
         # dict of all scenes
         self._empty = True
@@ -29,8 +30,7 @@ class DiagramView(QtWidgets.QGraphicsView):
             block.selection.set_diagram(diagram_scene)
             self.scenes[block.id] = diagram_scene
 
-        self.setScene(self.scenes[0])
-        """scene is set here only temporarily until there will be Layer Panel"""
+        self.setScene(self.scenes[le_model.gui_curr_block.id])
 
         scale = le_model.init_zoom_pos_data["zoom"]
         self.scale(scale, scale)
@@ -67,3 +67,15 @@ class DiagramView(QtWidgets.QGraphicsView):
                          "x": center.x(),
                          "y": -center.y(),
                          'position_set': False}}
+
+    def scenes_changed(self, block_id, added: bool):
+
+        if added:
+            block = self.le_model.blocks_model.blocks.get(block_id)
+            diagram_scene = DiagramScene(block, self.le_model.init_area, self)
+
+            block.selection.set_diagram(diagram_scene)
+            self.scenes[block_id] = diagram_scene
+        else:
+            del self.scenes[block_id]
+

@@ -1,6 +1,7 @@
 from bgem.polygons import polygons
 
 import gm_base.geometry_files.format_last as gs
+from LayerEditor.ui.data.le_decomposition import LEDecomposition
 
 """
 TODO: Try to remove dependency on `decomp` module.
@@ -66,7 +67,7 @@ def deserialize(nodes, topology):
     :return: PolygonDecomposition. The attributes 'id' and 'index' of nodes, segments and polygons
     are set to their indices in the input file lists, counting from 0.
     """
-    polydec = polygons.PolygonDecomposition()
+    polydec = LEDecomposition()
     polygons.disable_undo()
     decomp = polydec.decomp
 

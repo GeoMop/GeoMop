@@ -3,12 +3,14 @@
 import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtCore as QtCore
 import PyQt5.QtGui as QtGui
+
+from LayerEditor.ui.layers_panel.layers_panel import LayerPanel
 from LayerEditor.ui.panels.regions_panel import RegionsPanel
 from LayerEditor.ui.tools.cursor import Cursor
 from LayerEditor.ui.diagram_editor.diagram_view import DiagramView
 import gm_base.icon as icon
 from LayerEditor.ui.menus.file import MainFileMenu
-from bgem.external import undo
+from LayerEditor.ui.tools import undo
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -41,15 +43,16 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.scroll_area1 = QtWidgets.QScrollArea()
         # self._scroll_area.setWidgetResizable(True)
-        #self.layers = panels.Layers(self.scroll_area1)
-        #self.scroll_area1.setWidget(self.layers)
-        self._vsplitter1.addWidget(self.scroll_area1)
+        self.layers = LayerPanel(self._layer_editor.le_model)
+        self._vsplitter1.addWidget(self.layers)
 
         self._vsplitter1.addWidget(self.wg_regions_panel)
 
         # scene
         self.diagram_view = DiagramView(self._layer_editor.le_model)
         """View is common for all layers and blocks."""
+        self._layer_editor.le_model.scenes_changed.connect(self.diagram_view.scenes_changed)
+        self._layer_editor.le_model.active_block_changed.connect(self.change_curr_block)
 
         self._hsplitter.addWidget(self.diagram_view)
 
@@ -118,7 +121,8 @@ class MainWindow(QtWidgets.QMainWindow):
         # self.layers.refreshArea.connect(self._refresh_area)
         # self.layers.clearDiagramSelection.connect(self.clear_diagram_selection)
 
-        self._layer_editor.le_model.invalidate_scene.connect(self.curr_scene.update_scene)
+        self._layer_editor.le_model.invalidate_scene.connect(self.update_scene)
+        self._layer_editor.le_model._layers_changed.connect(self.layers_changed)
 
         # self.wg_surface_panel.show_grid.connect(self._show_grid)
 
@@ -145,6 +149,12 @@ class MainWindow(QtWidgets.QMainWindow):
         """Editor node change signal"""
         self._column.setText("x: {:5f}  y: {:5f}".format(x, -y))
 
+    def layers_changed(self):
+        self.update_all()
+
+    def update_scene(self):
+        self.curr_scene.update_scene()
+
     # def _show_grid(self, show_flag):
     #     """Show mash"""
     #     if show_flag:
@@ -167,6 +177,7 @@ class MainWindow(QtWidgets.QMainWindow):
         super(MainWindow, self).closeEvent(event)
 
     def undo(self):
+        temp = undo.stack()
         self._layer_editor.le_model.gui_curr_block.selection.deselect_all()
         # Deselect because selected region can change and that could create wrong behaviour #
         self.curr_scene.hide_aux_point_and_seg()
@@ -174,6 +185,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.update_all()
 
     def redo(self):
+        temp = undo.stack()
         self._layer_editor.le_model.gui_curr_block.selection.deselect_all()
         # the same reason as in undo
         self.curr_scene.hide_aux_point_and_seg()
@@ -182,6 +194,15 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def update_all(self):
         self.curr_scene.update_scene()
+        self.wg_regions_panel.update_tabs()
+        self.layers.update_layers_panel()
+
+    def change_curr_block(self, old_block_id):
+        self.diagram_view.setScene(self.diagram_view.scenes[self._layer_editor.le_model.gui_curr_block.id])
+        old_block = self._layer_editor.le_model.blocks_model.blocks.get(old_block_id)
+        old_block.selection.selection_changed.disconnect(self.wg_regions_panel.selection_changed)
+        curr_block = self._layer_editor.le_model.gui_curr_block
+        curr_block.selection.selection_changed.connect(self.wg_regions_panel.selection_changed)
         self.wg_regions_panel.update_tabs()
 
     def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:
