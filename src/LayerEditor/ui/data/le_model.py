@@ -502,7 +502,8 @@ class LEModel(QObject):
                 old_block.remove(layer)
                 new_block.add(layer)
 
-            if len(new_block.get_interface_node_sets()) == 0:
+            if len( new_block.get_interface_node_sets()) == 0 or\
+                    not (layer_below.top_in.is_interpolated or layer_above is None):
                 new_i_node_set = InterfaceNodeSetItem(bot_decomp, i_node_set.interface)
                 layer_below.set_top_in(new_i_node_set)
                 for layer in new_block.items():
@@ -565,7 +566,7 @@ class LEModel(QObject):
         if not ignore_surf and self.surfaces_model:
             return False
         if not ignore_decomps:
-            for decomp in self.decompositions_model.decomps:
+            for decomp in self.decompositions_model.items():
                 if not decomp.empty():
                     return False
         return True

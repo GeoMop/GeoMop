@@ -10,6 +10,7 @@ import shutil
 
 from LayerEditor.ui.data.le_model import LEModel
 from LayerEditor.ui.data.surface_item import SurfaceItem
+from LayerEditor.ui.data.surface_item_draft import SurfaceItemDraft
 from LayerEditor.widgets.line_edit import LineEdit
 from LayerEditor.widgets.text_validator import TextValidator
 from bgem.bspline import bspline_approx as ba
@@ -124,11 +125,10 @@ class Surfaces(QtWidgets.QWidget):
         self.mainwindow = main_window
         # Data class for the surface panel.
         # This is copy of one of surfaces in LEData or default SurfaceItem if no surface exists.
-        if le_model.gui_surface_selector.value is None:
-            self.data = SurfaceItem()
-        else:
+        self.data = SurfaceItemDraft()
+        if le_model.gui_surface_selector.value is not None:
             curr_surf = le_model.gui_surface_selector.value
-            self.data = SurfaceItem.create_from_data(curr_surf, curr_surf)
+            self.data.update_from_surface(curr_surf)
         # Surfaces list in LEModel.
         self.le_model = le_model
 
@@ -405,7 +405,8 @@ class Surfaces(QtWidgets.QWidget):
         if new_idx is not None:
             surfaces = self.le_model.surfaces_model.sorted_items_elevation()
             new_surf = surfaces[new_idx]
-            self.data = SurfaceItem.create_from_data(new_surf, new_surf)
+            self.data = SurfaceItemDraft()
+            self.data.copy_from_surface_item(new_surf)
         self.update_forms()
         self.show_grid.emit(self.wg_view_button.isChecked())
 
@@ -422,8 +423,9 @@ class Surfaces(QtWidgets.QWidget):
 
         # propose new idx
         new_idx = min(idx, len(self.le_model.surfaces_model) - 1)
-        self.data = SurfaceItem.create_from_data(self.e_model.surfaces_model.sorted_items_elevation()[new_idx],
-                                                 new_idx)
+        self.data = SurfaceItemDraft()
+        self.data.copy_from_surface_item(self.e_model.surfaces_model.sorted_items_elevation()[new_idx])
+
         self.update_forms()
         self.show_grid.emit(self.wg_view_button.isChecked())
 
@@ -433,7 +435,7 @@ class Surfaces(QtWidgets.QWidget):
         """
         if not self.empty_forms():
             return
-        new_data = SurfaceItem()
+        new_data = SurfaceItemDraft()
         new_data.file_skip_lines = self.data.file_skip_lines
         new_data.file_delimiter = self.data.file_delimiter
         data = self._load_file(new_data)

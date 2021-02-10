@@ -47,9 +47,7 @@ class BlockLayersModel(AbstractModel, AbstractItem):
     @property
     def decomposition(self):
         # This is going to be problem in future when there will be more editable layers in one block
-        for layer in self.items():
-            if isinstance(layer.top_in, InterfaceNodeSetItem):
-                return layer.top_in.decomposition
+        return self.get_interface_node_sets()[0].decomposition
 
     @property
     def layer_names(self):
