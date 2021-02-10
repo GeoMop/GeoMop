@@ -54,6 +54,13 @@ class BlocksModel(AbstractModel):
 
         self.gui_block_selector.validate(self.get_sorted_blocks())
 
+    def serialize(self):
+        items = []
+        for idx, item in enumerate(self.items()):
+            items.extend(item.serialize())
+            item.index = idx
+        return items
+
     def remove(self, block):
         super(BlocksModel, self).remove(block)
         self.gui_block_selector.validate(self.get_sorted_blocks())

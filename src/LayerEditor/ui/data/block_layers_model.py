@@ -91,7 +91,7 @@ class BlockLayersModel(AbstractModel, AbstractItem):
     @undo.undoable
     def remove(self, layer):
         self.collection.remove(layer)
-        self.gui_layer_selector.validate(self.items())
+        self.gui_layer_selector.validate(list(self.items()))
         yield "Delete Layer"
         self.add(layer)
 

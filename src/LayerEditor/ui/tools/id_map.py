@@ -49,9 +49,6 @@ class IdMap():
     def values(self):
         return self._dict.values()
 
-    def __getitem__(self, item):
-        return self.get(item.id)
-
     def __delitem__(self, key):
         self.remove(key)
 
