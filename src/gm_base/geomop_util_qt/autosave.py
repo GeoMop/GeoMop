@@ -27,6 +27,7 @@ class Autosave(QObject):
         :param string_to_save_fnc: function which returns string to be saved
         :param cfg_save_fnc: function for saving the configuration
         """
+        super(Autosave, self).__init__()
         self.cfg_save = cfg_save_fnc
         self.curr_filename_fnc = curr_filename_fnc
         self.text = string_to_save_fnc

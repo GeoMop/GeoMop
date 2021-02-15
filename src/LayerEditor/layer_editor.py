@@ -185,14 +185,16 @@ class LayerEditor:
         if filename is None:
             filename = self.le_model.curr_file
         self.save_model(filename)
-        self.le_model.curr_file = filename
         try:
             self.le_model.curr_file_timestamp = os.path.getmtime(filename)
         except OSError:
             self.le_model.curr_file_timestamp = None
 
-        cfg.add_recent_file(self.le_model.curr_file)
         self.autosave.delete_backup()
+
+        self.le_model.curr_file = filename
+        cfg.add_recent_file(self.le_model.curr_file)
+
         self.mainwindow.update_recent_files()
         self._update_document_name()
         undo.savepoint()
@@ -246,7 +248,7 @@ class LayerEditor:
             if reply == QtWidgets.QMessageBox.Abort:
                 return False
             if reply == QtWidgets.QMessageBox.Yes:
-                if cfg.curr_file is None:
+                if self.le_model.curr_file is None:
                     return self.save_as()
                 else:
                     self.save_file()
