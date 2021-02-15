@@ -47,8 +47,9 @@ versions=[
     ([0,4,0], "format_0_4_0"),
     ([0,4,9], "format_0_4_9"),
     ([0,5,0], "format_0_5_0"),
-    ([0,5,5], "format_last"),
-    ([9,9,9], "format_last")
+    ([0,5,5], "format_0_5_5"),
+    ([0,5,6], "format_last"),
+    #([9,9,9], "format_last")
 ]
 
 
@@ -155,7 +156,7 @@ def read_geometry(file_name, file_object=None):
             contents = f.read()
     else:
         contents = file_object.read()
-    json_lg = json.loads(contents, encoding="utf-8")
+    json_lg = json.loads(contents)
     base_path = os.path.dirname(file_name)
     return convert_file_to_actual_format(json_lg, base_path=base_path)
 

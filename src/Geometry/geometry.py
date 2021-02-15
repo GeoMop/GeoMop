@@ -95,7 +95,7 @@ def _conv_surface(gs_surface):
     surf.file_delimiter = gs_surface.file_delimiter
     surf.name = gs_surface.name
     surf.approximation = gs_surface.approximation
-    surf.regularization = gs_surface.regularization
+    surf.tolerance = gs_surface.tolerance
     surf.approx_error = gs_surface.approx_error
 
     return surf
