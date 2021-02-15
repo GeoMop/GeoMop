@@ -105,6 +105,8 @@ class Surface(JsonData):
         new_surf = lfc.convert_json_data(sys.modules[__name__], other, cls)
         new_surf.approx_error = 0.0
         new_surf.regularization = 1.0
+        new_surf.file_skip_lines = 0
+        new_surf.file_delimiter = ' '
         return new_surf
 
 class Interface(JsonData):
