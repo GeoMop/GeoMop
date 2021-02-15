@@ -37,16 +37,17 @@ class LayerEditor:
         self.mainwindow = MainWindow(self)
         self.exit = False
 
-        save_fn = lambda: self.save_model()
-        curr_file_fn = lambda: self.le_model.curr_file
-        #TODO: check default dir to autosave, this might be wrong
-        self.autosave = Autosave(cfg.current_workdir, curr_file_fn, save_fn)
+        self.autosave = Autosave(cfg.CONFIG_DIR,
+                                 lambda: self.le_model.curr_file,
+                                 lambda: self.save_model(),
+                                 cfg.save)
         self._restore_backup()
 
         # show
         self.mainwindow.show()
         self._update_document_name()
         self.autosave.start_autosave()
+        self.autosave.autosave_error.connect(self.report_status)
 
     def qapp_setup(self):
         """Setup application."""
@@ -73,6 +74,9 @@ class LayerEditor:
         if restored:
             self.load_file(self.autosave.backup_filename(), from_backup=True)
         return restored
+
+    def report_status(self, status: str):
+        self.mainwindow.show_status_message(status)
 
     def new_file(self):
         """

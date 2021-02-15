@@ -47,7 +47,10 @@ class ModelEditor:
         # show
         self.mainwindow.show()
 
-        self.autosave = Autosave(cfg.config.CONFIG_DIR, lambda: cfg.curr_file, self.mainwindow.editor.text)
+        self.autosave = Autosave(cfg.config.CONFIG_DIR,
+                                 lambda: cfg.curr_file,
+                                 self.mainwindow.editor.text,
+                                 cfg.config.save)
         """Object handling automatic saving"""
         self._restore_backup()
         if len(cfg.document) > 0:

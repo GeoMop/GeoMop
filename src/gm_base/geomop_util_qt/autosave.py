@@ -2,41 +2,45 @@
 
 .. codeauthor:: Tomas Blazek <tomas.blazek@tul.cz>
 """
+import errno
 import os
 import psutil
 import codecs
 import time
 from PyQt5 import QtCore, QtWidgets
-from LayerEditor.data import cfg
+from PyQt5.QtCore import QObject, pyqtSignal
+
 from LayerEditor.ui.tools import undo
 
 
-class Autosave:
+class Autosave(QObject):
+    autosave_error = pyqtSignal(str)
 
     AUTOSAVE_INTERVAL = 5000
     # in miliseconds
     DEFAULT_FILENAME = "Untitled.yaml"
 
-    def __init__(self, default_backup_dir, curr_filename_fnc, string_to_save_fnc):
+    def __init__(self, default_backup_dir, curr_filename_fnc, string_to_save_fnc, cfg_save_fnc=lambda: None):
         """Initializes the class.
         :param default_backup_dir: place where to save backup file for Untitled file
         :param curr_filename_fnc: function which returns currently opened filename
         :param string_to_save_fnc: function which returns string to be saved
+        :param cfg_save_fnc: function for saving the configuration
         """
+        self.cfg_save = cfg_save_fnc
         self.curr_filename_fnc = curr_filename_fnc
         self.text = string_to_save_fnc
         self.content_hash = hash(self.text())
         self.autosave_timer = QtCore.QTimer()
         self.savepoint = None
         """timer for periodical saving"""
-        #self.autosave_timer.setSingleShot(True)
         self.autosave_timer.timeout.connect(self._autosave)
         if not os.path.isdir(default_backup_dir):
             try:
                 os.makedirs(default_backup_dir)
             except OSError:
                 print("Could not create config directory: " + default_backup_dir)
-                self.backup_dir = os.path.curdir()
+                self.backup_dir = os.path.curdir
                 return
         self.backup_dir = default_backup_dir
 
@@ -53,14 +57,19 @@ class Autosave:
     def _autosave(self):
         """Periodically saves specified string (current file)."""
         if undo.has_changed(self.savepoint):
-            cfg.save()
+            self.cfg_save()
             content = self.text()
             content_hash = hash(content)
             self.savepoint = undo.stack()._undos[-1]
             if self.content_hash != content_hash:
                 self.content_hash = content_hash
                 with codecs.open(self.backup_filename(), 'w', 'utf-8') as file_d:
-                    file_d.write(content)
+                    try:
+                        file_d.write(content)
+                    except IOError as e:
+                        if e.errno == errno.EACCES:
+                            self.autosave_error.emit("Autosave failed (permission error)")
+
 
     def restore_backup(self):
         """When new file is opened, check if there is backup file and ask user if it should be recovered.
