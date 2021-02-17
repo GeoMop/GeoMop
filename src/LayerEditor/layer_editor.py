@@ -93,8 +93,8 @@ class LayerEditor:
         try:
             le_model = LEModel(in_file)
             if from_backup:
-                le_model.curr_file = None
-                le_model.curr_file_timestamp = None
+                le_model.curr_file = self.le_model.curr_file
+                le_model.curr_file_timestamp = self.le_model.curr_file
             self.le_model = le_model
             self._update_document_name()
         except (RuntimeError, IOError) as err:
