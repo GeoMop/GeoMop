@@ -1,6 +1,6 @@
 from PyQt5 import QtWidgets, QtCore, QtGui
 from PyQt5.QtCore import Qt, QRectF
-from PyQt5.QtGui import QBrush, QPen
+from PyQt5.QtGui import QBrush, QPen, QPainterPath
 from PyQt5.QtWidgets import QGraphicsRectItem
 
 from LayerEditor.ui.data.region_item import RegionItem
@@ -169,7 +169,11 @@ class DiagramScene(QtWidgets.QGraphicsScene):
         :param event: QGraphicsSceneMouseEvent
         :return:
         """
-
+        if event.button() == Qt.RightButton and self.last_point is None:
+            self.parent().setDragMode(QtWidgets.QGraphicsView.RubberBandDrag)
+            for item in self.items():
+                item.setFlag(QtWidgets.QGraphicsItem.ItemIsSelectable, True)
+            self.selection.deselect_all()
         self._press_screen_pos = event.screenPos()
 
         super().mousePressEvent(event)
@@ -186,28 +190,45 @@ class DiagramScene(QtWidgets.QGraphicsScene):
             self.mouse_create_event(event)
 
         if event.button() == Qt.RightButton and screen_pos_not_changed:
-            item = None
-            if below_item is not None:
-                if type(below_item) is GsPoint:
-                    item = below_item
-                elif type(below_item) is GsSegment:
-                    item = below_item
-                elif type(below_item) is GsPolygon:
-                    item = below_item
+                self.selection_start_point = event.pos()
+                item = None
+                if below_item is not None:
+                    if type(below_item) is GsPoint:
+                        item = below_item
+                    elif type(below_item) is GsSegment:
+                        item = below_item
+                    elif type(below_item) is GsPolygon:
+                        item = below_item
 
-            if event.modifiers() & Qt.ShiftModifier:
-                if item is not None:
-                    self.selection.select_toggle_item(item)
-            else:
-                if item is not None:
-                    self.selection.select_item(item)
+                if event.modifiers() & Qt.ShiftModifier:
+                    if item is not None:
+                        self.selection.select_toggle_item(item)
                 else:
-                    self.selection.deselect_all()
+                    if item is not None:
+                        self.selection.select_item(item)
+                    else:
+                        self.selection.deselect_all()
 
         super().mouseReleaseEvent(event)
+        if event.button() == Qt.RightButton:
+            self.parent().setDragMode(QtWidgets.QGraphicsView.ScrollHandDrag)
+            for item in self.items():
+                item.block_select_change = True
+                item.setFlag(QtWidgets.QGraphicsItem.ItemIsSelectable, False)
+                item.block_select_change = False
 
+    def focusOutEvent(self, event: QtGui.QFocusEvent) -> None:
+        super(DiagramScene, self).focusOutEvent(event)
+        self.parent().setDragMode(QtWidgets.QGraphicsView.ScrollHandDrag)
 
     def mouseMoveEvent(self, event):
+        # if event.buttons() & Qt.RightButton:
+        #     rect_path = QPainterPath()
+        #     rect_path.addRect(QRectF(self.selection_start_point, event.pos()))
+        #     self.setSelectionArea(rect_path, self.parent().transform())
+        #     for item in self.selectedItems():
+        #         self.selection.add_selected_item(item)
+
         if self.last_point is not None:
             self.move_aux_segment(event.scenePos())
         super().mouseMoveEvent(event)

@@ -39,6 +39,7 @@ class GsPolygon(QtWidgets.QGraphicsPolygonItem):
         self.setFlag(QtWidgets.QGraphicsItem.ItemSendsGeometryChanges)
         #self.setCacheMode(QtWidgets.QGraphicsItem.DeviceCoordinateCache)
         # if enabled QGraphicsScene.update() don't repaint
+        self.block_select_change = False
         self.setPen(self.no_pen)
         self.setCursor(Cursor.polygon)
         self.setAcceptedMouseButtons(QtCore.Qt.LeftButton | QtCore.Qt.RightButton)
@@ -85,11 +86,11 @@ class GsPolygon(QtWidgets.QGraphicsPolygonItem):
         #print("change: ", change, "val: ", value)
         #if change == QtWidgets.QGraphicsItem.ItemPositionHasChanged:
         #    self.pt.set_xy(value.x(), value.y())
-        # if change == QtWidgets.QGraphicsItem.ItemSelectedChange:
-        #     if self.isSelected():
-        #         self.setZValue(self.SELECTED_ZVALUE)
-        #     else:
-        #         self.setZValue(self.STD_ZVALUE)
+        if change == QtWidgets.QGraphicsItem.ItemSelectedChange and not self.block_select_change:
+            if value:
+                self.scene().selection.add_selected_item(self)
+            else:
+                self.scene().selection.remove_selected_item(self)
         return super().itemChange(change, value)
 
     @staticmethod

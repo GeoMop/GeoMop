@@ -71,7 +71,6 @@ class Autosave(QObject):
                         if e.errno == errno.EACCES:
                             self.autosave_error.emit("Autosave failed (permission error)")
 
-
     def restore_backup(self):
         """When new file is opened, check if there is backup file and ask user if it should be recovered.
         :return bool: True if user wants to recover backup file

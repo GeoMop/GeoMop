@@ -37,14 +37,14 @@ class GsPoint(QtWidgets.QGraphicsEllipseItem):
         self.setFlag(QtWidgets.QGraphicsItem.ItemIgnoresTransformations, True)
         # do not scale points whenzooming
         self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, True)
-        # self.setFlag(QtWidgets.QGraphicsItem.ItemIsSelectable, True)
+        #self.setFlag(QtWidgets.QGraphicsItem.ItemIsSelectable, True)
         self.setFlag(QtWidgets.QGraphicsItem.ItemSendsGeometryChanges, True)
         # Keep point shape (used for mouse interaction) having same size as the point itself.
         # self.setFlag(QtWidgets.QGraphicsItem.ItemClipsToShape, True)
         # self.setCacheMode(QtWidgets.QGraphicsItem.DeviceCoordinateCache)
         # Caching: Points can move.
         # if enabled QGraphicsScene.update() don't repaint
-
+        self.block_select_change = False
         self.setCursor(Cursor.point)
         self.setAcceptedMouseButtons(QtCore.Qt.LeftButton | QtCore.Qt.RightButton)
         self.update()
@@ -99,10 +99,16 @@ class GsPoint(QtWidgets.QGraphicsEllipseItem):
 
         if change == QtWidgets.QGraphicsItem.ItemPositionHasChanged:
             self.move_to(value.x(), value.y())
-        if change == QtWidgets.QGraphicsItem.ItemSelectedChange:
-            if self.isSelected():
+        if change == QtWidgets.QGraphicsItem.ItemSelectedChange and not self.block_select_change:
+            if value:
+                self.scene().selection.add_selected_item(self)
                 self.setZValue(self.SELECTED_ZVALUE)
             else:
+                self.scene().selection.remove_selected_item(self)
                 self.setZValue(self.STD_ZVALUE)
         return super().itemChange(change, value)
+
+    def setSelected(self, selected: bool) -> None:
+        super(GsPoint, self).setSelected(selected)
+
 

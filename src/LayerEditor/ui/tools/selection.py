@@ -30,6 +30,18 @@ class Selection(QObject):
 
         self.selection_changed.emit()
 
+    def add_selected_item(self, item):
+        if item not in self._selected:
+            self._selected.append(item)
+            self._diagram.update()
+            self.selection_changed.emit()
+
+    def remove_selected_item(self, item):
+        if item in self._selected:
+            self._selected.remove(item)
+            self._diagram.update()
+            self.selection_changed.emit()
+
     def select_all(self):
         self._selected.clear()
         self._selected.extend(self._diagram.points.values())

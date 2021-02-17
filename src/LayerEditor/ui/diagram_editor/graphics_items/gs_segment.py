@@ -41,7 +41,7 @@ class GsSegment(QtWidgets.QGraphicsLineItem):
         self.setFlag(QtWidgets.QGraphicsItem.ItemSendsGeometryChanges)
         #self.setCacheMode(QtWidgets.QGraphicsItem.DeviceCoordinateCache)
         # if enabled QGraphicsScene.update() don't repaint
-
+        self.block_select_change = False
         self.setCursor(Cursor.segment)
         self.setAcceptedMouseButtons(QtCore.Qt.LeftButton | QtCore.Qt.RightButton)
         self.setZValue(self.STD_ZVALUE)
@@ -92,10 +92,12 @@ class GsSegment(QtWidgets.QGraphicsLineItem):
         if change == QtWidgets.QGraphicsItem.ItemPositionChange:
             self.move_to(value.x(), value.y())
             return self.pos()
-        if change == QtWidgets.QGraphicsItem.ItemSelectedChange:
-            if self.isSelected():
+        if change == QtWidgets.QGraphicsItem.ItemSelectedChange and not self.block_select_change:
+            if value:
+                self.scene().selection.add_selected_item(self)
                 self.setZValue(self.SELECTED_ZVALUE)
             else:
+                self.scene().selection.remove_selected_item(self)
                 self.setZValue(self.STD_ZVALUE)
         return super().itemChange(change, value)
 
