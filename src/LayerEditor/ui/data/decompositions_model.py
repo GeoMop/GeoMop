@@ -1,6 +1,7 @@
 from LayerEditor.ui.data.abstract_model import AbstractModel
 from LayerEditor.ui.data.le_decomposition import LEDecomposition
 from LayerEditor.ui.tools import undo
+from LayerEditor.ui.tools.id_map import IdObject
 from gm_base.geometry_files.format_last import NodeSet
 
 
@@ -9,11 +10,12 @@ class DecompositionsModel(AbstractModel):
 
     def deserialize(self, node_sets_data, topologies_data, blocks_model):
         """ Initializes decompositions model with data from format_last.py"""
-        with undo.pause_undo():
-            for node_set in node_sets_data:
-                self.add(LEDecomposition.create_from_data(node_set.nodes,
-                                                          topologies_data[node_set.topology_id],
-                                                          blocks_model[node_set.topology_id]))
+        for node_set in node_sets_data:
+            decomp = LEDecomposition.create_from_data(node_set.nodes,
+                                                      topologies_data[node_set.topology_id],
+                                                      blocks_model[node_set.topology_id])
+            with undo.pause_undo():
+                self.add(decomp)
 
     def serialize(self):
         node_sets = []

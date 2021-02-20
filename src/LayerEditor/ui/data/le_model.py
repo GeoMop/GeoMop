@@ -65,10 +65,10 @@ class LEModel(QObject):
         self.init_zoom_pos_data = geo_model.supplement.zoom
         """Used only for initializing DiagramView after that is None and DiagramView holds those informations"""
 
-        if geo_model.supplement.surface_idx is None:
+        if geo_model.supplement.surface_idx is None or geo_model.supplement.surface_idx == -1:
             self.gui_surface_selector = Selector(None)
         else:
-            self.gui_surface_selector = Selector(self.surfaces_model[geo_model.supplement.surface_idx])
+            self.gui_surface_selector = Selector(self.surfaces_model.get_item(geo_model.supplement.surface_idx))
         """helper attribute, holds currently active surface"""
 
     @property

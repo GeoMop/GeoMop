@@ -81,6 +81,7 @@ class MainFileMenu(QMenu):
             self._recent_file_signal_connect = False
         for action in self._recent_group.actions():
             self._recent_group.removeAction(action)
+            self._recent.removeAction(action)
         if len(cfg.recent_files) < from_row+1:
             self._recent.setEnabled(False)
             return
@@ -89,7 +90,7 @@ class MainFileMenu(QMenu):
             action = QAction(cfg.recent_files[i], self, checkable=True)
             action.setData(cfg.recent_files[i])
             reaction = self._recent_group.addAction(action)
-            self._recent.addAction(reaction)
+            self._recent.addAction(action)
         self._recent_group.triggered.connect(self._layer_editor.open_recent)
         self._recent_file_signal_connect = True
 

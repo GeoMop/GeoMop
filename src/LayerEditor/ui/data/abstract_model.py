@@ -47,6 +47,12 @@ class AbstractModel:
         yield "Delete Item"
         self.collection.add(item)
 
+    def get_item(self, identifier, default=None):
+        try:
+            return self.collection.get(identifier)
+        except KeyError:
+            return default
+
     def __len__(self):
         return len(self.collection)
 
