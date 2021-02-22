@@ -214,7 +214,8 @@ class LayerItem(AbstractItem):
 
     @undo.undoable
     def set_top_in(self, new_in):
-        """Sets new top InterfaceNodeSetItem/InterpolatedNodeSetItem"""
+        """ Sets new top InterfaceNodeSetItem/InterpolatedNodeSetItem
+            Must be used inside undo.Group"""
         old_block = self.block
         new_block = new_in.decomposition.block
         if old_block is not new_block:
