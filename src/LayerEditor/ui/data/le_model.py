@@ -106,7 +106,7 @@ class LEModel(QObject):
                 return False
         return True
 
-    def get_default_name(self, prefix):
+    def get_default_layer_name(self, prefix):
         """ Set default layer name to QLineEdit. """
         lay_id = 1
         name = prefix + f"_{lay_id}"
