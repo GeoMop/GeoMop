@@ -77,29 +77,3 @@ def clear():
     global __savepoint
     stack().clear()
     __savepoint = None
-
-
-def undoable_prepend(generator):
-    ''' Decorator which creates a new undoable action type.
-
-    This decorator should be used on a generator of the following format::
-
-        @undoable
-        def operation(*args):
-            do_operation_code
-            yield 'descriptive text'
-            undo_operator_code
-    '''
-
-    def inner(*args, **kwargs):
-        action = _Action(generator, args, kwargs)
-        ret = action.do()
-        stack().prepend(action)
-        if isinstance(ret, tuple):
-            if len(ret) == 1:
-                return ret[0]
-            elif len(ret) == 0:
-                return None
-        return ret
-
-    return inner
