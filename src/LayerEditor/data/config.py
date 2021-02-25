@@ -85,12 +85,8 @@ class _Config:
             return self.current_workdir
 
     def update_current_workdir(self, file_name):
-        """Save dir from last used file"""
-        analysis_directory = None
-        directory = os.path.dirname(os.path.realpath(file_name))
-        if self.workspace is not None and self.analysis is not None:
-            analysis_dir = os.path.join(self.workspace, self.analysis)
-        self.current_workdir = directory
+        """Save last used directory"""
+        self.current_workdir = os.path.dirname(os.path.realpath(file_name))
 
     @property
     def workspace(self):
