@@ -66,7 +66,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.scroll_area2 = QtWidgets.QScrollArea()
         self.scroll_area2.setWidgetResizable(True)
-        self.wg_surface_panel = Surfaces(self._layer_editor.le_model, self, parent=self.scroll_area2)
+        self.wg_surface_panel = Surfaces(self._layer_editor.le_model, self._layer_editor.save_file, parent=self.scroll_area2)
         self.scroll_area2.setWidget(self.wg_surface_panel)
         self._vsplitter2.addWidget(self.scroll_area2)
 
@@ -204,7 +204,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def change_curr_block(self, old_block_id):
         old_block = self._layer_editor.le_model.blocks_model.blocks.get(old_block_id)
         if old_block is not self._layer_editor.le_model.gui_block_selector.value:
-            old_block.selection.selection_changed.disconnect(self.wg_regions_panel.selection_changed)
+            #old_block.selection.selection_changed.disconnect(self.wg_regions_panel.selection_changed)
 
             curr_block = self._layer_editor.le_model.gui_block_selector.value
             curr_block.selection.selection_changed.connect(self.wg_regions_panel.selection_changed)

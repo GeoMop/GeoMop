@@ -111,7 +111,7 @@ class SurfaceItem(format_last.Surface):
     def set_name_from_file(self, le_model):
         init_name = os.path.basename(self.grid_file)
         init_name, _ext = os.path.splitext(init_name)
-        self.name = le_model.get_default_name(init_name)
+        self.name = le_model.get_default_layer_name(init_name)
 
     def set_nuv(self, nuv):
         self.nuv = nuv

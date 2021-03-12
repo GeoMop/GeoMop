@@ -474,7 +474,7 @@ class LEModel(QObject):
         """ Add fracture to interface specified by InterfaceNodeSetItem/InterpolatedNodeSetItem.
             Must be used inside `undo.group()`"""
         if layer_name is None:
-            layer_name = self.get_default_name("Fracture")
+            layer_name = self.get_default_layer_name("Fracture")
 
         shape_regions = [{}, {}, {}]
         for dim in range(3):
