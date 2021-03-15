@@ -37,7 +37,7 @@ class SplitLayerDlg(QtWidgets.QDialog):
         grid = QtWidgets.QGridLayout(self)
 
         d_layer_name = QtWidgets.QLabel("Layer Name:", self)
-        self.layer_name = QtWidgets.QLineEdit(self.le_model.get_default_name("Layer"))
+        self.layer_name = QtWidgets.QLineEdit(self.le_model.get_default_layer_name("Layer"))
         self.layer_name.setToolTip("New Layer name")
         self.layer_name.textChanged.connect(self.layer_name_changed)
 
@@ -82,40 +82,6 @@ class SplitLayerDlg(QtWidgets.QDialog):
         grid.addWidget(button_box, grid.rowCount(), 1, 1, 3)
         self.setLayout(grid)
         self.elevation.textChanged.connect(self.elevation_changed)
-
-    def _enable_controls(self):
-        """Disable all not used controls"""
-        if self.surface is None:
-            return
-        self.elevation.setEnabled(self.zcoo.isChecked())
-        self.surface.setEnabled(self.grid.isChecked())
-        self.zscale.setEnabled(self.grid.isChecked())
-        self.zshift.setEnabled(self.grid.isChecked())
-
-        if self.grid.isChecked():
-            self._change_surface()
-
-    def _change_surface(self):
-        """Changed event for surface ComboBox"""
-        id = self.surface.currentIndex()
-        self.zs = self[id].approximation
-        self._compute_depth()
-
-    def _compute_depth(self):
-        """Compute elevation for grid file"""
-        if self.zs is None:
-            return
-        try:
-            z1 = float(self.zscale.text())
-        except:
-            z1 = 0
-        try:
-            z2 = float(self.zshift.text())
-        except:
-            z2 = 0
-        self.zs.transform(None, np.array([z1, z2], dtype=float))
-        center = self.zs.center()
-        self.elevation.setText(str(center[2]))
 
     def layer_name_changed(self, name):
         """ Called when Region Line Edit is changed."""
