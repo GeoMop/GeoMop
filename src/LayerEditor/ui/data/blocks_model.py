@@ -52,7 +52,7 @@ class BlocksModel(AbstractModel):
         for block in self.items():
             block.validate_selectors()
 
-        self.gui_block_selector.validate(self.get_sorted_blocks())
+        self.gui_block_selector.make_valid(self.get_sorted_blocks())
 
     def serialize(self):
         items = []
@@ -63,6 +63,6 @@ class BlocksModel(AbstractModel):
 
     def remove(self, block):
         super(BlocksModel, self).remove(block)
-        self.gui_block_selector.validate(self.get_sorted_blocks())
+        self.gui_block_selector.make_valid(self.get_sorted_blocks())
 
 

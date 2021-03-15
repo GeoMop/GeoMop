@@ -4,7 +4,6 @@ from copy import deepcopy
 from gm_base.geomop_util import Serializable
 import gm_base.config as base_cfg
 from LayerEditor.helpers import keyboard_shortcuts_definition as shortcuts_definition
-from gm_base.geomop_analysis import Analysis, InvalidAnalysis
 from gm_base.geomop_shortcuts import shortcuts
 
 # TODO: refactor config and use JsonData
@@ -83,21 +82,9 @@ class _Config:
         self.recent_files.append(last_file)
         self.save()
 
-    @property
-    def data_dir(self):
-        """Data directory - either an analysis dir or the last used dir."""
-        if self.workspace and self.analysis:
-            return os.path.join(self.workspace, self.analysis)
-        else:
-            return self.current_workdir
-
     def update_current_workdir(self, file_name):
         """Save dir from last used file"""
-        analysis_directory = None
-        directory = os.path.dirname(os.path.realpath(file_name))
-        if self.workspace is not None and self.analysis is not None:
-            analysis_dir = os.path.join(self.workspace, self.analysis)
-        self.current_workdir = directory
+        self.current_workdir = os.path.dirname(os.path.realpath(file_name))
 
     @property
     def workspace(self):
@@ -108,9 +95,6 @@ class _Config:
     def workspace(self, value):
         if value == '' or value is None:
             self._workspace = None
-        if value != self._workspace:
-            # close analysis if workspace is changed
-            self.analysis = None
         self._workspace = value
 
     def get_shortcut(self, name):

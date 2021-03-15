@@ -112,7 +112,7 @@ class LayerEditor:
         if in_file is None:
             in_file, _ = QtWidgets.QFileDialog.getOpenFileName(
                 self.mainwindow, "Choose Json Geometry File",
-                cfg.data_dir, "Json Files (*.json)")
+                cfg.current_workdir, "Json Files (*.json)")
         if in_file:
             cfg.add_recent_file(in_file)
             self.load_file(in_file)
@@ -128,7 +128,7 @@ class LayerEditor:
         """open set file"""
         shp_file = QtWidgets.QFileDialog.getOpenFileName(
             self.mainwindow, "Choose Yaml Model File",
-            cfg.data_dir, "Yaml Files (*.shp)")
+            cfg.current_workdir, "Yaml Files (*.shp)")
         if shp_file[0]:
             errors = self.le_model.add_shape_file(shp_file[0])
             if errors is None:

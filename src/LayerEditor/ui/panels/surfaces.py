@@ -12,7 +12,7 @@ from LayerEditor.ui.data.le_model import LEModel
 from LayerEditor.ui.data.surface_item import SurfaceItem
 from LayerEditor.ui.data.surface_item_draft import SurfaceItemDraft
 from LayerEditor.widgets.line_edit import LineEdit
-from LayerEditor.widgets.text_validator import TextValidator
+from LayerEditor.widgets.text_validator import NameValidator
 from bgem.bspline import bspline_approx as ba
 from gm_base.geomop_dialogs import GMErrorDialog
 import gm_base.icon as icon
@@ -36,7 +36,7 @@ class SurfacesComboBox(QtWidgets.QComboBox):
         self.lineEdit().textEdited.connect(self.text_changed)
         self.lineEdit().editingFinished.connect(self.edit_finished)
         self.setInsertPolicy(QtWidgets.QComboBox.NoInsert)
-        self.setValidator(TextValidator(self.unique_name_fnc,
+        self.setValidator(NameValidator(self.unique_name_fnc,
                                         lambda: self.itemText(self.currentIndex())))
 
     def unique_name_fnc(self, new_name):
@@ -471,7 +471,7 @@ class Surfaces(QtWidgets.QWidget):
             return
 
         file, pattern = QtWidgets.QFileDialog.getOpenFileName(
-            self, "Choose grid file", cfg.data_dir, "File (*.*)")
+            self, "Choose grid file", cfg.current_workdir, "File (*.*)")
         if not file:
             return
 

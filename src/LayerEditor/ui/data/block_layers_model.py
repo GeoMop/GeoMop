@@ -76,11 +76,11 @@ class BlockLayersModel(AbstractModel, AbstractItem):
                     layer.set_region_to_shape(shape_dim, shape_id, RegionItem.none)
 
     def validate_selectors(self):
-        self.gui_layer_selector.validate(self.get_sorted_layers())
+        self.gui_layer_selector.make_valid(self.get_sorted_layers())
 
         regions = list(self.regions_model.items())
         for layer in self.items():
-            layer.gui_region_selector.validate(regions)
+            layer.gui_region_selector.make_valid(regions)
 
     @undo.undoable
     def add(self, new_layer: LayerItem):
@@ -91,7 +91,7 @@ class BlockLayersModel(AbstractModel, AbstractItem):
     @undo.undoable
     def remove(self, layer):
         self.collection.remove(layer)
-        self.gui_layer_selector.validate(list(self.items()))
+        self.gui_layer_selector.make_valid(list(self.items()))
         yield "Delete Layer"
         self.add(layer)
 

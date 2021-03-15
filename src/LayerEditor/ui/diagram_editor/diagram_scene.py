@@ -75,6 +75,7 @@ class DiagramScene(QtWidgets.QGraphicsScene):
         line.setZValue(100)
         return pt, line
 
+
     def user_items_rect(self):
         rect = QRectF()
         for point in self.points.values():
