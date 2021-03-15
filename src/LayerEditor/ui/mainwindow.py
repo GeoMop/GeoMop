@@ -68,7 +68,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.scroll_area2 = QtWidgets.QScrollArea()
         self.scroll_area2.setWidgetResizable(True)
-        self.wg_surface_panel = Surfaces(self._layer_editor.le_model, self, parent=self.scroll_area2)
+        self.wg_surface_panel = Surfaces(self._layer_editor.le_model, self._layer_editor.save_file, parent=self.scroll_area2)
         self._show_grid(self._layer_editor.le_model.gui_block_selector.value is not None)
         self.scroll_area2.setWidget(self.wg_surface_panel)
         self._vsplitter2.addWidget(self.scroll_area2)
