@@ -83,7 +83,7 @@ class _Config:
         self.save()
 
     def update_current_workdir(self, file_name):
-        """Save dir from last used file"""
+        """Save last used directory"""
         self.current_workdir = os.path.dirname(os.path.realpath(file_name))
 
     @property

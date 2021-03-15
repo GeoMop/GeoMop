@@ -116,13 +116,13 @@ class Surfaces(QtWidgets.QWidget):
         :param QRectF init_area: area of the first surface
     """
 
-    def __init__(self, le_model, main_window, parent=None):
+    def __init__(self, le_model, save_fnc, parent=None):
         """
         :param le_model: LEModel data object (i.e. parent data object where we may read and write the data)
         :param parent: Surface panel parent.
         """
         super().__init__(parent)
-        self.mainwindow = main_window
+        self.save_fnc = save_fnc
         # Data class for the surface panel.
         # This is copy of one of surfaces in LEData or default SurfaceItem if no surface exists.
         self.data = SurfaceItemDraft()
@@ -466,7 +466,7 @@ class Surfaces(QtWidgets.QWidget):
             QtWidgets.QMessageBox.information(
                 self, 'Save layer data',
                 'Layer data file must be save first.')
-            self.mainwindow._layer_editor.save_file()
+            self.save_fnc()
         if self.le_model.curr_file is None:
             return
 
