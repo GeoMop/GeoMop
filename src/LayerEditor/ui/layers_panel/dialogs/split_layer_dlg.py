@@ -16,7 +16,7 @@ class SplitLayerDlg(QtWidgets.QDialog):
 
     def __init__(self, top_y, bot_y, le_model, parent=None):
         super(SplitLayerDlg, self).__init__(parent)
-        self.fnc_get_default_name = le_model.get_default_name
+        self.fnc_get_default_layer_name = le_model.get_default_layer_name
         self.fnc_sorted_items_elevation = le_model.surfaces_model.sorted_items_elevation
         self.fnc_is_layer_name_unique = le_model.is_layer_name_unique
         self.top_y = top_y if top_y is not None else math.inf
@@ -39,7 +39,7 @@ class SplitLayerDlg(QtWidgets.QDialog):
         grid = QtWidgets.QGridLayout(self)
 
         d_layer_name = QtWidgets.QLabel("Layer Name:", self)
-        self.layer_name = QtWidgets.QLineEdit(self.fnc_get_default_name("Layer"))
+        self.layer_name = QtWidgets.QLineEdit(self.fnc_get_default_layer_name("Layer"))
         self.layer_name.setToolTip("New Layer name")
         self.layer_name.textChanged.connect(self.layer_name_changed)
 
