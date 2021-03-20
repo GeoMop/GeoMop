@@ -1,3 +1,5 @@
+import math
+
 from PyQt5 import QtGui
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QPainter
@@ -40,8 +42,10 @@ class ElevationLabel(QWidget):
         self.menu.fracture_action.triggered.connect(self.add_remove_fracture)
         self.menu.split_interface_action.triggered.connect(self.split_interface)
         self.menu.change_elevation.triggered.connect(self.change_elevation)
-        self.menu.append_layer_action.triggered.connect(self.append_layer)
-        self.menu.prepend_layer_action.triggered.connect(self.prepend_layer)
+        if self.menu.append_layer_action is not None:
+            self.menu.append_layer_action.triggered.connect(self.append_layer)
+        if self.menu.prepend_layer_action is not None:
+            self.menu.prepend_layer_action.triggered.connect(self.prepend_layer)
         # self.menu.remove_interface_bot_action.triggered.connect(self.del_itf_bot)
         # self.menu.remove_interface_top_action.triggered.connect(self.del_itf_top)
 
@@ -68,12 +72,12 @@ class ElevationLabel(QWidget):
         except ValueError:
             return False
         if self.layer_above is None:
-            top_limit = 10000
+            top_limit = math.inf
         else:
             top_limit = self.layer_above.top_in.interface.elevation
 
         if self.layer_below is None:
-            bot_limit = -10000
+            bot_limit = -math.inf
         else:
             bot_limit = self.layer_below.bottom_in.interface.elevation
 
@@ -115,7 +119,7 @@ class ElevationLabel(QWidget):
             bot_y = None
             window_title = "Append Layer"
         top_y = self.i_node_sets[0].interface.elevation
-        dlg = SplitLayerDlg(top_y, bot_y, self.le_model.layer_names())
+        dlg = SplitLayerDlg(top_y, bot_y, self.le_model)
         dlg.setWindowTitle(window_title)
         ret = dlg.exec_()
         if ret == QDialog.Accepted:
@@ -138,7 +142,7 @@ class ElevationLabel(QWidget):
             top_y = None
             window_title = "Prepend Layer"
         bot_y = self.i_node_sets[0].interface.elevation
-        dlg = SplitLayerDlg(top_y, bot_y, self.le_model.layer_names())
+        dlg = SplitLayerDlg(top_y, bot_y, self.le_model)
         dlg.setWindowTitle(window_title)
         ret = dlg.exec_()
         if ret == QDialog.Accepted:

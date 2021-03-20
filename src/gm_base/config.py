@@ -38,7 +38,7 @@ def get_config_file(name, directory=None, cls=None, extension='yaml'):
         yaml_file = open(file_name, 'r')
     except (FileNotFoundError, IOError):
         return None
-    config = yaml.load(yaml_file)
+    config = yaml.safe_load(yaml_file)
     yaml_file.close()
     config = Serializable.load(config, cls)
     return config

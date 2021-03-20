@@ -1,22 +1,46 @@
 """Extends and improves `undo`"""
 
 from bgem.external.undo import *
-from bgem.external.undo import _Group as Group
+from bgem.external.undo import _Group, _Action
 
 
-class _Group(Group):
+class Group(_Group):
+    def __init__(self, desc, undo_callback=lambda: None, do_callback=lambda: None):
+        """ Added possibility to specify function which gets called after undoing/redoing the group.
+            This serves mainly for emitting signals, which need to be emitted after changes.
+            If do_callback is None the same function will be used as for undo_callback"""
+        super(Group, self).__init__(desc)
+        self.undo_callback = undo_callback
+        if do_callback is None:
+            self.do_callback = undo_callback
+        else:
+            self.do_callback = do_callback
+
     def __exit__(self, exc_type, exc_val, exc_tb):
         """ This modification will not add empty group to stack.
             Empty group was still one action and undoing empty group did nothing."""
         if self._stack:
-            return super(_Group, self).__exit__(exc_type, exc_val, exc_tb)
+            self.do_callback()
+            return super(Group, self).__exit__(exc_type, exc_val, exc_tb)
+
         elif exc_type is None:
             stack().resetreceiver()
         return False
 
+    def undo(self):
+        super(Group, self).undo()
+        self.undo_callback()
 
-def group(desc):
-    return _Group(desc)
+    def do(self):
+        super(Group, self).do()
+        self.do_callback()
+
+
+def group(desc, undo_callback=lambda: None, do_callback=lambda: None) -> Group:
+    """ If the function which should be done after undo/redo is the same just pass None to do_callback.
+        undo_callback: Function which gets called after undoing group.
+        do_callback: Function which gets called after redoing group or None if this function is the same as undo_callback"""
+    return Group(desc, undo_callback, do_callback)
 
 
 __savepoint = None

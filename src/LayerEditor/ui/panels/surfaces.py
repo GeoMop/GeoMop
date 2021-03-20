@@ -1,18 +1,22 @@
 import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtGui as QtGui
 import PyQt5.QtCore as QtCore
+import logging
 
 import os
 import numpy as np
 import copy
 import shutil
 
+from LayerEditor.ui.data.le_model import LEModel
+from LayerEditor.ui.data.surface_item import SurfaceItem
+from LayerEditor.widgets.line_edit import LineEdit
+from LayerEditor.widgets.text_validator import TextValidator
 from bgem.bspline import bspline_approx as ba
 from gm_base.geomop_dialogs import GMErrorDialog
 import gm_base.icon as icon
 import gm_base.geometry_files.format_last as GL
-
-from LayerEditor.leconfig import cfg
+from LayerEditor.data import cfg
 
 """
 TODO:
@@ -20,161 +24,54 @@ Why is approx error so large. Debug display error distribution.
 """
 
 
-class SurfFormData(GL.Surface):
-    """
-    All data operations are performed here.
-    TODO: distinguish changes that can be applied faster:
-        - name - no need to recompute
-        - xy_transform - just transformation of existing approximation
-        - nuv, regularizace - recompute approx
-    """
-    def __init__(self):
-        """
-        :param surf: layer_structures.Surface
-        """
-        ### Common with GL Surface
-        super().__init__()
-        # self.name = ""
-        # self.grid_file = ""
-        # self.file_skip_lines = 0
-        # self.file_delimiter = ' '
-        # self.approximation = ClassFactory(SurfaceApproximation), # converted to ZSurface during IO
-        # self.regularization = 1.0
-        # self.approx_error = 0.0
-
-        # Original quad
-        self._quad = None
-
-        # Elevation of the approximation.
-        self._elevation = None
-
-        # Approx object.
-        self._approx_maker = None
-
-        #
-        self._changed_forms = False
-
-        # Index of original surface. None for unsaved surface.
-        self._idx = -1
-
-
-
-    @classmethod
-    def init_from_surface(cls, surf, idx):
-        self = cls()
-        for key, val in surf.__dict__.items():
-            self.__dict__[key] = val
-        self._idx = idx
-        try:
-            self._approx_maker = ba.SurfaceApprox.approx_from_file(self.grid_file, self.file_delimiter, self.file_skip_lines)
-        except:
-            return None
-
-        self.update_from_z_surf()
-
-        self._changed_forms = False
-
-        return self
-
-    def init_from_file(self, file):
-        self._approx_maker = ba.SurfaceApprox.approx_from_file(file, self.file_delimiter,
-                                                               self.file_skip_lines)
-        self.grid_file = file
-        self._quad = self._approx_maker.compute_default_quad()
-        self._changed_forms = True
-        return self
-
-    def update_from_z_surf(self):
-        self._quad = self.approximation.orig_quad
-        self._elevation = self.approximation.center()[2]
-
-
-    def set_name(self, name):
-        self.name = name
-        self._changed_forms = True
-
-    def set_name_from_file(self, names):
-        init_name = os.path.basename(self.grid_file)
-        init_name, _ext = os.path.splitext(init_name)
-        self.name = self.get_unique_name(init_name, names)
-
-    @staticmethod
-    def get_unique_name(init_name, names):
-        """
-        # TODO: make this a general function to provide unique default name. have general machanism to this in common. Given a list of names
-        # and given a name prefix return a first unique name.
-        # usage: get_unique_name(name, [surf.name for surf in surfaces.surfaces])
-
-        :param init_name:
-        :param names:
-        :return:
-        """
-        name_set = set(names)
-        namebase = name = init_name
-        i = 1
-
-        while name in name_set:
-            name = namebase + "_" + str(i)
-            i += 1
-        return name
-
-
-    def set_nuv(self, nuv):
-        self.nuv = nuv
-        self._changed_forms = True
-
-    def set_xy_transform(self, xy_transform):
-        self.xy_transform = xy_transform.tolist()
-        self._changed_forms = True
-
-    def get_actual_quad(self):
-        if self._quad is None:
-            return None
-        quad_center = np.average(self._quad, axis=0)
-        xy_mat = np.array(self.xy_transform, dtype = float)
-        return np.dot((self._quad - quad_center), xy_mat[0:2, 0:2].T) + quad_center + xy_mat[0:2, 2]
-
-    def compute_approximation(self):
-        self.approximation = self._approx_maker.compute_adaptive_approximation(
-            quad = self._quad,
-            nuv = self.nuv,
-            adapt_type="std_dev",
-            std_dev=self.tolerance)
-        self.update_from_z_surf()
-        self.approx_error = self._approx_maker.error
-        self._changed_forms = True
-
-    def save_to_layers(self, layers):
-        assert self.name != ""
-        assert self.grid_file != ""
-        assert self.approximation is not None
-        new_surface = copy.copy(self)
-        if self._idx == -1:
-            # New surface.
-            layers.add_surface(new_surface)
-            self._idx = len(layers.surfaces) - 1
-        else:
-            # Modify existing
-            layers.set_surface(self._idx, new_surface)
-        self._changed_forms = False
-
-
 class SurfacesComboBox(QtWidgets.QComboBox):
-    def __init__(self):
+    def __init__(self, parent):
         super().__init__()
+        self._parent = parent
         self.setEditable(True)
         self.setEnabled(False)
+        self.setLineEdit(LineEdit())
+        self.setCompleter(None)
+        self.lineEdit().textEdited.connect(self.text_changed)
+        self.lineEdit().editingFinished.connect(self.edit_finished)
+        self.setInsertPolicy(QtWidgets.QComboBox.NoInsert)
+        self.setValidator(TextValidator(self.unique_name_fnc,
+                                        lambda: self.itemText(self.currentIndex())))
 
-    def set_items(self, surfaces, new_idx = 0, name = ""):
+    def unique_name_fnc(self, new_name):
+        for surf in self._parent.le_model.surfaces_model.surfaces:
+            if surf.name == new_name:
+                return False
+        return True
+
+    def set_items(self, surfaces, new_idx=0, name=""):
         self.blockSignals(True)
         self.clear()
         for idx, surf in enumerate(surfaces):
-            self.addItem( surf.name,  idx)
+            self.addItem(surf.name,  idx)
         if new_idx == -1:
             self.addItem(name, -1)
             new_idx = self.count() - 1
         self.setCurrentIndex(new_idx)
         self.blockSignals(False)
+
+    def text_changed(self, new_name):
+        valid = self.lineEdit().validator().validate(new_name, self.lineEdit().cursorPosition())[0]
+        if valid is QtGui.QValidator.Acceptable:
+            self.lineEdit().mark_text_valid()
+            self.lineEdit().setToolTip("")
+        else:
+            self.lineEdit().mark_text_invalid()
+            self.lineEdit().setToolTip("This name already exist")
+
+    def edit_finished(self):
+        new_name = self.currentText()
+        self.lineEdit().mark_text_valid()
+        valid = self.lineEdit().validator().validate(new_name, self.lineEdit().cursorPosition())[0]
+        if valid is QtGui.QValidator.Acceptable and new_name != self._parent.data.name:
+            self.setItemText(self.currentIndex(), new_name)
+            self._parent.data.set_name(new_name)
+
 
 class WgShowButton(QtWidgets.QPushButton):
     """
@@ -202,45 +99,38 @@ class WgShowButton(QtWidgets.QPushButton):
             self.setIcon(icon.get_app_icon("hidden"))
 
 
-
-
-
-
-"""TODO: must set a current surface, need handler in main class."""
-
 class Surfaces(QtWidgets.QWidget):
     """
     GeoMop Layer editor surfaces panel
     
     pyqtSignals:
         * :py:attr:`show_grid
-
-    All regions function contains history operation without label and
-    must be placed after first history operation with label.
     """
-
-
     show_grid = QtCore.pyqtSignal(bool)
-    """Signal is sent when mash shoud be show o repaint.    
+    """Signal is sent when mash should be shown or repaint.    
     :param bool force: if force not set, don't call mash if already exist
     """
+    first_surface_added = QtCore.pyqtSignal(QtCore.QRectF)
+    """ Signal for changing init area rect based on first loaded surface.
+        :param QRectF init_area: area of the first surface
+    """
 
-
-    def __init__(self, layers, home_dir, parent=None):
+    def __init__(self, le_model, save_fnc, parent=None):
         """
-        :param layers: Layers data object (i.e. parent data object where we may read and write the data)
-        :param home_dir: Where to start Open file dialog.
-                        TODO: introduce a sort of file management object, that can provide this info and save recent ...
+        :param le_model: LEModel data object (i.e. parent data object where we may read and write the data)
         :param parent: Surface panel parent.
         """
         super().__init__(parent)
-
+        self.save_fnc = save_fnc
         # Data class for the surface panel.
-        self.data = SurfFormData()
-        # Surfaces list in Layers.
-        self.layers = layers
-        # Home dir (this way fixed through one LayerEditor session.)
-        self.home_dir = home_dir
+        # This is copy of one of surfaces in LEData or default SurfaceItem if no surface exists.
+        if le_model.gui_surface_selector.value is None:
+            self.data = SurfaceItem()
+        else:
+            curr_surf = le_model.gui_surface_selector.value
+            self.data = self.data = SurfaceItem(curr_surf, copied_from=curr_surf)
+        # Surfaces list in LEModel.
+        self.le_model = le_model
 
         # Setup child widgets
         grid = QtWidgets.QGridLayout(self)
@@ -252,12 +142,11 @@ class Surfaces(QtWidgets.QWidget):
         grid.addWidget(wg_suface_lbl, 0, 0, 1, 3)
         grid.addLayout(surf_row, 1, 0, 1, 3)
 
-        self.wg_view_button = WgShowButton("Switch visibilty of the surface grid.", parent = self)
+        self.wg_view_button = WgShowButton("Switch visibilty of the surface grid.", parent=self)
         self.wg_view_button.toggled.connect(self.show_grid)
 
-        # surface cobobox
-        self.wg_surf_combo = SurfacesComboBox()
-        self.wg_surf_combo.currentTextChanged.connect(self.data.set_name)
+        # surface combobox
+        self.wg_surf_combo = SurfacesComboBox(self)
         self.wg_surf_combo.currentIndexChanged.connect(self.change_surface)
 
         self.wg_add_button = self._make_button(
@@ -342,7 +231,6 @@ class Surfaces(QtWidgets.QWidget):
         grid.addWidget(self.wg_apply_button, 13, 2)
         grid.addWidget(self._make_separator(), 14, 0, 1, 3)
 
-
         inner_grid = QtWidgets.QGridLayout()
 
         self.wg_d_elevation = QtWidgets.QLabel("Elevation:", self)
@@ -377,9 +265,8 @@ class Surfaces(QtWidgets.QWidget):
 
         sp1 =  QtWidgets.QSpacerItem(0, 0, QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Expanding)
         grid.addItem(sp1, 17, 0, 1, 3)
-        
 
-        self._fill_forms()
+        self.update_forms()
 
     def get_curr_quad(self):
         """
@@ -398,14 +285,12 @@ class Surfaces(QtWidgets.QWidget):
         quad = self.data.get_actual_quad()
         return quad, u_knots, v_knots
 
-
     def get_surface_id(self):
         """
         Used to save actual surface idx.
         :return:
         """
         return self.wg_surf_combo.currentIndex()
-
 
     def _make_separator(self):
         sep = QtWidgets.QFrame()
@@ -465,7 +350,6 @@ class Surfaces(QtWidgets.QWidget):
     def set_skip_lines(self):
         self.data.file_skip_lines = int(self.wg_skip_lines_le.text())
 
-
     def _make_double_edit(self, edited_method):
         """
         EditLine box for a double (part of xyscale).
@@ -481,10 +365,9 @@ class Surfaces(QtWidgets.QWidget):
         edit = QtWidgets.QLineEdit()
         edit.editingFinished.connect(self.nuv_changed)
         nuv_validator = QtGui.QIntValidator()
-        nuv_validator.setRange(2, 600)
+        nuv_validator.setRange(1, 999)
         edit.setValidator(nuv_validator)
         return edit
-
 
     def _set_message(self, text):
         self.wg_message.setText(text)
@@ -501,41 +384,44 @@ class Surfaces(QtWidgets.QWidget):
     def set_tolerance(self):
         self.data.tolerance = self.float_convert(self.wg_tolerance_le)
 
-    def change_surface(self, new_idx = None):
+    def change_surface(self, new_idx=None):
         """
         Event for changed surface in combo box. Called also when new item is added.
         """
         if new_idx is None\
-                or not (0 < new_idx < len(self.layers.surfaces)):
+                or not (0 < new_idx < len(self.le_model.surfaces_model.surfaces)):
             new_idx = self.wg_surf_combo.currentData()
 
         if not self.empty_forms():
-            self.wg_surf_combo.setCurrentIndex(self.data._idx)
+            idx = self.data.get_copied_from_index(self.le_model.surfaces_model.surfaces)
+            idx = idx if idx != -1 else len(self.le_model.surfaces_model.surfaces)
+            self.wg_surf_combo.blockSignals(True)
+            self.wg_surf_combo.setCurrentIndex(idx)
+            self.wg_surf_combo.blockSignals(False)
             return
         if new_idx is not None:
-            self.data = SurfFormData.init_from_surface(self.layers.surfaces[new_idx], new_idx)
-        self._fill_forms()
+            new_surf = self.le_model.surfaces_model.surfaces[new_idx]
+            self.data = SurfaceItem(new_surf, copied_from=new_surf)
+            self.le_model.gui_surface_selector.value = self.le_model.surfaces_model.surfaces[new_idx]
+        self.update_forms()
         self.show_grid.emit(self.wg_view_button.isChecked())
 
     def rm_surface(self):
-        assert self.data._idx != -1
+        assert self.data.copied_from is not None
         idx = self.wg_surf_combo.currentData()
-        assert self.data._idx == idx
+        assert self.data.get_index_from_list(self.le_model.surfaces_model.surface) == idx
         assert idx >= 0
-        assert idx < len(self.layers.surfaces)
-        if not self.layers.delete_surface(idx):
+        assert idx < len(self.le_model.surfaces_model.surfaces)
+        if not self.le_model.delete_surface(idx):
             err_dialog = GMErrorDialog(self)
             err_dialog.open_error_dialog("Surface in use. Can not remove it.")
             return None
 
         # propose new idx
-        new_idx = min(idx, len(self.layers.surfaces) - 1)
-        self.data = SurfFormData.init_from_surface(self.layers.surfaces[new_idx], new_idx)
-        self._fill_forms()
+        new_idx = min(idx, len(self.le_model.surfaces_model.surfaces) - 1)
+        self.data = SurfaceItem(self.e_model.surfaces_model.surfaces[new_idx], new_idx)
+        self.update_forms()
         self.show_grid.emit(self.wg_view_button.isChecked())
-
-
-
 
     def add_surface_from_file(self):
         """
@@ -543,34 +429,43 @@ class Surfaces(QtWidgets.QWidget):
         """
         if not self.empty_forms():
             return
-        new_data = SurfFormData()
+        new_data = SurfaceItem()
         new_data.file_skip_lines = self.data.file_skip_lines
         new_data.file_delimiter = self.data.file_delimiter
         data = self._load_file(new_data)
         if data:
-            new_data.set_name_from_file([surf.name for surf in self.layers.surfaces])
+            if not self.le_model.surfaces_model.surfaces:
+                quad = new_data.get_actual_quad()
+                points = [QtCore.QPointF(point[0], -point[1]) for point in quad]
+                points.append(QtCore.QPointF(quad[0][0], -quad[0][1]))
+                rect = QtGui.QPolygonF(points).boundingRect()
+                x_adjust = rect.width() / 6
+                y_adjust = rect.height() / 6
+                rect.adjust(-x_adjust, -y_adjust, x_adjust, y_adjust)
+                self.first_surface_added.emit(rect)
+            new_data.set_name_from_file(self.le_model)
             self.data = new_data
             self.wg_view_button.setChecked(True)
-        self._fill_forms()
-
+        self.update_forms()
+        self.show_grid.emit(self.wg_view_button.isChecked())
 
     def reload(self):
         self._load_file(self.data)
         self.wg_view_button.setChecked(True)
-        self._fill_forms()
+        self.update_forms()
 
     def _load_file(self, surface_data):
         # save layer data first
-        if cfg.curr_file is None:
+        if self.le_model.curr_file is None:
             QtWidgets.QMessageBox.information(
                 self, 'Save layer data',
                 'Layer data file must be save first.')
-            cfg.main_window._layer_editor.save_file()
-        if cfg.curr_file is None:
+            self.save_fnc()
+        if self.le_model.curr_file is None:
             return
 
         file, pattern = QtWidgets.QFileDialog.getOpenFileName(
-            self, "Choose grid file", self.home_dir, "File (*.*)")
+            self, "Choose grid file", cfg.data_dir, "File (*.*)")
         if not file:
             return
 
@@ -579,6 +474,7 @@ class Surfaces(QtWidgets.QWidget):
             return
 
         try:
+            cfg.update_current_workdir(file)
             return surface_data.init_from_file(file)
         except Exception as e:
             err_dialog = GMErrorDialog(self)
@@ -591,7 +487,7 @@ class Surfaces(QtWidgets.QWidget):
         If not try copy it.
         Returns new path or empty string if it is not possible.
         """
-        layer_file_dir = os.path.dirname(cfg.curr_file)
+        layer_file_dir = os.path.dirname(self.le_model.curr_file)
         relpath = os.path.relpath(file, start=layer_file_dir)
         if relpath.startswith("../") or (os.sep == "\\" and relpath.startswith("..\\")):
             basename = os.path.basename(file)
@@ -619,11 +515,29 @@ class Surfaces(QtWidgets.QWidget):
 
     def apply(self):
         """Save changes to file and compute new elevation and error"""
-        self.data.compute_approximation()
-        self.data.save_to_layers(self.layers)
-        self._fill_forms()
-        self.show_grid.emit(self.wg_view_button.isChecked())
+        msg = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Information,
+                                    "Computing...",
+                                    "Computing approximation.\nPlease wait.")
+        msg.setWindowFlags(QtCore.Qt.FramelessWindowHint)
+        msg.setStandardButtons(QtWidgets.QMessageBox.NoButton)
+        msg.setWindowModality(QtCore.Qt.WindowModal)
+        msg.show()
+        QtWidgets.QApplication.processEvents()
 
+        # log = logging.getLogger()
+        # log.setLevel(logging.INFO)
+        # handler = logging.StreamHandler()
+        # handler.setLevel(logging.INFO)
+        # log.addHandler(handler)
+
+        self.data.compute_approximation()
+
+        QtWidgets.QApplication.processEvents()
+        msg.hide()
+
+        self.data.save_to_le_model(self.le_model)
+        self.update_forms()
+        self.show_grid.emit(self.wg_view_button.isChecked())
 
     @classmethod
     def set_le_status(cls, le_obj, val):
@@ -654,7 +568,7 @@ class Surfaces(QtWidgets.QWidget):
     def nuv_changed(self):
         u = self.int_convert(self.wg_u_approx)
         v = self.int_convert(self.wg_v_approx)
-        self.data.set_nuv( (u,v) )
+        self.data.set_nuv((u, v))
         if self.data._changed_forms:
             self._set_message("There are modified fields.")
         self.show_grid.emit(self.wg_view_button.isChecked())
@@ -688,9 +602,7 @@ class Surfaces(QtWidgets.QWidget):
                 return False          # Do nothing.
         return True
 
-
-
-    def _fill_forms(self):
+    def update_forms(self):
         """
         Fill all forms of the surface panel according to self.data
         """
@@ -710,17 +622,23 @@ class Surfaces(QtWidgets.QWidget):
                 form.setEnabled(False)
 
             self.wg_tolerance_le.setEnabled(False)
+
+            self.wg_u_approx.setText("")
+            self.wg_u_approx.setEnabled(False)
+            self.wg_v_approx.setText("")
+            self.wg_v_approx.setEnabled(False)
         else:
             self.wg_view_button.setEnabled(True)
             self.wg_view_button.set_icon()
 
-            self.wg_surf_combo.set_items(self.layers.surfaces, self.data._idx, self.data.name)
+            idx = self.data.get_copied_from_index(self.le_model.surfaces_model.surfaces)
+            self.wg_surf_combo.set_items(self.le_model.surfaces_model.surfaces, idx, self.data.name)
             self.wg_surf_combo.setEnabled(True)
 
             self.wg_file_le.setText(self.data.grid_file)
             self.wg_file_le.setEnabled(True)
 
-            if self.data._idx is -1:
+            if self.data.copied_from is None:
                 self.wg_rm_button.setEnabled(False)
             else:
                 self.wg_rm_button.setEnabled(True)
@@ -735,16 +653,11 @@ class Surfaces(QtWidgets.QWidget):
             self.wg_tolerance_le.setEnabled(True)
             self.wg_tolerance_le.setText(str(self.data.tolerance))
 
-        if self.data.nuv is None:
-            self.wg_u_approx.setText("")
-            self.wg_u_approx.setEnabled(False)
-            self.wg_v_approx.setText("")
-            self.wg_v_approx.setEnabled(False)
-        else:
-            self.wg_u_approx.setText(str(self.data.nuv[0]))
-            self.wg_u_approx.setEnabled(True)
-            self.wg_v_approx.setText(str(self.data.nuv[1]))
-            self.wg_v_approx.setEnabled(True)
+            if self.data.nuv is not None:
+                self.wg_u_approx.setText(str(self.data.nuv[0]))
+                self.wg_u_approx.setEnabled(True)
+                self.wg_v_approx.setText(str(self.data.nuv[1]))
+                self.wg_v_approx.setEnabled(True)
 
         if self.data._elevation is None:
             self.wg_elevation.setText("")
@@ -774,17 +687,3 @@ class Surfaces(QtWidgets.QWidget):
             self.wg_actual_u.setText("")
             self.wg_actual_v.setText("")
 
-
-    def refresh(self, layers):
-        """
-        Refresh after open or new file.
-        :param layers: Layers data object
-        :return:
-        """
-        self.layers = layers
-        if layers.surfaces:
-            self.data = SurfFormData.init_from_surface(self.layers.surfaces[0], 0)
-        else:
-            self.data = SurfFormData()
-
-        self._fill_forms()

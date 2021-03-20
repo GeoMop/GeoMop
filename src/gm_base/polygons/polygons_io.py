@@ -1,7 +1,5 @@
-from bgem.polygons import polygons
-
 import gm_base.geometry_files.format_last as gs
-from LayerEditor.ui.data.le_decomposition import LEDecomposition
+import bgem.polygons.polygons as polygons
 
 """
 TODO: Try to remove dependency on `decomp` module.
@@ -67,12 +65,13 @@ def deserialize(nodes, topology):
     :return: PolygonDecomposition. The attribute 'id' of nodes, segments and polygons
     are set to their indices in the input file lists, counting from 0.
     """
-    polydec = LEDecomposition()
+    polydec = polygons.PolygonDecomposition()
     polygons.disable_undo()
     decomp = polydec.decomp
 
     for id, node in enumerate(nodes):
-        polydec._add_point(node, poly=polydec.outer_polygon)
+        point = polydec._add_point(node, poly=polydec.outer_polygon)
+        assert point.id == id
 
     if len(topology.polygons) == 0 or len(topology.polygons[0].segment_ids) > 0:
         reconstruction_from_old_input(polydec, topology)
@@ -81,13 +80,11 @@ def deserialize(nodes, topology):
     for id, seg in enumerate(topology.segments):
         vtxs_ids = seg.node_ids
         s = polydec.make_segment(vtxs_ids)
-        s.index = id
         assert s.id == id
 
     for id, poly in enumerate(topology.polygons):
         free_pt_ids = poly.free_points
         p = polydec.make_polygon(poly.segment_ids, poly.holes, free_pt_ids)
-        p.index = id
         assert p.id == id
 
     polydec.set_wire_parents()
@@ -105,21 +102,18 @@ def reconstruction_from_old_input(polydec, topology):
     for id, seg in enumerate(topology.segments):
         vtxs = [polydec.points[pt_id] for pt_id in seg.node_ids]
         s = polydec.new_segment(vtxs[0], vtxs[1])
-        s.index = id
         assert s.id == id
 
-    polydec.outer_polygon.index = 0
     for id, poly in enumerate(topology.polygons):
         segments = {seg_id for seg_id in poly.segment_ids}
         candidates = []
         for p in polydec.polygons.values():
             seg_set = set()
             for seg, side in p.outer_wire.segments():
-                seg_set.add(seg.index)
+                seg_set.add(seg.id)
             if segments.issubset(seg_set):
                 candidates.append(p)
 
         assert len(candidates) == 1
-        candidates[0].index = id + 1
     polydec.decomp.check_consistency()
 

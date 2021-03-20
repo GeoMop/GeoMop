@@ -2,6 +2,7 @@ from collections import deque
 
 from LayerEditor.ui.data.interface_node_set_item import InterfaceNodeSetItem
 from LayerEditor.ui.data.region_item import RegionItem
+from LayerEditor.ui.data.tools.selector import Selector
 from LayerEditor.ui.tools import undo
 from LayerEditor.ui.tools.id_map import IdObject
 from gm_base.geometry_files.format_last import StratumLayer, FractureLayer
@@ -24,12 +25,18 @@ class LayerItem(IdObject):
         """Regions of shapes grouped by dimension"""
 
         ######### Not undoable ########### Not undoable ########## Not undoable ##########
-        self.gui_selected_region = self.get_region_of_selected_shapes()
+        self.gui_region_selector = Selector(self.get_region_of_selected_shapes())
         """Default region for new objects in diagram. Also used by LayerHeads for RegionsPanel"""
         """Not undoable"""
 
         self.is_stratum = self.bottom_in is not None
         """Is this layer stratum layer?"""
+
+    def get_average_elevation(self):
+        if self.is_stratum:
+            return (self.top_in.interface.elevation + self.bottom_in.interface.elevation) / 2
+        else:
+            return self.top_in.interface.elevation
 
     def save(self):
         layer_config = dict(name=self.name, top=self.top_in.save())
@@ -74,14 +81,13 @@ class LayerItem(IdObject):
     def set_region_to_selected_shapes(self, region: RegionItem, le_model):
         """Sets regions of shapes only in this layer."""
         assert isinstance(undo.stack()._receiver, deque), "groups cannot be nested"
-        with undo.group(f"Set region of selected to {region.id}"):
+        with undo.group(f"Set region of selected to {region.id}", le_model.invalidate_scene.emit, None):
             for orig_dim, shape_id in self.block.selection.get_selected_shape_dim_id():
                 dim = orig_dim
                 if self.is_stratum:
                     dim += 1
                 if dim == region.dim or region.dim == -1:
                     self.set_region_to_shape(orig_dim, shape_id, region)
-            le_model.emit_invalidate_scene()
 
     def get_shape_region(self, dim, shape_id) -> RegionItem:
         return self.shape_regions[dim][shape_id]
@@ -153,10 +159,10 @@ class LayerItem(IdObject):
     @undo.undoable
     def set_gui_selected_region(self, region: RegionItem):
         """Use this when you want this to be included in undo/redo system"""
-        old_region = self.gui_selected_region
-        self.gui_selected_region = region
+        old_region = self.gui_region_selector.value
+        self.gui_region_selector.value = region
         yield f"Selected region {region.id} on layer {self.id} changed. Old region {old_region.id}"
-        self.gui_selected_region = old_region
+        self.gui_region_selector.value = old_region
 
     @undo.undoable
     def set_bottom_in(self, new_in):

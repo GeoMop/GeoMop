@@ -1,21 +1,24 @@
 """
 Dialog for appending new layer to the end.
 """
+import math
+import numpy as np
 
 import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtGui as QtGui
 from PyQt5.QtCore import Qt, QPoint
 
 import gm_base.icon as icon
+from LayerEditor.ui.layers_panel import helper_functions
 
 
 class SplitLayerDlg(QtWidgets.QDialog):
 
-    def __init__(self, top_y, bot_y, used_names, parent=None):
+    def __init__(self, top_y, bot_y, le_model, parent=None):
         super(SplitLayerDlg, self).__init__(parent)
-        self.used_names = used_names
-        self.top_y = top_y if top_y is not None else 10000
-        self.bot_y = bot_y if bot_y is not None else -10000
+        self.le_model = le_model
+        self.top_y = top_y if top_y is not None else math.inf
+        self.bot_y = bot_y if bot_y is not None else -math.inf
 
         if top_y is None:
             default_elevation = bot_y + 100
@@ -34,8 +37,8 @@ class SplitLayerDlg(QtWidgets.QDialog):
         grid = QtWidgets.QGridLayout(self)
 
         d_layer_name = QtWidgets.QLabel("Layer Name:", self)
-        self.layer_name = QtWidgets.QLineEdit(self.get_default_name())
-        self.layer_name.setToolTip("New Layer name (New layer is in the bottom)")
+        self.layer_name = QtWidgets.QLineEdit(self.le_model.get_default_layer_name("Layer"))
+        self.layer_name.setToolTip("New Layer name")
         self.layer_name.textChanged.connect(self.layer_name_changed)
 
         self.name_image = QtWidgets.QLabel(self)
@@ -56,20 +59,13 @@ class SplitLayerDlg(QtWidgets.QDialog):
         
         d_surface = QtWidgets.QLabel("Split in Surface:", self)
         grid.addWidget(d_surface, 2, 0)
-        # i = LayersHelpers.add_surface_to_grid(self, grid, 3)
-
-        self.zcoo = QtWidgets.QRadioButton("Z-Coordinate:")
-        d_depth = QtWidgets.QLabel("Elevation:", self)
-        self.elevation = QtWidgets.QLineEdit()
+        i = helper_functions.add_surface_to_grid(self, grid, 3)
 
         self.elevation_image = QtWidgets.QLabel(self)
         self.elevation_image.setMinimumWidth(self.layer_name.sizeHint().height())
         self.elevation_image.setPixmap(icon.get_app_icon("sign-check").pixmap(self.layer_name.sizeHint().height()))
         self.elevation_image.setToolTip('Layer name is unique, everything is fine.')
 
-        grid.addWidget(self.zcoo, 3, 0)
-        grid.addWidget(d_depth, 3, 1)
-        grid.addWidget(self.elevation, 3, 2)
         grid.addWidget(self.elevation_image, 3, 3)
 
         self.elevation.setText(str(default_elevation))
@@ -87,16 +83,9 @@ class SplitLayerDlg(QtWidgets.QDialog):
         self.setLayout(grid)
         self.elevation.textChanged.connect(self.elevation_changed)
 
-    def is_unique_layer_name(self, new_name):
-        """ Return False in the case of collision with an existing layer name."""
-        for name in self.used_names:
-            if new_name == name:
-                return False
-        return True
-
     def layer_name_changed(self, name):
         """ Called when Region Line Edit is changed."""
-        if self.is_unique_layer_name(name):
+        if self.le_model.is_unique_layer_name(name):
             self.name_image.setPixmap(
                 icon.get_app_icon("sign-check").pixmap(self.layer_name.sizeHint().height())
             )
@@ -107,15 +96,6 @@ class SplitLayerDlg(QtWidgets.QDialog):
             )
             self.name_image.setToolTip('Name is not unique!')
         self._tranform_button.setEnabled(self.everything_ok())
-
-    def get_default_name(self):
-        """ Set default layer name to QLineEdit. """
-        lay_id = 0
-        name = "Layer_1"
-        while not self.is_unique_layer_name(name):
-            lay_id += 1
-            name = "Layer_" + str(lay_id)
-        return name
 
     def elevation_changed(self):
         if self.elevation_ok():
@@ -142,7 +122,7 @@ class SplitLayerDlg(QtWidgets.QDialog):
             return False
 
     def everything_ok(self):
-        if self.elevation_ok() and self.is_unique_layer_name(self.layer_name.text()):
+        if self.elevation_ok() and self.le_model.is_layer_name_unique(self.layer_name.text()):
             return True
         else:
             return False

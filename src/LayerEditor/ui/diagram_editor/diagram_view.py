@@ -1,17 +1,20 @@
 from PyQt5 import QtGui, QtWidgets, QtCore
-from PyQt5.QtCore import pyqtSignal, QPoint, QPointF
+from PyQt5.QtCore import pyqtSignal, QPointF, QRectF
 from PyQt5.QtGui import QPolygonF
 
 from LayerEditor.ui.diagram_editor.diagram_scene import DiagramScene
+from LayerEditor.ui.diagram_editor.graphics_items.grid import Grid
 
 
 class DiagramView(QtWidgets.QGraphicsView):
     cursorChanged = pyqtSignal(float, float)
+
     def __init__(self, le_model):
         super(DiagramView, self).__init__()
         self.le_model = le_model
         self.scenes = {}  # {topology_id: DiagramScene}
         # dict of all scenes
+        self.gs_surf_grid = None
         self._empty = True
 
         self.setTransformationAnchor(QtWidgets.QGraphicsView.AnchorUnderMouse)
@@ -24,18 +27,25 @@ class DiagramView(QtWidgets.QGraphicsView):
 
         self.el_map = {}
 
-        for block in le_model.blocks_model.blocks.values():
-            diagram_scene = DiagramScene(block, le_model.init_area, self)
-
-            block.selection.set_diagram(diagram_scene)
-            self.scenes[block.id] = diagram_scene
-
-        self.setScene(self.scenes[le_model.gui_curr_block.id])
+        self.setScene(DiagramScene(le_model.gui_block_selector.value, self.le_model.init_area, self))
 
         scale = le_model.init_zoom_pos_data["zoom"]
         self.scale(scale, scale)
         self.centerOn(QPointF(le_model.init_zoom_pos_data["x"],
                               -le_model.init_zoom_pos_data["y"]))
+
+    def show_grid(self, quad, u_knots, v_knots):
+        """ Create grid of currently selected surface from surface panel.
+            This object is shown in update of a scene."""
+        if quad is None:
+            return
+        self.gs_surf_grid = Grid(quad, u_knots, v_knots)
+        self.scene().update_scene()
+        return self.gs_surf_grid.boundingRect()
+
+    def hide_grid(self):
+        self.gs_surf_grid = None
+        self.scene().update_scene()
 
     def wheelEvent(self, event):
         if event.angleDelta().y() > 0:
@@ -68,14 +78,19 @@ class DiagramView(QtWidgets.QGraphicsView):
                          "y": -center.y(),
                          'position_set': False}}
 
-    def scenes_changed(self, block_id, added: bool):
+    def update_view(self):
+        if self.scene().block is not self.le_model.gui_block_selector.value:
+            self.setScene(DiagramScene(self.le_model.gui_block_selector.value, self.le_model.init_area, self))
 
-        if added:
-            block = self.le_model.blocks_model.blocks.get(block_id)
-            diagram_scene = DiagramScene(block, self.le_model.init_area, self)
+    def set_init_area(self, rect: QRectF):
+        self.le_model.init_area = rect
+        empty = True
+        for decomp in self.le_model.decompositions_model.decomps:
+            if not decomp.empty():
+                empty = False
+        if empty:
+            self.scene().setSceneRect(rect)
 
-            block.selection.set_diagram(diagram_scene)
-            self.scenes[block_id] = diagram_scene
-        else:
-            del self.scenes[block_id]
+
+
 
