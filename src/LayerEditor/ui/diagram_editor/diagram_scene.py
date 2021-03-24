@@ -77,6 +77,8 @@ class DiagramScene(QtWidgets.QGraphicsScene):
 
 
     def user_items_rect(self):
+        """ Returns bounding rect of all items added by user.
+            Those exclude any frames and other possible cosmetic items."""
         rect = QRectF()
         for point in self.points.values():
             rect = rect.united(point.mapToScene(point.boundingRect()).boundingRect())

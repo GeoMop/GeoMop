@@ -22,8 +22,7 @@ class _Config:
     CONFIG_DIR = os.path.join(base_cfg.__config_dir__, 'LayerEditor')
     """Dir where config file is saved"""
 
-    geomop_root = os.path.dirname(os.path.dirname(
-        os.path.dirname(os.path.realpath(__file__))))
+    geomop_root = os.path.dirname(os.getcwd())
     """Path to the root directory of the GeoMop installation."""
 
     def __init__(self, **kwargs):

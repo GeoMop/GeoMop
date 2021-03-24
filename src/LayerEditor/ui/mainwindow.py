@@ -128,7 +128,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.wg_surface_panel.show_grid.connect(self._show_grid)
 
     def _first_surface_added(self, rect):
-        if self._layer_editor.le_model.decompositions_empty():
+        if self._layer_editor.le_model.le_model_empty():
             self.diagram_view.set_init_area(rect)
 
     def update_recent_files(self, from_row=1):
@@ -145,7 +145,7 @@ class MainWindow(QtWidgets.QMainWindow):
         else:
             self.shp_panel.hide()
 
-        if self._layer_editor.le_model.decompositions_empty(ignore_shapes=True) and\
+        if self._layer_editor.le_model.le_model_empty(ignore_shapes=True) and\
                 len(self._layer_editor.le_model.shapes_model.shapes) == 1 and\
                 self.wg_surface_panel.data.name == "":
             dw = rect.width()/8

@@ -560,7 +560,8 @@ class LEModel(QObject):
             return shp_item.errors
         return None
 
-    def decompositions_empty(self, ignore_shapes=False, ignore_surf=False, ignore_decomps=False):
+    def le_model_empty(self, ignore_shapes=False, ignore_surf=False, ignore_decomps=False):
+        """Return True if LEModel is empty, or if it only contains objects which are ignored. Otherwise returns False."""
         if not ignore_shapes and not self.shapes_model.is_empty():
             return False
         if not ignore_surf and self.surfaces_model:
