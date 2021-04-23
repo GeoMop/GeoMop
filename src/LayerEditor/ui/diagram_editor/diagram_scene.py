@@ -4,6 +4,8 @@ from PyQt5.QtGui import QBrush, QPen, QPainterPath
 from PyQt5.QtWidgets import QGraphicsRectItem
 
 from LayerEditor.ui.data.region_item import RegionItem
+from LayerEditor.ui.data.tools.selector import Selector
+from LayerEditor.ui.diagram_editor.graphics_items.diagramitem import DiagramItem
 from LayerEditor.ui.tools.cursor import Cursor
 
 from LayerEditor.ui.diagram_editor.graphics_items.gs_point import GsPoint
@@ -13,28 +15,22 @@ from LayerEditor.ui.diagram_editor.graphics_items.gs_segment import GsSegment
 
 class DiagramScene(QtWidgets.QGraphicsScene):
     regionsUpdateRequired = QtCore.pyqtSignal()
-    TOLERANCE = 5
 
     def __init__(self, block, bounding_rect, parent):
         super().__init__(bounding_rect, parent)
         block.selection.set_diagram(self)
         self.selection = block.selection
         self.block = block
-        self.shapes = [{}, {}, {}]  # [points, segments, polygons]
-        self.points = {}
-        self.segments = {}
-        self.polygons = {}
-        """Maps to all graphical objects grouped by type {id:QGraphicsItem}"""
+
+        self._diagrams = []     # do not modify directly! use appropriate methods
+        self.add_diagram(DiagramItem(block))
+        self.active_diagram = Selector(self._diagrams[0])
 
         self.last_point = None
         self.aux_pt, self.aux_seg = self.create_aux_segment()
         self.hide_aux_line()
 
         self._press_screen_pos = QtCore.QPoint()
-
-        # polygons
-        self.decomposition = block.decomposition
-        self.decomposition.poly_decomp.set_tolerance(self.TOLERANCE)
 
         self.gs_surf_grid = None
         # holds graphics object for surface grid so it can be deleted when not needed
@@ -50,6 +46,11 @@ class DiagramScene(QtWidgets.QGraphicsScene):
         self.addItem(self.init_area)
         self.addItem(parent.root_shp_item)
         self.init_area.setVisible(parent._show_init_area)
+        self.init_area.setZValue(-1000)
+
+    def add_diagram(self, diagram):
+        self._diagrams.append(diagram)
+        self.addItem(diagram)
 
     def get_shape_color(self, shape_key):
         if self.block.gui_layer_selector.value is None:
@@ -111,19 +112,8 @@ class DiagramScene(QtWidgets.QGraphicsScene):
         self.aux_pt.hide()
         self.aux_seg.hide()
 
-    def add_point(self, pos):
-        """Add continuous line and point, from self.last_point"""
-        new_point = self.decomposition.new_point(pos, self.last_point)
-        if new_point.id in self.points:
-            return self.points[new_point.id]
-        else:
-            new_g_point = GsPoint(new_point, self.block)
-            self.points[new_point.id] = new_g_point
-            self.addItem(new_g_point)
-            return new_g_point
-
     def new_point(self, pos, close=False):
-        new_g_point = self.add_point(pos)
+        new_g_point = self.active_diagram.value.add_point(pos, self.last_point)
 
         if not close:
             self.last_point = new_g_point
@@ -151,21 +141,8 @@ class DiagramScene(QtWidgets.QGraphicsScene):
         return below_item
 
     def update_zoom(self, value):
-        self.decomposition.poly_decomp.set_tolerance(self.TOLERANCE/value)
-        for g_seg in self.segments.values():
-            g_seg.update_zoom(value)
-
-    def update_all_points(self):
-        for g_point in self.points.values():
-            g_point.update()
-
-    def update_all_segments(self):
-        for g_seg in self.segments.values():
-            g_seg.update()
-
-    def update_all_polygons(self):
-        for g_pol in self.polygons.values():
-            g_pol.update()
+        for diagram in self._diagrams:
+            diagram.update_zoom(value)
 
     def mousePressEvent(self, event):
         """
@@ -260,60 +237,8 @@ class DiagramScene(QtWidgets.QGraphicsScene):
                 self.addItem(parent_surf_grid)
             self.gs_surf_grid = parent_surf_grid
 
-        # points
-        to_remove = []
-        de_points = self.decomposition.points
-        for point_id in self.points:
-            if point_id not in de_points:
-                to_remove.append(point_id)
-        for point_id in to_remove:
-            self.removeItem(self.points[point_id])
-            del self.points[point_id]
-        for point_id, point in de_points.items():
-            if point_id in self.points:
-                self.points[point_id].update()
-            else:
-                gpt = GsPoint(point, self.block)
-                self.points[point_id] = gpt
-                self.addItem(gpt)
-
-        # segments
-        to_remove = []
-        de_segments = self.decomposition.segments
-        for segment_id in self.segments:
-            if segment_id not in de_segments:
-                to_remove.append(segment_id)
-        for segment_id in to_remove:
-            self.removeItem(self.segments[segment_id])
-            del self.segments[segment_id]
-        for segment_id, segment in de_segments.items():
-            if segment_id in self.segments:
-                self.segments[segment_id].update()
-            else:
-                gseg = GsSegment(segment, self.block)
-                parent = self.parent()
-                gseg.update_zoom(self.parent().zoom)
-                self.segments[segment_id] = gseg
-                self.addItem(gseg)
-
-        # polygons
-        to_remove = []
-        de_polygons = self.decomposition.polygons
-        for polygon_id in self.polygons:
-            if polygon_id not in de_polygons:
-                to_remove.append(polygon_id)
-        for polygon_id in to_remove:
-            self.removeItem(self.polygons[polygon_id])
-            del self.polygons[polygon_id]
-        for polygon_id, polygon in de_polygons.items():
-            if polygon.outer_wire.is_root():
-                continue
-            if polygon_id in self.polygons:
-                self.polygons[polygon_id].update()
-            else:
-                gpol = GsPolygon(polygon, self.block)
-                self.polygons[polygon_id] = gpol
-                self.addItem(gpol)
+        for diagram in self._diagrams:
+            diagram.update_item()
 
         self.update()
 

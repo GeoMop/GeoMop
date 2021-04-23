@@ -34,6 +34,8 @@ class IdMap():
         return self._next_id
 
     def add(self, obj):
+        if obj in self._dict.values():
+            return obj
         id = self.get_new_id()
         obj.id = id
         self._dict[obj.id] = obj
@@ -42,6 +44,7 @@ class IdMap():
     def remove(self, obj):
         del self._dict[obj.id]
         self._free_ids.append(obj.id)
+        obj.id = None
 
     def get(self, id):
         return self._dict[id]

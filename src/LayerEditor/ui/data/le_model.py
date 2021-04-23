@@ -223,7 +223,7 @@ class LEModel(QObject):
                 else:
                     layer.block.remove(layers[idx + 1])
                     below_layer = layers[idx + 2]
-                below_layer.set_top_in(layer.top_in)
+                below_layer.set_top_in_and_add_to_block(layer.top_in)
             self.interfaces_model.remove(layer.bottom_in.interface)
             layer.block.remove(layer)
         self.layers_changed.emit()

@@ -56,7 +56,7 @@ class LayerItem(AbstractItem):
 
         with undo.pause_undo():
             self.set_name(layer_data.name)
-            self.set_top_in(top_in)
+            self.set_top_in_and_add_to_block(top_in)
             self.set_bottom_in(bottom_in)
             self.shape_regions = shape_regions
 
@@ -216,6 +216,12 @@ class LayerItem(AbstractItem):
     def set_top_in(self, new_in):
         """ Sets new top InterfaceNodeSetItem/InterpolatedNodeSetItem
             Must be used inside undo.Group"""
+        old_ni = self.top_in
+        self.top_in = new_in
+        yield f"top_ni changed in layer {self.id}"
+        self.set_top_in(old_ni)
+
+    def set_top_in_and_add_to_block(self, new_in):
         old_block = self.block
         new_block = new_in.decomposition.block
         if old_block is not new_block:
@@ -223,14 +229,7 @@ class LayerItem(AbstractItem):
                 old_block.remove(self)
             new_block.add(self)
 
-        old_ni = self.top_in
-        self.top_in = new_in
-        yield f"top_ni changed in layer {self.id}"
-        if old_block is not new_block:
-            if old_block is not None:
-                new_block.remove(self)
-            old_block.add(self)
-        self.set_top_in(old_ni)
+        self.set_top_in(new_in)
 
     @undo.undoable
     def set_name(self, new_name):

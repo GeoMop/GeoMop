@@ -37,7 +37,7 @@ class AbstractModel:
 
     @undo.undoable
     def add(self, item: IdObject):
-        self.collection.add(item)
+        item = self.collection.add(item)
         yield "Add Item"
         self.collection.remove(item)
 

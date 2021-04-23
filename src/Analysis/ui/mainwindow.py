@@ -22,8 +22,8 @@ class MainWindow(QtWidgets.QMainWindow):
         # splitters
         self._vsplitter = QtWidgets.QSplitter(QtCore.Qt.Vertical, self._hsplitter)
         
-        diagram = data.Diagram()
-        self.diagramScene = panels.Diagram(diagram, self._vsplitter)
+        diagram = data.DiagramItem()
+        self.diagramScene = panels.DiagramItem(diagram, self._vsplitter)
         self.diagramView =QtWidgets.QGraphicsView(self.diagramScene,self._vsplitter)
         
         self.diagramView.setSizePolicy(

@@ -84,12 +84,14 @@ class BlockLayersModel(AbstractModel, AbstractItem):
 
     @undo.undoable
     def add(self, new_layer: LayerItem):
-        self.collection.add(new_layer)
+        new_layer = self.collection.add(new_layer)
+        print(f"add layer {new_layer.id} to block {self.id}")
         yield "Add Layer"
         self.remove(new_layer)
 
     @undo.undoable
     def remove(self, layer):
+        print(f"remove layer {layer.id} from block {self.id}")
         self.collection.remove(layer)
         self.gui_layer_selector.make_valid(list(self.items()))
         yield "Delete Layer"

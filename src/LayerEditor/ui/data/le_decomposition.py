@@ -1,4 +1,5 @@
 from LayerEditor.ui.data.abstract_item import AbstractItem
+from LayerEditor.ui.data.region_item import RegionItem
 from gm_base.polygons import polygons_io
 from bgem.polygons.polygons import PolygonDecomposition
 
@@ -60,7 +61,11 @@ class LEDecomposition(AbstractItem):
                     # skip root polygon
                     continue
                 for layer in self.block.items():
-                    region = layer.get_shape_region(dim, id_old)
+                    try:
+                        region = layer.get_shape_region(dim, id_old)
+                    except KeyError:
+                        self.initialize_regions()
+                        region = layer.get_shape_region(dim, id_old)
                     layer.set_region_to_shape(dim, id_new, region)
 
             self.initialize_regions()

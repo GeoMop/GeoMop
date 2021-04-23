@@ -227,6 +227,8 @@ class MainWindow(QtWidgets.QMainWindow):
         curr_block = self._layer_editor.le_model.gui_block_selector.value
         curr_block.selection.selection_changed.connect(self.wg_regions_panel.selection_changed)
 
+
+
         self.diagram_view.setScene(DiagramScene(curr_block, self._layer_editor.le_model.init_area, self.diagram_view))
         self.wg_regions_panel.update_tabs()
 
