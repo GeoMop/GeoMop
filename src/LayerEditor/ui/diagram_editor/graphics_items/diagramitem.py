@@ -10,9 +10,8 @@ from LayerEditor.ui.diagram_editor.graphics_items.gs_segment import GsSegment
 
 class DiagramItem(QGraphicsItem):
     TOLERANCE = 5
-    first=True
 
-    def __init__(self, block, zoom):
+    def __init__(self,  block, zoom):
         super(DiagramItem, self).__init__()
         self.shapes = [{}, {}, {}]  # [points, segments, polygons]
         self.points = {}

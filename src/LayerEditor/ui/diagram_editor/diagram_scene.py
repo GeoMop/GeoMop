@@ -81,6 +81,10 @@ class DiagramScene(QtWidgets.QGraphicsScene):
         self.removeItem(diagram)
         self._diagrams.remove(diagram)
 
+    def add_diagram(self, diagram):
+        self._diagrams.append(diagram)
+        self.addItem(diagram)
+
     def get_shape_color(self, shape_key):
         if self.block.gui_layer_selector.value is None:
             return "black"
