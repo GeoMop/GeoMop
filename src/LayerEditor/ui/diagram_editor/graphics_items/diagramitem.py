@@ -10,8 +10,9 @@ from LayerEditor.ui.diagram_editor.graphics_items.gs_segment import GsSegment
 
 class DiagramItem(QGraphicsItem):
     TOLERANCE = 5
+    first=True
 
-    def __init__(self, block):
+    def __init__(self, block, zoom):
         super(DiagramItem, self).__init__()
         self.shapes = [{}, {}, {}]  # [points, segments, polygons]
         self.points = {}
@@ -24,7 +25,21 @@ class DiagramItem(QGraphicsItem):
         self.decomposition.poly_decomp.set_tolerance(self.TOLERANCE)
 
         self.block = block
-        self.setAcceptedMouseButtons(QtCore.Qt.LeftButton | QtCore.Qt.RightButton)
+        self.block.selection.set_diagram(self)
+        self.setVisible(False)
+
+        self.update_zoom(zoom)
+
+    @property
+    def id(self):
+        """Temporary way to identify diagram. Will be changed when view panel exists"""
+        return self.block.id
+
+    def enable_interactions(self, enable=True):
+        if enable:
+            self.setAcceptedMouseButtons(QtCore.Qt.LeftButton | QtCore.Qt.RightButton)
+        else:
+            self.setAcceptedMouseButtons(QtCore.Qt.NoButton)
 
     def update_item(self):
         # points
@@ -118,6 +133,5 @@ class DiagramItem(QGraphicsItem):
         pass
 
     def mousePressEvent(self, event: 'QGraphicsSceneMouseEvent') -> None:
-        i = 1
         super(DiagramItem, self).mousePressEvent(event)
 

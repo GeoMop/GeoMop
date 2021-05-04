@@ -121,6 +121,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.wg_surface_panel.first_surface_added.connect(self._first_surface_added)
         self.shp_panel.background_changed.connect(self.refresh_diagram_shp)
         self.shp_panel.item_removed.connect(self.del_background_item)
+        self.layers.overlay_diagram_changed.connect(self.diagram_view.scene().update_visibility)
 
         self._layer_editor.le_model.invalidate_scene.connect(self.update_scene)
         self._layer_editor.le_model.layers_changed.connect(self.layers_changed)
@@ -227,9 +228,8 @@ class MainWindow(QtWidgets.QMainWindow):
         curr_block = self._layer_editor.le_model.gui_block_selector.value
         curr_block.selection.selection_changed.connect(self.wg_regions_panel.selection_changed)
 
+        self.diagram_view.scene().change_main_diagram(curr_block.id)
 
-
-        self.diagram_view.setScene(DiagramScene(curr_block, self._layer_editor.le_model.init_area, self.diagram_view))
         self.wg_regions_panel.update_tabs()
 
     def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:

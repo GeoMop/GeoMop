@@ -16,15 +16,19 @@ from LayerEditor.ui.diagram_editor.graphics_items.gs_segment import GsSegment
 class DiagramScene(QtWidgets.QGraphicsScene):
     regionsUpdateRequired = QtCore.pyqtSignal()
 
-    def __init__(self, block, bounding_rect, parent):
+    def __init__(self, bounding_rect, parent):
         super().__init__(bounding_rect, parent)
-        block.selection.set_diagram(self)
-        self.selection = block.selection
-        self.block = block
+        self.block_model = parent.le_model.blocks_model
+        self.selection = None
 
-        self._diagrams = []     # do not modify directly! use appropriate methods
-        self.add_diagram(DiagramItem(block))
-        self.active_diagram = Selector(self._diagrams[0])
+        self.gs_surf_grid = None
+        # holds graphics object for surface grid so it can be deleted when not needed
+
+        self._diagrams = []  # do not modify directly! use appropriate methods!!!
+        self.active_diagram = Selector(None)
+        self.update_scene()
+
+        self.change_main_diagram(self.block_model.gui_block_selector.value.id)
 
         self.last_point = None
         self.aux_pt, self.aux_seg = self.create_aux_segment()
@@ -32,10 +36,6 @@ class DiagramScene(QtWidgets.QGraphicsScene):
 
         self._press_screen_pos = QtCore.QPoint()
 
-        self.gs_surf_grid = None
-        # holds graphics object for surface grid so it can be deleted when not needed
-
-        self.update_scene()
         self.pixmap_item = None
 
         self.init_area = QGraphicsRectItem(self.sceneRect())
@@ -48,9 +48,38 @@ class DiagramScene(QtWidgets.QGraphicsScene):
         self.init_area.setVisible(parent._show_init_area)
         self.init_area.setZValue(-1000)
 
+    @property
+    def block(self):
+        return self.block_model.gui_block_selector.value
+
+    def get_diagram_index(self, block):
+        for index in range(len(self._diagrams)):
+            if block is self._diagrams[index].block:
+                return index
+
+    def update_visibility(self, block_id, checked):
+        self._diagrams[self.get_diagram_index(self.block_model[block_id])].setVisible(checked)
+
+    def change_main_diagram(self, block_id):
+        """Sets new main graphics object for editing"""
+        if self.active_diagram.value is not None:
+            self.active_diagram.value.setVisible(False)
+            self.active_diagram.value.enable_interactions(False)
+        self.active_diagram.value = self._diagrams[self.get_diagram_index(self.block_model[block_id])]
+        self.active_diagram.value.enable_interactions(True)
+        self.active_diagram.value.setVisible(True)
+
+        self.selection = self.active_diagram.value.block.selection
+
+
     def add_diagram(self, diagram):
         self._diagrams.append(diagram)
         self.addItem(diagram)
+        diagram.update_item()
+
+    def remove_diagram(self, diagram):
+        self.removeItem(diagram)
+        self._diagrams.remove(diagram)
 
     def get_shape_color(self, shape_key):
         if self.block.gui_layer_selector.value is None:
@@ -237,9 +266,27 @@ class DiagramScene(QtWidgets.QGraphicsScene):
                 self.addItem(parent_surf_grid)
             self.gs_surf_grid = parent_surf_grid
 
+        not_updated_indices = list(range(len(self._diagrams)))
+        for block in self.block_model.items():
+            diagram_exists = False
+            for index in not_updated_indices:
+                diagram = self._diagrams[index]
+                if diagram.block is block:
+                    not_updated_indices.remove(index)
+                    diagram_exists = True
+                    diagram.update_item()
+                    break
+            if not diagram_exists:
+                self.add_diagram(DiagramItem(block, self.parent().zoom))
+        for index in not_updated_indices:
+            self.remove_diagram(self._diagrams[index])
+
         for diagram in self._diagrams:
             diagram.update_item()
 
+        valid = self.active_diagram.make_valid(self._diagrams)
+        if not valid:
+            assert False, "This cannot be currently handeled. TODO: fix when view panel exists"
         self.update()
 
     def setSceneRect(self, rect: QtCore.QRectF) -> None:

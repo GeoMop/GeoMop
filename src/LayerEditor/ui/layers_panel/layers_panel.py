@@ -1,7 +1,7 @@
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QPen
 from PyQt5.QtWidgets import QWidget, QGridLayout, QLabel, QCheckBox, QHBoxLayout, QButtonGroup, \
-    QScrollArea, QMessageBox
+    QScrollArea, QMessageBox, QRadioButton
 
 from LayerEditor.ui.data.interface_node_set_item import InterfaceNodeSetItem
 from LayerEditor.ui.data.interpolated_node_set_item import InterpolatedNodeSetItem
@@ -32,6 +32,8 @@ class LayerPanel(QScrollArea):
     """Represents structure of layers and interfaces from data layer"""
     LINE_WIDTH = 2  # Must be multiple of two! Otherwise artifacts will occur due to rounding after dividing by 2
     LINE_PEN = QPen(Qt.black, LINE_WIDTH)
+
+    overlay_diagram_changed = pyqtSignal(int, bool) # pram: block id, is checked?
 
     def __init__(self, le_model: LEModel, parent=None):
         super(LayerPanel, self).__init__(parent)
@@ -229,14 +231,15 @@ class LayerPanel(QScrollArea):
     def get_current_block(self):
         return self.edit_buttons_group.checkedButton().block
 
-    def change_active_decomp(self, radio_button: RadioButton):
+    def change_active_decomp(self, radio_button: QRadioButton):
         for button in self.view_buttons_group.buttons():
             button.setEnabled(True)
         radio_button = radio_button.parent()
         self.le_model.blocks_model.gui_block_selector.value = radio_button.block
         radio_button.view_button.setDisabled(True)
 
-    def view_overlay(self):
+    def view_overlay(self, radio_button: QRadioButton):
+        # self.overlay_diagram_changed.emit(radio_button.parent().block, radio_button.isChecked())
         for button in self.view_buttons_group.buttons():
             button.setChecked(False)
         msg = QMessageBox(self)

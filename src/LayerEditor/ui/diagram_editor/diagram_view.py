@@ -34,7 +34,7 @@ class DiagramView(QtWidgets.QGraphicsView):
         self.centerOn(QPointF(le_model.init_zoom_pos_data["x"],
                               -le_model.init_zoom_pos_data["y"]))
 
-        self.setScene(DiagramScene(le_model.gui_block_selector.value, self.le_model.init_area, self))
+        self.setScene(DiagramScene(self.le_model.init_area, self))
 
     def show_grid(self, quad, u_knots, v_knots):
         """ Create grid of currently selected surface from surface panel.
@@ -101,10 +101,7 @@ class DiagramView(QtWidgets.QGraphicsView):
                          'position_set': False}}
 
     def update_view(self):
-        if self.scene().block is not self.le_model.gui_block_selector.value:
-            self.setScene(DiagramScene(self.le_model.gui_block_selector.value,
-                                       self.le_model.init_area,
-                                       self))
+        self.scene().update_scene()
 
     def set_init_area(self, rect: QRectF):
         self.le_model.init_area = rect
