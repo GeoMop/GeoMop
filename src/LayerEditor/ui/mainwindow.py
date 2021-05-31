@@ -16,6 +16,7 @@ from LayerEditor.ui.diagram_editor.diagram_view import DiagramView
 import gm_base.icon as icon
 from LayerEditor.ui.menus.file import MainFileMenu
 from LayerEditor.ui.tools import undo
+from LayerEditor.ui.view_panel.view_panel import ViewPanel
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -32,7 +33,8 @@ class MainWindow(QtWidgets.QMainWindow):
         return self.diagram_view.scene()
 
     def make_widgets(self, first=False):
-        self.wg_regions_panel = RegionsPanel(self._layer_editor.le_model, self)
+        le_model = self._layer_editor.le_model
+        self.wg_regions_panel = RegionsPanel(le_model, self)
 
         self.setMinimumSize(1060, 660)
 
@@ -46,17 +48,22 @@ class MainWindow(QtWidgets.QMainWindow):
         self._vsplitter1 = QtWidgets.QSplitter(QtCore.Qt.Vertical, self._hsplitter)
         self._vsplitter1.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
 
+        self.view_panel = ViewPanel(le_model.blocks_model,
+                                    le_model.surfaces_model,
+                                    le_model.shapes_model)
+
         self.scroll_area1 = QtWidgets.QScrollArea()
         # self._scroll_area.setWidgetResizable(True)
-        self.layers = LayerPanel(self._layer_editor.le_model)
+        self.layers = LayerPanel(le_model)
+
         self._vsplitter1.addWidget(self.layers)
 
         self._vsplitter1.addWidget(self.wg_regions_panel)
 
         # scene
-        self.diagram_view = DiagramView(self._layer_editor.le_model)
+        self.diagram_view = DiagramView(le_model)
         """View is common for all layers and blocks."""
-        self._layer_editor.le_model.gui_block_selector.value_changed.connect(self.change_curr_block)
+        le_model.gui_block_selector.value_changed.connect(self.change_curr_block)
 
         self._hsplitter.addWidget(self.diagram_view)
 
@@ -68,17 +75,23 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.scroll_area2 = QtWidgets.QScrollArea()
         self.scroll_area2.setWidgetResizable(True)
-        self.wg_surface_panel = Surfaces(self._layer_editor.le_model, self._layer_editor.save_file, parent=self.scroll_area2)
-        self._show_grid(self._layer_editor.le_model.gui_block_selector.value is not None)
+        self.wg_surface_panel = Surfaces(le_model, self._layer_editor.save_file, parent=self.scroll_area2)
+        self._show_grid(le_model.gui_block_selector.value is not None)
         self.scroll_area2.setWidget(self.wg_surface_panel)
         self._vsplitter2.addWidget(self.scroll_area2)
 
-        self.shp_panel = ShapesPanel(self._layer_editor.le_model.shapes_model, self._vsplitter2)
+        self.scroll_area33 = QtWidgets.QScrollArea()
+        self.scroll_area33.setWidgetResizable(True)
+        self._show_grid(le_model.gui_block_selector.value is not None)
+        self.scroll_area33.setWidget(self.view_panel)
+        self._vsplitter2.addWidget(self.scroll_area33)
+
+        self.shp_panel = ShapesPanel(le_model.shapes_model, self._vsplitter2)
         self._vsplitter2.addWidget(self.shp_panel)
-        if self._layer_editor.le_model.shapes_model.is_empty():
+        if le_model.shapes_model.is_empty():
             self.shp_panel.hide()
 
-        if not self._layer_editor.le_model.shapes_model.is_empty():
+        if not le_model.shapes_model.is_empty():
             self.refresh_diagram_shp()
 
         # Menu bar
@@ -123,8 +136,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.shp_panel.item_removed.connect(self.del_background_item)
         self.layers.overlay_diagram_changed.connect(self.diagram_view.scene().update_visibility)
 
-        self._layer_editor.le_model.invalidate_scene.connect(self.update_scene)
-        self._layer_editor.le_model.layers_changed.connect(self.layers_changed)
+        le_model.invalidate_scene.connect(self.update_scene)
+        le_model.layers_changed.connect(self.layers_changed)
 
         self.wg_surface_panel.show_grid.connect(self._show_grid)
 

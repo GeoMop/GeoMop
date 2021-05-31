@@ -6,10 +6,10 @@ from LayerEditor.ui.view_panel.overlay_control_widget import OverlayControlWidge
 
 
 class ViewPanel(QWidget):
-    def __init__(self):
+    def __init__(self, blocks_model, surfaces_model, shapes_model):
         super(ViewPanel, self).__init__()
-        layout = QVBoxLayout()
 
+        layout = QVBoxLayout()
         opacity_control = QWidget()
         opacity_control.setLayout(QHBoxLayout())
         self.opacity_label = QLabel(f"Opacity: 100")
@@ -23,21 +23,12 @@ class ViewPanel(QWidget):
         opacity_control.layout().setContentsMargins(0, 0, 0, 0)
         layout.addWidget(opacity_control)
 
-
-        self.overlay_control = OverlayControlWidget()
-        self.available_overlays = AvailableOverlaysWidget()
+        self.overlay_control = OverlayControlWidget(self)
+        self.available_overlays = AvailableOverlaysWidget(blocks_model, surfaces_model, shapes_model)
         layout.addWidget(self.overlay_control)
         layout.addWidget(self.available_overlays)
         self.setLayout(layout)
 
     def opacity_changed(self, value):
         self.opacity_label.setText(f"Opacity: {value:>3}")
-        print(len(f"Opacity: {value:>3}"))
         # Todo: Change opacity of currently selected overlay layer
-
-if __name__ == '__main__':
-    import sys
-    app = QApplication(sys.argv)
-    main = ViewPanel()
-    main.show()
-    app.exec()
