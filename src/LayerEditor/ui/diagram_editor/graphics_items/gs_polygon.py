@@ -1,6 +1,7 @@
 from PyQt5 import QtWidgets, QtGui, QtCore
 import numpy as np
 
+from LayerEditor.ui.data.region_item import RegionItem
 from LayerEditor.ui.tools.cursor import Cursor
 
 class GsPolygon(QtWidgets.QGraphicsPolygonItem):
@@ -23,11 +24,11 @@ class GsPolygon(QtWidgets.QGraphicsPolygonItem):
         brush = cls.__brush_table.setdefault(color, cls.make_brush(QtGui.QColor(color)))
         return brush
 
-    def __init__(self, polygon, block):
+    def __init__(self, polygon, layer):
         """ Initialize graphics polygon from data in polygon.
             Needs ref to block for updating color and initializing regions"""
         self.polygon_data = polygon
-        self.block = block
+        self.layer = layer
         #self.block.init_regions_for_new_shape(self.dim, self.shape_id)
         #polygon.g_polygon = self
         self.painter_path = None
@@ -60,8 +61,10 @@ class GsPolygon(QtWidgets.QGraphicsPolygonItem):
         self.setPolygon(qtpolygon)
 
         self.painter_path = self._get_polygon_draw_path(self.polygon_data)
-
-        color = self.block.gui_layer_selector.value.get_shape_region(self.dim, self.shape_id).color
+        if self.layer is None:
+            color = RegionItem.none
+        else:
+            color = self.layer.get_shape_region(self.dim, self.shape_id).color
         self.region_brush = GsPolygon.brush_table(color)
 
         self.depth = self.polygon_data.depth()
@@ -72,7 +75,7 @@ class GsPolygon(QtWidgets.QGraphicsPolygonItem):
     def paint(self, painter, option, widget):
         painter.setPen(self.no_pen)
         #if option.state & (QtWidgets.QStyle.State_Sunken | QtWidgets.QStyle.State_Selected):
-        if self.scene().selection.is_selected(self):
+        if self.scene().selection is not None and self.scene().selection.is_selected(self):
             brush = QtGui.QBrush(self.region_brush)
             brush.setStyle(QtCore.Qt.Dense4Pattern)
             tr = painter.worldTransform()

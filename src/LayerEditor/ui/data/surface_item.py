@@ -27,6 +27,10 @@ class SurfaceItem(format_last.Surface, AbstractItem):
         ### Common with GL Surface
         super().__init__()
 
+    @property
+    def overlay_name(self):
+        return self.name
+
     def deserialize(self, surf_data: format_last.Surface):
         self.grid_file = surf_data.grid_file
         """File with approximated points (grid of 3D points). None for plane"""

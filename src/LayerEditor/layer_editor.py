@@ -136,10 +136,10 @@ class LayerEditor:
             if len(errors) == 0:
                 self.mainwindow.refresh_diagram_shp()
                 self.mainwindow.show_status_message("Shape file '" + shp_file[0] + "' is opened")
+                self.mainwindow.view_panel.available_overlays.init_overlays_items()
             else:
                 err_dialog = GMErrorDialog(self.mainwindow)
                 err_dialog.open_error_report_dialog(errors, msg="Shape file parsing errors:", title=shp_file[0])
-
 
     def make_mesh(self):
         """open Make mesh dialog"""

@@ -27,11 +27,11 @@ class GsSegment(QtWidgets.QGraphicsLineItem):
         pens = cls.__pen_table.setdefault(color, cls.make_pen(QtGui.QColor(color)))
         return pens
 
-    def __init__(self, segment, block):
+    def __init__(self, segment, layer):
         """ Initialize graphics segment from data in segment.
             Needs ref to block for updating color and initializing regions"""
         self.segment = segment
-        self.block = block
+        self.layer = layer
         #self.block.init_regions_for_new_shape(self.dim, self.shape_id)
         #segment.g_segment = self
         super().__init__()
@@ -60,14 +60,14 @@ class GsSegment(QtWidgets.QGraphicsLineItem):
         self.setFlag(QtWidgets.QGraphicsItem.ItemSendsGeometryChanges)
         self.setLine(0, 0, pt_to.xy[0] - pt_from.xy[0], -pt_to.xy[1] + pt_from.xy[1])
 
-        color = self.block.gui_layer_selector.value.get_shape_region(self.dim, self.shape_id).color
+        color = self.layer.get_shape_region(self.dim, self.shape_id).color
         self.region_pen, self.region_selected_pen  = GsSegment.pen_table(color)
 
         super().update()
 
     def paint(self, painter, option, widget):
         #if option.state & (QtWidgets.QStyle.State_Sunken | QtWidgets.QStyle.State_Selected):
-        if self.scene().selection.is_selected(self):
+        if self.scene().selection is not None and self.scene().selection.is_selected(self):
             painter.setPen(self.region_selected_pen)
         else:
             painter.setPen(self.region_pen)

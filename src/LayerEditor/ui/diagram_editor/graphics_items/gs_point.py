@@ -26,11 +26,11 @@ class GsPoint(QtWidgets.QGraphicsEllipseItem):
         brush_pen = cls.__pen_table.setdefault(color, cls.make_pen(QtGui.QColor(color)))
         return brush_pen
 
-    def __init__(self, pt, block):
+    def __init__(self, pt, layer):
         """ Initialize graphics point from data in pt.
             Needs ref to block for updating color and initializing regions"""
         self.pt = pt
-        self.block = block
+        self.layer = layer
         #self.block.init_regions_for_new_shape(self.dim, self.shape_id)
         # pt.gpt = self
         super().__init__(-self.SIZE, -self.SIZE, 2 * self.SIZE, 2 * self.SIZE)
@@ -55,7 +55,7 @@ class GsPoint(QtWidgets.QGraphicsEllipseItem):
 
     def paint(self, painter, option, widget):
         # print("option: ", option.state)
-        if self.scene().selection.is_selected(self):
+        if self.scene().selection is not None and self.scene().selection.is_selected(self):
             painter.setBrush(GsPoint.no_brush)
             painter.setPen(self.region_pen)
         else:
@@ -69,7 +69,7 @@ class GsPoint(QtWidgets.QGraphicsEllipseItem):
         self.setPos(self.pt.xy[0], -self.pt.xy[1])
         self.setFlag(QtWidgets.QGraphicsItem.ItemSendsGeometryChanges)
 
-        color = self.block.gui_layer_selector.value.get_shape_region(self.dim, self.shape_id).color
+        color = self.layer.get_shape_region(self.dim, self.shape_id).color
         self.region_brush, self.region_pen = GsPoint.pen_table(color)
 
         self.setZValue(self.STD_ZVALUE)

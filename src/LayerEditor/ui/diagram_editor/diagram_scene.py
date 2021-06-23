@@ -1,16 +1,22 @@
 from PyQt5 import QtWidgets, QtCore, QtGui
-from PyQt5.QtCore import Qt, QRectF
+from PyQt5.QtCore import Qt, QRectF, QAbstractItemModel, QModelIndex
 from PyQt5.QtGui import QBrush, QPen, QPainterPath
 from PyQt5.QtWidgets import QGraphicsRectItem
 
+from LayerEditor.ui.data.block_layers_model import BlockLayersModel
+from LayerEditor.ui.data.layer_item import LayerItem
 from LayerEditor.ui.data.region_item import RegionItem
+from LayerEditor.ui.data.shp_structures import ShapeItem
+from LayerEditor.ui.data.surface_item import SurfaceItem
 from LayerEditor.ui.data.tools.selector import Selector
-from LayerEditor.ui.diagram_editor.graphics_items.diagramitem import DiagramItem
+from LayerEditor.ui.diagram_editor.graphics_items.abstract_graphics_item import AbstractGraphicsItem
+from LayerEditor.ui.diagram_editor.graphics_items.diagram_item import DiagramItem
 from LayerEditor.ui.tools.cursor import Cursor
 
 from LayerEditor.ui.diagram_editor.graphics_items.gs_point import GsPoint
 from LayerEditor.ui.diagram_editor.graphics_items.gs_polygon import GsPolygon
 from LayerEditor.ui.diagram_editor.graphics_items.gs_segment import GsSegment
+from LayerEditor.ui.view_panel.overlay_tree_item import OverlayTreeItem
 
 
 class DiagramScene(QtWidgets.QGraphicsScene):
@@ -24,9 +30,10 @@ class DiagramScene(QtWidgets.QGraphicsScene):
         self.gs_surf_grid = None
         # holds graphics object for surface grid so it can be deleted when not needed
 
-        self._diagrams = []  # do not modify directly! use appropriate methods!!!
+        self.overlays = []  # do not modify directly! use appropriate methods!!!
         self.active_diagram = Selector(None)
         self.update_scene()
+        # self.change_main_diagram()
 
         self.change_main_diagram(self.block_model.gui_block_selector.value.id)
 
@@ -44,9 +51,47 @@ class DiagramScene(QtWidgets.QGraphicsScene):
         pen.setCosmetic(True)
         self.init_area.setPen(pen)
         self.addItem(self.init_area)
-        self.addItem(parent.root_shp_item)
         self.init_area.setVisible(parent._show_init_area)
         self.init_area.setZValue(-1000)
+
+    def change_opacity(self, data_item, opacity):
+        self.find_overlay(data_item).setOpacity(opacity)
+
+    def find_overlay(self, data_object):
+        for overlay in self.overlays:
+            if overlay.data_item is data_object:
+                return overlay
+
+    def create_graphic_object(self, data_object):
+        if isinstance(data_object, LayerItem):
+            item = DiagramItem(data_object, self.parent().zoom)
+            item.disable_editing()
+
+        elif isinstance(data_object, ShapeItem):
+            item = self.parent().root_shp_item
+
+        elif isinstance(data_object, SurfaceItem):
+            item = self.gs_surf_grid
+
+        return item
+
+    def update_depth(self):
+        for z, overlay in enumerate(self.overlays):
+            overlay.setZValue(-z)
+
+    def insert_overlay(self, data_item, opacity):
+        g_item = self.create_graphic_object(data_item)
+        g_item.setVisible(True)
+        self.overlays.append(g_item)
+        self.addItem(g_item)
+        g_item.setOpacity(opacity)
+        self.update_depth()
+
+    def remove_overlay(self, data_item):
+        item = self.find_overlay(data_item)
+        self.overlays.remove(item)
+        self.removeItem(item)
+        self.update_depth()
 
     @property
     def block(self):
@@ -63,27 +108,21 @@ class DiagramScene(QtWidgets.QGraphicsScene):
     def change_main_diagram(self, block_id):
         """Sets new main graphics object for editing"""
         if self.active_diagram.value is not None:
-            self.active_diagram.value.setVisible(False)
-            self.active_diagram.value.enable_interactions(False)
-        self.active_diagram.value = self._diagrams[self.get_diagram_index(self.block_model[block_id])]
-        self.active_diagram.value.enable_interactions(True)
-        self.active_diagram.value.setVisible(True)
+            self.active_diagram.value.disable_editing()
+            self.removeItem(self.active_diagram.value)
+            old_block_id = self.active_diagram.value.layer.block.id
+            self.block_model[old_block_id].gui_layer_selector.value_changed.disconnect(self.change_layer_in_diagram)
 
-        self.selection = self.active_diagram.value.block.selection
+        self.active_diagram.value = self.create_graphic_object(self.block_model[block_id].gui_layer_selector.value)
+        self.addItem(self.active_diagram.value)
+        self.active_diagram.value.enable_editing()
+        self.block_model[block_id].gui_layer_selector.value_changed.connect(self.change_layer_in_diagram)
 
+        self.selection = self.active_diagram.value.layer.block.selection
+        self.selection.set_diagram(self.active_diagram.value)
 
-    def add_diagram(self, diagram):
-        self._diagrams.append(diagram)
-        self.addItem(diagram)
-        diagram.update_item()
-
-    def remove_diagram(self, diagram):
-        self.removeItem(diagram)
-        self._diagrams.remove(diagram)
-
-    def add_diagram(self, diagram):
-        self._diagrams.append(diagram)
-        self.addItem(diagram)
+    def change_layer_in_diagram(self, layer_id):
+        self.change_main_diagram(self.active_diagram.value.layer.block.id)
 
     def get_shape_color(self, shape_key):
         if self.block.gui_layer_selector.value is None:
@@ -174,8 +213,9 @@ class DiagramScene(QtWidgets.QGraphicsScene):
         return below_item
 
     def update_zoom(self, value):
-        for diagram in self._diagrams:
-            diagram.update_zoom(value)
+        for overlay in self.overlays:
+            if hasattr(overlay, 'update_zoom'):
+                overlay.update_zoom(value)
 
     def mousePressEvent(self, event):
         """
@@ -186,7 +226,8 @@ class DiagramScene(QtWidgets.QGraphicsScene):
             self.parent().setDragMode(QtWidgets.QGraphicsView.RubberBandDrag)
             for item in self.items():
                 item.setFlag(QtWidgets.QGraphicsItem.ItemIsSelectable, True)
-            self.selection.deselect_all()
+            if self.selection is not None:
+                self.selection.deselect_all()
         self._press_screen_pos = event.screenPos()
 
         super().mousePressEvent(event)
@@ -220,7 +261,8 @@ class DiagramScene(QtWidgets.QGraphicsScene):
                     if item is not None:
                         self.selection.select_item(item)
                     else:
-                        self.selection.deselect_all()
+                        if self.selection is not None:
+                            self.selection.deselect_all()
 
         super().mouseReleaseEvent(event)
         if event.button() == Qt.RightButton:
@@ -263,34 +305,35 @@ class DiagramScene(QtWidgets.QGraphicsScene):
 
     def update_scene(self):
         # Show grid in this scene defined by parent view
-        parent_surf_grid = self.parent().gs_surf_grid
-        if parent_surf_grid is not self.gs_surf_grid:
-            self.removeItem(self.gs_surf_grid)
-            if parent_surf_grid is not None:
-                self.addItem(parent_surf_grid)
-            self.gs_surf_grid = parent_surf_grid
+        # parent_surf_grid = self.parent().gs_surf_grid
+        # if parent_surf_grid is not self.gs_surf_grid:
+        #     self.removeItem(self.gs_surf_grid)
+        #     if parent_surf_grid is not None:
+        #         self.addItem(parent_surf_grid)
+        #     self.gs_surf_grid = parent_surf_grid
+        #
+        # not_updated_indices = list(range(len(self._diagrams)))
+        # for block in self.block_model.items():
+        #     diagram_exists = False
+        #     for index in not_updated_indices:
+        #         diagram = self._diagrams[index]
+        #         if diagram.block is block:
+        #             not_updated_indices.remove(index)
+        #             diagram_exists = True
+        #             diagram.update_item()
+        #             break
+        #     if not diagram_exists:
+        #         self.add_diagram(DiagramItem(block, self.parent().zoom))
+        # for index in not_updated_indices:
+        #     self.remove_diagram(self._diagrams[index])
 
-        not_updated_indices = list(range(len(self._diagrams)))
-        for block in self.block_model.items():
-            diagram_exists = False
-            for index in not_updated_indices:
-                diagram = self._diagrams[index]
-                if diagram.block is block:
-                    not_updated_indices.remove(index)
-                    diagram_exists = True
-                    diagram.update_item()
-                    break
-            if not diagram_exists:
-                self.add_diagram(DiagramItem(block, self.parent().zoom))
-        for index in not_updated_indices:
-            self.remove_diagram(self._diagrams[index])
+        for overlay in self.overlays:
+            overlay.update_item()
 
-        for diagram in self._diagrams:
-            diagram.update_item()
+        if self.active_diagram.value is not None:
+            self.active_diagram.value.update_item()
+            self.active_diagram.value.update_zoom(self.parent().zoom)
 
-        valid = self.active_diagram.make_valid(self._diagrams)
-        if not valid:
-            assert False, "This cannot be currently handeled. TODO: fix when view panel exists"
         self.update()
 
     def setSceneRect(self, rect: QtCore.QRectF) -> None:
@@ -298,6 +341,6 @@ class DiagramScene(QtWidgets.QGraphicsScene):
         self.init_area.setRect(rect)
 
     def delete_selected(self):
-        self.decomposition.delete_items(self.selection.get_selected_shape_dim_id())
+        self.active_diagram.value.decomposition.delete_items(self.selection.get_selected_shape_dim_id())
         self.update_scene()
         self.selection.deselect_all()

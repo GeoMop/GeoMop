@@ -4,7 +4,6 @@ import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtCore as QtCore
 import PyQt5.QtGui as QtGui
 
-from LayerEditor.ui.diagram_editor.diagram_scene import DiagramScene
 from LayerEditor.ui.layers_panel.layers_panel import LayerPanel
 from LayerEditor.ui.menus.mesh import MeshMenu
 from LayerEditor.ui.menus.edit import EditMenu
@@ -136,6 +135,13 @@ class MainWindow(QtWidgets.QMainWindow):
         self.shp_panel.item_removed.connect(self.del_background_item)
         self.layers.overlay_diagram_changed.connect(self.diagram_view.scene().update_visibility)
 
+        scene = self.diagram_view.scene()
+        self.view_panel.overlay_control.overlay_inserted.connect(scene.insert_overlay)
+        self.view_panel.overlay_control.overlay_removed.connect(scene.remove_overlay)
+        # self.view_panel.overlay_control.currentItemChanged.connect(scene.change_edited_item)
+        self.view_panel.opacity_changed.connect(scene.change_opacity)
+
+
         le_model.invalidate_scene.connect(self.update_scene)
         le_model.layers_changed.connect(self.layers_changed)
 
@@ -203,6 +209,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.diagram_view.fitInView(view_rect, QtCore.Qt.KeepAspectRatio)
         else:
             self.diagram_view.hide_grid()
+        self.view_panel.available_overlays.init_overlays_items()
 
     def closeEvent(self, event):
         """Performs actions before app is closed."""
@@ -232,6 +239,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.wg_regions_panel.update_tabs()
         self.layers.update_layers_panel()
         self.wg_surface_panel.update_forms()
+        self.view_panel.available_overlays.init_overlays_items()
 
     def change_curr_block(self, old_block_id):
         if old_block_id is not None:

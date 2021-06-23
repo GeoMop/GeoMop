@@ -7,8 +7,6 @@ from LayerEditor.ui.tools.id_map import IdMap
 
 class RegionsModel(AbstractModel):
     """Class for managing all regions"""
-    NONE = None
-
     def deserialize(self, data):
         with undo.pause_undo():
             for reg_data in data:

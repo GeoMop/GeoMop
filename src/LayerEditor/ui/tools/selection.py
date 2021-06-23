@@ -53,7 +53,8 @@ class Selection(QObject):
 
     def deselect_all(self, emit=True):
         self._selected.clear()
-        self._diagram.update()
+        if self._diagram is not None:
+            self._diagram.update()
 
         if emit:
             self.selection_changed.emit()

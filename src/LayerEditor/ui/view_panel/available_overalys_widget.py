@@ -3,8 +3,33 @@ from PyQt5 import QtCore
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QTreeWidget, QTreeWidgetItem
 
-from LayerEditor.ui.view_panel.overlay_item import OverlayItem
+from LayerEditor.ui.view_panel.overlay_tree_item import OverlayTreeItem
 
+
+def get_children(parent):
+    return [parent.child(row) for row in range(parent.childCount())]
+
+
+def delete_invalid_rows(parent_item: QTreeWidgetItem, model_items: list):
+    list_items = get_children(parent_item)
+    for list_item in list_items:
+        delete = True
+        for model_item in model_items:
+            if list_item.data_item is model_item:
+                delete = False
+                break
+        if delete:
+            parent_item.removeChild(list_item)
+
+def add_new_rows(parent_item: QTreeWidgetItem, model_items: list):
+    list_items = get_children(parent_item)
+    for row, model_item in enumerate(model_items):
+        if len(list_items) == 0 or model_item is not list_items[0].data_item:
+            block_item = OverlayTreeItem(model_item)
+            parent_item.insertChild(row, block_item)
+        else:
+            list_items[0].setText(0, model_item.overlay_name)
+            del list_items[0]
 
 class AvailableOverlaysWidget(QTreeWidget):
     def __init__(self, blocks_model, surfaces_model, shapes_model, parent=None):
@@ -14,9 +39,22 @@ class AvailableOverlaysWidget(QTreeWidget):
         self.shapes_model = shapes_model
 
         self.setColumnCount(1)
+        self.setHeaderHidden(True)
 
         self.setDragEnabled(True)
         self.setDragDropMode(QTreeWidget.DragOnly)
+
+        self.geometry_item = QTreeWidgetItem(["Geometry"])
+        self.geometry_item.setFlags(self.geometry_item.flags() & ~Qt.ItemIsSelectable)
+        self.addTopLevelItem(self.geometry_item)
+
+        self.surfaces_item = QTreeWidgetItem(["Surfaces"])
+        self.surfaces_item.setFlags(self.surfaces_item.flags() & ~Qt.ItemIsSelectable)
+        self.addTopLevelItem(self.surfaces_item)
+
+        self.shpfiles_item = QTreeWidgetItem(["Shpfiles"])
+        self.shpfiles_item.setFlags(self.shpfiles_item.flags() & ~Qt.ItemIsSelectable)
+        self.addTopLevelItem(self.shpfiles_item)
 
         self.init_overlays_items()
 
@@ -25,29 +63,20 @@ class AvailableOverlaysWidget(QTreeWidget):
         super(AvailableOverlaysWidget, self).startDrag(supportedActions)
         self.dragged_item = None
 
+
     def init_overlays_items(self):
-        geometry_item = QTreeWidgetItem(["Geometry"])
-        geometry_item.setFlags(geometry_item.flags() & ~Qt.ItemIsSelectable)
-        self.addTopLevelItem(geometry_item)
-        index = 1
-        for block in self.blocks_model.get_sorted_blocks():
-            block_item = OverlayItem(f"Block {index}", block, self)
-            geometry_item.addChild(block_item)
-            index += 1
-            for layer in block.items():
-                block_item.addChild(OverlayItem(layer.name, layer, self))
+        delete_invalid_rows(self.geometry_item, self.blocks_model.items())
+        add_new_rows(self.geometry_item, self.blocks_model.get_sorted_blocks())
+        for row, block in enumerate(self.blocks_model.get_sorted_blocks()):
+            self.geometry_item.child(row).setFlags(self.geometry_item.child(row).flags() & ~Qt.ItemIsSelectable)
+            delete_invalid_rows(self.geometry_item.child(row), block.items())
+            add_new_rows(self.geometry_item.child(row), block.get_sorted_layers())
 
-        surfaces_item = QTreeWidgetItem(["Surfaces"])
-        surfaces_item.setFlags(surfaces_item.flags() & ~Qt.ItemIsSelectable)
-        self.addTopLevelItem(surfaces_item)
-        for surface in self.surfaces_model.items():
-            surfaces_item.addChild(OverlayItem(surface.name, surface, self))
+        delete_invalid_rows(self.surfaces_item, self.surfaces_model.items())
+        add_new_rows(self.surfaces_item, self.surfaces_model.items())
 
-        shpfiles_item = QTreeWidgetItem(["Shpfiles"])
-        shpfiles_item.setFlags(shpfiles_item.flags() & ~Qt.ItemIsSelectable)
-        self.addTopLevelItem(shpfiles_item)
-        for shpfile in self.shapes_model.shapes:
-            shpfiles_item.addChild(OverlayItem(shpfile.file_name, shpfile, self))
+        delete_invalid_rows(self.shpfiles_item, self.shapes_model.shapes)
+        add_new_rows(self.shpfiles_item, self.shapes_model.shapes)
 
 
 

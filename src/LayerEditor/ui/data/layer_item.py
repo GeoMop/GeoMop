@@ -34,6 +34,10 @@ class LayerItem(AbstractItem):
         """Is this layer stratum layer?"""
         return self.bottom_in is not None
 
+    @property
+    def overlay_name(self):
+        return f"{self.block.overlay_name} -> {self.name}"
+
     def deserialize(self, layer_data: [StratumLayer, FractureLayer], le_model):
         """ Initializes layer.
             :data: (name, top_in, bottom_in, shape_regions)"""

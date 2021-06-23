@@ -7,6 +7,10 @@ class AbstractItem(IdObject):
         self.index = None
         """Reserved for referencing by index while saving. Should be cleared back to None after saving is finished"""
 
+    @property
+    def overlay_name(self):
+        assert False, "Abstract function! Must be overridden by child class!"
+
     @classmethod
     def create_from_data(cls, *args):
         item = cls()

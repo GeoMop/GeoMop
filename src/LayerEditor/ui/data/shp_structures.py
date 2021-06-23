@@ -108,7 +108,11 @@ class ShapeItem():
         self.errors = []
         """Parse errors"""
         self._init_data(True)        
-        
+
+    @property
+    def overlay_name(self):
+        return self.file_name
+
     @classmethod
     def next_color(cls):
         """File name without path"""

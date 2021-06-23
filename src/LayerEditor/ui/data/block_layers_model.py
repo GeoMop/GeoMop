@@ -28,6 +28,10 @@ class BlockLayersModel(AbstractModel, AbstractItem):
         self.gui_layer_selector = Selector(None)
         """Currently active layer. Region changes are made on this layer."""
 
+    @property
+    def overlay_name(self):
+        return f"Block {self.id}"
+
     def __repr__(self):
         return f"BlockId {self.id}"
 

@@ -3,15 +3,17 @@ from PyQt5 import QtCore, QtGui
 from PyQt5.QtGui import QPen
 from PyQt5.QtWidgets import QGraphicsItem, QGraphicsLineItem, QWidget
 
+from LayerEditor.ui.data.layer_item import LayerItem
+from LayerEditor.ui.diagram_editor.graphics_items.abstract_graphics_item import AbstractGraphicsItem
 from LayerEditor.ui.diagram_editor.graphics_items.gs_point import GsPoint
 from LayerEditor.ui.diagram_editor.graphics_items.gs_polygon import GsPolygon
 from LayerEditor.ui.diagram_editor.graphics_items.gs_segment import GsSegment
 
 
-class DiagramItem(QGraphicsItem):
+class DiagramItem(AbstractGraphicsItem):
     TOLERANCE = 5
 
-    def __init__(self,  block, zoom):
+    def __init__(self, layer: LayerItem, zoom):
         super(DiagramItem, self).__init__()
         self.shapes = [{}, {}, {}]  # [points, segments, polygons]
         self.points = {}
@@ -19,20 +21,32 @@ class DiagramItem(QGraphicsItem):
         self.polygons = {}
         """Maps to all graphical objects grouped by type {id:QGraphicsItem}"""
 
+        self.layer = layer
+
         # polygons
-        self.decomposition = block.decomposition
+        self.decomposition = layer.block.decomposition
         self.decomposition.poly_decomp.set_tolerance(self.TOLERANCE)
 
-        self.block = block
-        self.block.selection.set_diagram(self)
-        self.setVisible(False)
+        self.update_item(zoom)
+        self.setZValue(1)
 
-        self.update_zoom(zoom)
+    @property
+    def data_item(self):
+        return self.layer
 
     @property
     def id(self):
         """Temporary way to identify diagram. Will be changed when view panel exists"""
-        return self.block.id
+        return self.layer.block.id
+
+    def enable_editing(self):
+        self.enable_interactions(True)
+        self.scene().selection = self.layer.block.selection
+
+    def disable_editing(self):
+        self.enable_interactions(False)
+        if self.scene() is not None:
+            self.scene().selection = None
 
     def enable_interactions(self, enable=True):
         if enable:
@@ -40,7 +54,7 @@ class DiagramItem(QGraphicsItem):
         else:
             self.setAcceptedMouseButtons(QtCore.Qt.NoButton)
 
-    def update_item(self):
+    def update_item(self, zoom=None):
         # points
         to_remove = []
         de_points = self.decomposition.points
@@ -48,13 +62,13 @@ class DiagramItem(QGraphicsItem):
             if point_id not in de_points:
                 to_remove.append(point_id)
         for point_id in to_remove:
-            #self.removeItem(self.points[point_id])
+            self.remove_child_item(self.points[point_id])
             del self.points[point_id]
         for point_id, point in de_points.items():
             if point_id in self.points:
                 self.points[point_id].update()
             else:
-                gpt = GsPoint(point, self.block)
+                gpt = GsPoint(point, self.layer)
                 self.points[point_id] = gpt
                 gpt.setParentItem(self)
 
@@ -65,14 +79,14 @@ class DiagramItem(QGraphicsItem):
             if segment_id not in de_segments:
                 to_remove.append(segment_id)
         for segment_id in to_remove:
-            #self.removeItem(self.segments[segment_id])
+            self.remove_child_item(self.segments[segment_id])
             del self.segments[segment_id]
         for segment_id, segment in de_segments.items():
             if segment_id in self.segments:
                 self.segments[segment_id].update()
             else:
-                gseg = GsSegment(segment, self.block)
-                gseg.update_zoom(self.scene().parent().zoom)
+                gseg = GsSegment(segment, self.layer)
+                gseg.update_zoom(zoom if zoom is not None else self.scene().parent().zoom)
                 self.segments[segment_id] = gseg
                 gseg.setParentItem(self)
 
@@ -83,7 +97,7 @@ class DiagramItem(QGraphicsItem):
             if polygon_id not in de_polygons:
                 to_remove.append(polygon_id)
         for polygon_id in to_remove:
-            #self.removeItem(self.polygons[polygon_id])
+            self.remove_child_item(self.polygons[polygon_id])
             del self.polygons[polygon_id]
         for polygon_id, polygon in de_polygons.items():
             if polygon.outer_wire.is_root():
@@ -91,7 +105,7 @@ class DiagramItem(QGraphicsItem):
             if polygon_id in self.polygons:
                 self.polygons[polygon_id].update()
             else:
-                gpol = GsPolygon(polygon, self.block)
+                gpol = GsPolygon(polygon, self.layer)
                 self.polygons[polygon_id] = gpol
                 gpol.setParentItem(self)
 
@@ -106,7 +120,7 @@ class DiagramItem(QGraphicsItem):
         if new_point.id in self.points:
             return self.points[new_point.id]
         else:
-            new_g_point = GsPoint(new_point, self.block)
+            new_g_point = GsPoint(new_point, self.layer)
             self.points[new_point.id] = new_g_point
             new_g_point.setParentItem(self)
             return new_g_point
@@ -134,3 +148,6 @@ class DiagramItem(QGraphicsItem):
     def mousePressEvent(self, event: 'QGraphicsSceneMouseEvent') -> None:
         super(DiagramItem, self).mousePressEvent(event)
 
+    def remove_child_item(self, item):
+        item.setParentItem(None)
+        self.scene().removeItem(item)

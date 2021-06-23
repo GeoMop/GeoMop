@@ -38,7 +38,6 @@ class EditMenu(QtWidgets.QMenu):
         self.addSeparator()
 
         self._delete_action = QtWidgets.QAction('&Delete', self)
-        self._delete_action.setShortcut(cfg.get_shortcut('delete').key_sequence)
         self._delete_action.setStatusTip('Delete selected items')
         self._delete_action.triggered.connect(self._delete)
         self.addAction(self._delete_action)
