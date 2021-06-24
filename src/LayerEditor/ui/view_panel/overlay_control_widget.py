@@ -20,7 +20,7 @@ class OverlayControlWidget(QListWidget):
             available_overlay_item = self.parent().available_overlays.dragged_item
             items = self.findItems(available_overlay_item.data_item.overlay_name, Qt.MatchExactly)
             row = self.get_drop_index(e)
-            opacity = 100
+            opacity = 1
             for item in items:
                 if row < self.row(item):
                     row -= 1
@@ -32,7 +32,6 @@ class OverlayControlWidget(QListWidget):
             self.insertItem(row, OverlayListItem(available_overlay_item.data_item, opacity))
         else:
             e.setDropAction(Qt.MoveAction)
-            target_row = self.get_drop_index(e)
             super(OverlayControlWidget, self).dropEvent(e)
             if e.isAccepted():
                 item = self.currentItem()
