@@ -1,6 +1,6 @@
 from PyQt5.QtCore import QObject, pyqtSignal
 
-from LayerEditor.ui.data.block_layers_model import BlockItem
+from LayerEditor.ui.data.block_layers_model import BlockLayersModel
 from LayerEditor.ui.tools import undo
 from LayerEditor.ui.tools.id_map import IdMap
 from gm_base.geometry_files.format_last import InterpolatedNodeSet
@@ -13,7 +13,7 @@ class BlocksModel(QObject):
         self.blocks = IdMap()
 
         for top in geo_model.topologies:
-            self.blocks.add(BlockItem(le_model.regions_model))
+            self.blocks.add(BlockLayersModel(le_model.regions_model))
 
         for layer in geo_model.layers:
             if isinstance(layer.top, InterpolatedNodeSet):

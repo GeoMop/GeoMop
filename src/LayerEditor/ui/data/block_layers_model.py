@@ -12,10 +12,10 @@ from gm_base.geometry_files.format_last import InterfaceNodeSet, NodeSet, Interp
     FractureLayer
 
 
-class BlockItem(IdObject):
+class BlockLayersModel(IdObject):
     """Holds common data for a block of layers"""
     def __init__(self, regions_model):
-        super(BlockItem, self).__init__()
+        super(BlockLayersModel, self).__init__()
         """Reference for LEData."""
         self.regions_model = regions_model
         """Reference to object which manages regions."""

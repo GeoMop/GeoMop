@@ -3,7 +3,7 @@ import os
 from PyQt5.QtCore import QObject, QPointF, pyqtSignal
 from PyQt5.QtGui import QPolygonF
 
-from LayerEditor.ui.data.block_layers_model import BlockItem
+from LayerEditor.ui.data.block_layers_model import BlockLayersModel
 from LayerEditor.ui.data.shp_structures import ShapesModel
 from LayerEditor.ui.data.surface_item import SurfaceItem
 from LayerEditor.ui.data.tools.selector import Selector
@@ -225,7 +225,7 @@ class LEModel(QObject):
                 layer.block.delete_layer(layer)
             self.layers_changed.emit()
 
-    def delete_block(self, block: BlockItem):
+    def delete_block(self, block: BlockLayersModel):
         with undo.Group("Delete Block"):
             for i_node_set in block.get_interface_node_sets():
                 self.decompositions_model.delete_decomposition(i_node_set.decomposition)
@@ -460,7 +460,7 @@ class LEModel(QObject):
 
     def add_fracture_to_new_block(self, i_node_set, layer_name=None):
         with undo.group("Add Fracture to its own Surface"):
-            new_block = BlockItem(self.regions_model)
+            new_block = BlockLayersModel(self.regions_model)
             self.blocks_model.add_block(new_block)
 
             decomp, old_to_new_id = i_node_set.block.decomposition.copy_itself()
@@ -490,7 +490,7 @@ class LEModel(QObject):
             selected_idx = layers.index(old_block.gui_layer_selector.value)
             if selected_idx >= idx:
                 old_block.gui_layer_selector.value = layers[0]
-            new_block = BlockItem(self.regions_model)
+            new_block = BlockLayersModel(self.regions_model)
             new_block.gui_layer_selector.value = layer_below
             for layer in layers[idx:]:
                 old_block.delete_layer(layer)
