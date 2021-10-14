@@ -16,7 +16,6 @@ class DiagramView(QtWidgets.QGraphicsView):
         self.le_model = le_model
         self.gs_surf_grid = None
         self._empty = True
-        self.root_shp_item = QGraphicsItemGroup()
         self._show_init_area = True
 
         self.setTransformationAnchor(QtWidgets.QGraphicsView.AnchorUnderMouse)
@@ -112,8 +111,7 @@ class DiagramView(QtWidgets.QGraphicsView):
         rect = QRectF()
         for shp in self.le_model.shapes_model.shapes:
             if shp.shpdata.object is None:
-                s = ShpBackground(shp.shpdata, shp.color)
-                self.root_shp_item.addToGroup(s)
+                s = ShpBackground(shp)
                 shp.refreshed = True
                 rect = rect.united(s.boundingRect())
             elif not shp.refreshed:

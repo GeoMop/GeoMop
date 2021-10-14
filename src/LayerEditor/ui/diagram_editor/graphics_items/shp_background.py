@@ -4,8 +4,10 @@ import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtGui as QtGui
 import PyQt5.QtCore as QtCore
 
+from LayerEditor.ui.diagram_editor.graphics_items.abstract_graphics_item import AbstractGraphicsItem
 
-class ShpBackground(QtWidgets.QGraphicsItem):
+
+class ShpBackground(AbstractGraphicsItem):
     """ 
         Represents a shp file diagram background
     """
@@ -14,13 +16,14 @@ class ShpBackground(QtWidgets.QGraphicsItem):
     PEN_WIDTH = 1.4
     BPEN_WIDTH = 3.5
     
-    def __init__(self, shp, color, parent=None):
+    def __init__(self, shp_item, parent=None):
         super(ShpBackground, self).__init__(parent)
-        self.shp = shp
+        self._shp_item = shp_item
+        self.shp = shp_item.shpdata
         """shape file objects data"""
-        self.color = color
+        self.color = shp_item.color
         """shape file objects data color"""
-        shp.object = self        
+        self.shp.object = self
         self.setZValue(self.ZVALUE)
         self.pen = QtGui.QPen(self.color)
         self.pen.setWidthF(self.PEN_WIDTH)
@@ -28,7 +31,14 @@ class ShpBackground(QtWidgets.QGraphicsItem):
         self.bpen = QtGui.QPen(self.color)
         self.bpen.setWidthF(self.BPEN_WIDTH)
         self.bpen.setCosmetic(True)
-        
+
+    def update_item(self):
+        pass
+
+    @property
+    def data_item(self):
+        return self._shp_item
+
     def boundingRect(self):
         """Redefination of standart boundingRect function, that return bound rect"""
         r = self.BPEN_WIDTH

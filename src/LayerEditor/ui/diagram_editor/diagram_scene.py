@@ -68,7 +68,7 @@ class DiagramScene(QtWidgets.QGraphicsScene):
             item.disable_editing()
 
         elif isinstance(data_object, ShapeItem):
-            item = self.parent().root_shp_item
+            item = data_object.shpdata.object
 
         elif isinstance(data_object, SurfaceItem):
             item = self.gs_surf_grid
