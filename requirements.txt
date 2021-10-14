@@ -13,7 +13,6 @@ qscintilla
 plotly
 matplotlib
 bgem
-pyshp
 
 # pip3
 # setuptools
