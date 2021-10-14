@@ -3,7 +3,7 @@ import os
 from PyQt5.QtCore import QObject, QPointF, pyqtSignal
 from PyQt5.QtGui import QPolygonF
 
-from LayerEditor.ui.data.block_item import BlockItem
+from LayerEditor.ui.data.block_layers_model import BlockItem
 from LayerEditor.ui.data.shp_structures import ShapesModel
 from LayerEditor.ui.data.surface_item import SurfaceItem
 from LayerEditor.ui.data.tools.selector import Selector

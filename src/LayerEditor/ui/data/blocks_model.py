@@ -1,6 +1,6 @@
 from PyQt5.QtCore import QObject, pyqtSignal
 
-from LayerEditor.ui.data.block_item import BlockItem
+from LayerEditor.ui.data.block_layers_model import BlockItem
 from LayerEditor.ui.tools import undo
 from LayerEditor.ui.tools.id_map import IdMap
 from gm_base.geometry_files.format_last import InterpolatedNodeSet
