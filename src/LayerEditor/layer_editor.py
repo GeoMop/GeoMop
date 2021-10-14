@@ -9,6 +9,7 @@ import signal
 from LayerEditor.exceptions.data_inconsistent_exception import DataInconsistentException
 from LayerEditor.ui.data.le_model import LEModel
 from LayerEditor.ui.diagram_editor.diagram_view import DiagramView
+from LayerEditor.ui.dialogs.make_mesh import MakeMeshDlg
 from LayerEditor.ui.panels import RegionsPanel
 from LayerEditor.ui.tools import undo
 from LayerEditor.ui.tools.cursor import Cursor
@@ -118,25 +119,35 @@ class LayerEditor:
             self.mainwindow.show_status_message("File {} is opened".format(in_file))
             return True
         return False
-    #
-    # def add_shape_file(self):
-    #     """open set file"""
-    #     shp_file = QtWidgets.QFileDialog.getOpenFileName(
-    #         self.mainwindow, "Choose Yaml Model File",
-    #         cfg.config.data_dir, "Yaml Files (*.shp)")
-    #     if shp_file[0]:
-    #         if cfg.open_shape_file( shp_file[0]):
-    #             self.mainwindow.refresh_diagram_shp()
-    #             self.mainwindow.show_status_message("Shape file '" + shp_file[0] + "' is opened")
-    #
-    # def make_mesh(self):
-    #     """open Make mesh dialog"""
-    #     # if self.save_file() is False:
-    #     #     return
-    #
-    #     dlg = MakeMeshDlg(self.mainwindow)
-    #     dlg.exec()
-    #
+
+    def add_shape_file(self):
+        """open set file"""
+        shp_file = QtWidgets.QFileDialog.getOpenFileName(
+            self.mainwindow, "Choose Yaml Model File",
+            cfg.data_dir, "Yaml Files (*.shp)")
+        if shp_file[0]:
+            errors = self.le_model.add_shape_file(shp_file[0])
+            if errors is None:
+                errors = ["This shapefile is already opened!"]
+            if len(errors) == 0:
+                self.mainwindow.refresh_diagram_shp()
+                self.mainwindow.show_status_message("Shape file '" + shp_file[0] + "' is opened")
+            else:
+                err_dialog = GMErrorDialog(self.mainwindow)
+                err_dialog.open_error_report_dialog(errors, msg="Shape file parsing errors:", title=shp_file[0])
+
+
+    def make_mesh(self):
+        """open Make mesh dialog"""
+        # if self.save_file() is False:
+        #     return
+        if self.le_model.curr_file is None:
+            if self.save_as() is not True:
+                return
+
+        dlg = MakeMeshDlg(self)
+        dlg.exec()
+
     def open_recent(self, action):
         """open recent file menu action"""
         if action.data() == self.le_model.curr_file:
@@ -178,7 +189,6 @@ class LayerEditor:
 
         cfg.add_recent_file(self.le_model.curr_file)
         self.autosave.delete_backup()
-        self.mainwindow.show_status_message("File is saved")
         self.mainwindow.update_recent_files()
         self._update_document_name()
         undo.savepoint()
@@ -190,6 +200,7 @@ class LayerEditor:
         if self.le_model.confront_file_timestamp():
             return
         self.save()
+        self.mainwindow.show_status_message("File is saved")
 
     def save_as(self):
         """save file menu action"""
@@ -210,6 +221,7 @@ class LayerEditor:
             file_name = dialog.selectedFiles()[0]
             cfg.current_workdir = os.path.dirname(file_name)
             self.save(file_name)
+            self.mainwindow.show_status_message("File is saved")
             return True
         return False
 

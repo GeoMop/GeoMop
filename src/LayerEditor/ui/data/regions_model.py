@@ -14,18 +14,9 @@ class RegionsModel:
         """Needed for checking if some region is used in any shape in any decomposition"""
 
         for data in regions_data:
-            self.copy_region_from_data(data)
+            reg = RegionItem(data)
+            self.regions.add(reg)
         RegionItem.none = self.regions.get(0)
-
-    def copy_region_from_data(self, region_data):
-        reg = RegionItem(region_data.color,
-                         region_data.name,
-                         region_data.dim,
-                         region_data.mesh_step,
-                         region_data.not_used,
-                         region_data.boundary,
-                         region_data.brep_shape_ids)
-        self.regions.add(reg)
 
     @undo.undoable
     def add_region(self, reg):
@@ -36,10 +27,6 @@ class RegionsModel:
     @undo.undoable
     def delete_region(self, reg):
         del self.regions[reg]
-        for block in self.le_model.blocks_model.blocks.values():
-            for layer in block.layers_dict.values():
-                if layer.gui_region_selector.value == reg:
-                    layer.set_gui_selected_region(RegionItem.none)
         yield "Delete Region"
         self.add_region(reg)
 

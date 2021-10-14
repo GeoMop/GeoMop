@@ -9,6 +9,9 @@ class SurfacesModel:
         for surface in surfaces_list:
             self.surfaces.append(SurfaceItem(surface, self))
 
+    def is_empty(self):
+        return self.surfaces == []
+
     def save(self):
         surfaces = []
         for idx, surface in enumerate(self.surfaces):

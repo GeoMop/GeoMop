@@ -4,11 +4,14 @@ Dialog for making mesh.
 
 import os
 from PyQt5 import QtCore, QtGui, QtWidgets
-from LayerEditor.leconfig import cfg
+
+from LayerEditor.data import cfg
+
 
 class MakeMeshDlg(QtWidgets.QDialog):
-    def __init__(self, parent=None):
-        super().__init__(parent)
+    def __init__(self, layer_editor):
+        super().__init__(layer_editor.mainwindow)
+        self.layer_editor = layer_editor
 
         self.setWindowTitle("Make mesh")
 
@@ -111,13 +114,13 @@ class MakeMeshDlg(QtWidgets.QDialog):
             args.append("--mesh-step")
             args.append(self._step_edit.text())
         args.append("--filename_base")
-        args.append(os.path.splitext(cfg.curr_file)[0])
+        args.append(os.path.splitext(self.layer_editor.le_model.curr_file)[0])
 
         self._output_edit.clear()
         self._proc.start(cmd, args)
 
         # write serialized data to stdin of process
-        self._proc.write(cfg.le_serializer.save(cfg).encode())
+        self._proc.write(self.layer_editor.save_model().encode())
         self._proc.closeWriteChannel()
 
     def _set_status(self, status):

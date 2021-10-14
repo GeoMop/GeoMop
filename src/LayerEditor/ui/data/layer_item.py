@@ -12,7 +12,7 @@ class LayerItem(IdObject):
     """Data about one geological layer"""
     def __init__(self, block, name, top_in, bottom_in, shape_regions):
 
-        self.block = block
+        self._block = block
         """This layer is part of this block"""
         self.name = name
         """Layer name"""
@@ -25,12 +25,25 @@ class LayerItem(IdObject):
         """Regions of shapes grouped by dimension"""
 
         ######### Not undoable ########### Not undoable ########## Not undoable ##########
-        self.gui_region_selector = Selector(self.get_region_of_selected_shapes())
+        self.block = block
+        # self.gui_region_selector = Selector(RegionItem.none)
         """Default region for new objects in diagram. Also used by LayerHeads for RegionsPanel"""
-        """Not undoable"""
+        """Set by property `self.block` commented line is for documentation purpose only"""
 
         self.is_stratum = self.bottom_in is not None
         """Is this layer stratum layer?"""
+
+    @property
+    def block(self):
+        return self._block
+
+    @block.setter
+    def block(self, value):
+        self._block = value
+        if value is None:
+            self.gui_region_selector = Selector(RegionItem.none)
+        else:
+            self.gui_region_selector = Selector(self.get_region_of_selected_shapes())
 
     def get_average_elevation(self):
         if self.is_stratum:
@@ -78,10 +91,10 @@ class LayerItem(IdObject):
         else:
             return RegionItem.none
 
-    def set_region_to_selected_shapes(self, region: RegionItem, le_model):
+    def set_region_to_selected_shapes(self, region: RegionItem):
         """Sets regions of shapes only in this layer."""
         assert isinstance(undo.stack()._receiver, deque), "groups cannot be nested"
-        with undo.group(f"Set region of selected to {region.id}", le_model.invalidate_scene.emit, None):
+        with undo.group(f"Set region of selected to {region.id}"):
             for orig_dim, shape_id in self.block.selection.get_selected_shape_dim_id():
                 dim = orig_dim
                 if self.is_stratum:

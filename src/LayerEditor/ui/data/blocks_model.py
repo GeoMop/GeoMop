@@ -7,7 +7,6 @@ from gm_base.geometry_files.format_last import InterpolatedNodeSet
 
 
 class BlocksModel(QObject):
-    layers_changed = pyqtSignal()
     def __init__(self, geo_model, le_model):
         super(BlocksModel, self).__init__()
         self.le_model = le_model

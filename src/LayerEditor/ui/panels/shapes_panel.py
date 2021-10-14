@@ -7,10 +7,10 @@ Tree widget panel
 import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtCore as QtCore
 import PyQt5.QtGui as QtGui
-from LayerEditor.ui.data.shp_structures import ShpDisp
+from LayerEditor.ui.data.shp_structures import ShapeItem
 from LayerEditor.ui.menus.shpfiles import ShpFilesMenu
 
-class ShpFiles(QtWidgets.QTableWidget):
+class ShapesPanel(QtWidgets.QTableWidget):
     """Widget displays the config file structure in table.
 
     pyqtSignals:
@@ -28,7 +28,7 @@ class ShpFiles(QtWidgets.QTableWidget):
 
     def __init__(self, data, parent=None):
         """Initialize the class."""
-        super(ShpFiles, self).__init__(parent)
+        super(ShapesPanel, self).__init__(parent)
         
         self.data = data       
         self.setColumnCount(3)
@@ -47,15 +47,15 @@ class ShpFiles(QtWidgets.QTableWidget):
         self.s_checkboxes = []
         self.h_checkboxes = []
         
-        for shp in self.data.datas:
+        for shp in self.data.shapes:
             row_count += 1 + len(shp.av_names)           
         self.clearContents()
         self.setRowCount( row_count)
         i_row = 0
-        for i in range(0, len(self.data.datas)):
+        for i in range(0, len(self.data.shapes)):
             self.s_checkboxes.append([])
             self.h_checkboxes.append([])            
-            shp = self.data.datas[i]
+            shp = self.data.shapes[i]
             
             # description
             # splitter.setToolTip(shp. file)
@@ -112,10 +112,10 @@ class ShpFiles(QtWidgets.QTableWidget):
             
     def color_set(self, file_idx, color_button):
         """Shapefile color is changed, refresh diagram"""
-        shp = self.data.datas[file_idx]
+        shp = self.data.shapes[file_idx]
         color_dia = QtWidgets.QColorDialog(shp.color)
         i = 0
-        for color in ShpDisp.BACKGROUND_COLORS:
+        for color in ShapeItem.BACKGROUND_COLORS:
             color_dia.setCustomColor(i,  color)            
             i += 1
         selected_color = color_dia.getColor()        
@@ -130,7 +130,7 @@ class ShpFiles(QtWidgets.QTableWidget):
         
     def attr_set(self, file_idx, attr_combo):
         """Shapefile dislayed attribute is changed, refresh diagram"""
-        shp = self.data.datas[file_idx]
+        shp = self.data.shapes[file_idx]
         attr = attr_combo.currentIndex()
         shp.set_attr(attr)
         self.reload()
@@ -139,13 +139,13 @@ class ShpFiles(QtWidgets.QTableWidget):
     def show_set(self, file_idx, shp_idx):
         """Some dislayed attribute value is changed, refresh diagram"""
         checkbox = self.s_checkboxes[file_idx][shp_idx]
-        shp = self.data.datas[file_idx]
+        shp = self.data.shapes[file_idx]
         shp.set_show(shp_idx, checkbox.isChecked())
         self.background_changed.emit()
          
     def highlight_set(self, file_idx, shp_idx):
         """Some highlighted attribute value is changed, refresh diagram"""
         checkbox = self.h_checkboxes[file_idx][shp_idx]
-        shp = self.data.datas[file_idx]
+        shp = self.data.shapes[file_idx]
         shp.set_highlight(shp_idx, checkbox.isChecked()) 
         self.background_changed.emit()

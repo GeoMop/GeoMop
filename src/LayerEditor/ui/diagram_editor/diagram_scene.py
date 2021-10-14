@@ -1,6 +1,6 @@
 from PyQt5 import QtWidgets, QtCore, QtGui
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QBrush
+from PyQt5.QtCore import Qt, QRectF
+from PyQt5.QtGui import QBrush, QPen
 from PyQt5.QtWidgets import QGraphicsRectItem
 
 from LayerEditor.ui.data.region_item import RegionItem
@@ -43,12 +43,15 @@ class DiagramScene(QtWidgets.QGraphicsScene):
 
         self.update_scene()
         self.pixmap_item = None
-        self.b_box = QGraphicsRectItem(self.sceneRect())
-        self.b_box.setBrush(QBrush(Qt.NoBrush))
-        pen = self.b_box.pen()
+
+        self.init_area = QGraphicsRectItem(self.sceneRect())
+        self.init_area.setBrush(QBrush(Qt.NoBrush))
+        pen = self.init_area.pen()
         pen.setCosmetic(True)
-        self.b_box.setPen(pen)
-        self.addItem(self.b_box)
+        self.init_area.setPen(pen)
+        self.addItem(self.init_area)
+        self.addItem(parent.root_shp_item)
+        self.init_area.setVisible(parent._show_init_area)
 
     def get_shape_color(self, shape_key):
         if self.block.gui_layer_selector.value is None:
@@ -73,6 +76,20 @@ class DiagramScene(QtWidgets.QGraphicsScene):
         line = self.addLine(0,0,0,0, add_pen)
         line.setZValue(100)
         return pt, line
+
+    def user_items_rect(self):
+        rect = QRectF()
+        for point in self.points.values():
+            rect = rect.united(point.mapToScene(point.boundingRect()).boundingRect())
+
+        if self.parent().root_shp_item.childItems():
+            root = self.parent().root_shp_item
+            rect = rect.united(root.mapToScene(root.boundingRect()).boundingRect())
+
+        if self.gs_surf_grid is not None:
+            rect = rect.united(self.gs_surf_grid.mapToScene(self.gs_surf_grid.boundingRect()).boundingRect())
+
+        return rect
 
     def move_aux_segment(self, tip, origin=None):
         """
@@ -218,9 +235,7 @@ class DiagramScene(QtWidgets.QGraphicsScene):
         if parent_surf_grid is not self.gs_surf_grid:
             self.removeItem(self.gs_surf_grid)
             if parent_surf_grid is not None:
-                self.removeItem(self.gs_surf_grid)
                 self.addItem(parent_surf_grid)
-                self.b_box.setRect(self.sceneRect())
             self.gs_surf_grid = parent_surf_grid
 
         # points
@@ -279,6 +294,10 @@ class DiagramScene(QtWidgets.QGraphicsScene):
                 self.addItem(gpol)
 
         self.update()
+
+    def setSceneRect(self, rect: QtCore.QRectF) -> None:
+        super(DiagramScene, self).setSceneRect(rect)
+        self.init_area.setRect(rect)
 
     def delete_selected(self):
         self.decomposition.delete_items(self.selection.get_selected_shape_dim_id())

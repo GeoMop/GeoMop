@@ -214,8 +214,9 @@ class RegionLayerTab(QtWidgets.QWidget):
 
     def _set_region_to_selected_shapes(self, region):
         self.layer.gui_region_selector.value = region
-        self.layer.set_region_to_selected_shapes(region, self.le_model)
+        self.layer.set_region_to_selected_shapes(region)
         self._parent.update_tabs()
+        self.le_model.invalidate_scene.emit()
 
     def is_region_name_unique(self, new_name):
         if new_name == self.curr_region.name:
@@ -261,7 +262,7 @@ class RegionLayerTab(QtWidgets.QWidget):
         selected_color = color_dialog.getColor()
 
         if selected_color.isValid():
-            with undo.group("Set Color", self.le_model.invalidate_scene.emit, None):
+            with undo.group("Set Color"):
                 self.curr_region.set_color(selected_color.name())
                 self.layer.set_gui_selected_region(self.curr_region)
                 # This line doesnt do anything at first but it gets registered in undo redo system.

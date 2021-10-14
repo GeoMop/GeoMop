@@ -1,10 +1,10 @@
 import os
 
-from PyQt5.QtCore import QObject, QPointF, pyqtSignal, QRectF
+from PyQt5.QtCore import QObject, QPointF, pyqtSignal
 from PyQt5.QtGui import QPolygonF
 
 from LayerEditor.ui.data.block_item import BlockItem
-from LayerEditor.ui.data.le_decomposition import LEDecomposition
+from LayerEditor.ui.data.shp_structures import ShapesModel
 from LayerEditor.ui.data.surface_item import SurfaceItem
 from LayerEditor.ui.data.tools.selector import Selector
 from LayerEditor.ui.tools import undo
@@ -22,7 +22,7 @@ from LayerEditor.ui.data.regions_model import RegionsModel
 from LayerEditor.ui.data.surfaces_model import SurfacesModel
 from gm_base.geometry_files import layers_io
 from gm_base.geometry_files.format_last import InterfaceNodeSet, LayerGeometry, NodeSet, Region, RegionDim, Interface, \
-    InterpolatedNodeSet, StratumLayer, Topology, UserSupplement
+    InterpolatedNodeSet, StratumLayer, Topology
 
 
 class LEModel(QObject):
@@ -57,6 +57,7 @@ class LEModel(QObject):
         """Manages regions."""
         self.blocks_model = BlocksModel(geo_model, self)
         """Manages blocks."""
+        self.shapes_model = ShapesModel(geo_model.supplement.shps)
 
         self.init_area = QPolygonF([QPointF(point[0], -point[1]) for point in geo_model.supplement.init_area]).boundingRect()
         """Initialization area (polygon x,y coordinates) for scene"""
@@ -233,43 +234,6 @@ class LEModel(QObject):
         self.layers_changed.emit()
         self.scenes_changed.emit()
 
-    # @classmethod
-    # def reload_surfaces(cls, id=None):
-    #     """Reload surface panel"""
-    #     if cls.main_window is not None:
-    #         cls.main_window.wg_surface_panel.change_surface(id)
-    #
-    # @classmethod
-    # def get_curr_surfaces(cls):
-    #     """Get current surface id from surface panel"""
-    #     return  cls.main_window.wg_surface_panel.get_surface_id()
-    #
-    # @classmethod
-    # def add_shapes_to_region(cls, is_fracture, layer_id, layer_name, topology_idx, regions):
-    #     """Add shape to region"""
-    #     le_data.Diagram.add_shapes_to_region(is_fracture, layer_id, layer_name, topology_idx, regions)
-    #
-    # @classmethod
-    # def get_shapes_from_region(cls, is_fracture, layer_id):
-    #     """Get shapes from region"""
-    #     return le_data.Diagram.get_shapes_from_region(is_fracture, layer_id)
-    #
-    # @classmethod
-    # def open_shape_file(cls, file):
-    #     """Open and add shape file"""
-    #     if cls.diagram is not None:
-    #         if not cls.diagram.shp.is_file_open(file):
-    #             try:
-    #                 disp = cls.diagram.add_file(file)
-    #                 if len(disp.errors)>0:
-    #                     err_dialog = GMErrorDialog(cls.main_window)
-    #                     err_dialog.open_error_report_dialog(disp.errors, msg="Shape file parsing errors:" ,  title=file)
-    #                 return True
-    #             except Exception as err:
-    #                 err_dialog = GMErrorDialog(cls.main_window)
-    #                 err_dialog.open_error_dialog("Can't open shapefile", err)
-    #     return False
-
     def save(self):
         geo_model = LayerGeometry()
         geo_model.version = [0, 5, 6]
@@ -291,7 +255,11 @@ class LEModel(QObject):
         else:
             curr_surf_idx = None
 
-        supplement_config = {"last_node_set": last_node_set, "surface_idx": curr_surf_idx}
+        shps = self.shapes_model.serialize()
+
+        supplement_config = {"last_node_set": last_node_set,
+                             "surface_idx": curr_surf_idx,
+                             "shps": shps}
 
         self.surfaces_model.clear_indexing()
         self.decompositions_model.clear_indexing()
@@ -456,7 +424,7 @@ class LEModel(QObject):
                              dict(layer.shape_regions[1]),
                              dict(layer.shape_regions[2])]
 
-            new_layer = LayerItem(layer.block,
+            new_layer = LayerItem(None,
                                   new_layer_name,
                                   middle_it_node_set,
                                   bottom_in,
@@ -587,3 +555,23 @@ class LEModel(QObject):
             old_block = self.gui_block_selector.value
             self.gui_block_selector.value = block
             self.active_block_changed.emit(old_block.id)
+
+    def add_shape_file(self, filename):
+        if not self.shapes_model.is_file_open(filename):
+            shp_item = self.shapes_model.add_file(filename)
+            return shp_item.errors
+        return None
+
+    def decompositions_empty(self, ignore_shapes=False, ignore_surf=False, ignore_decomps=False):
+        if not ignore_shapes and not self.shapes_model.is_empty():
+            return False
+        if not ignore_surf and not self.surfaces_model.is_empty():
+            return False
+        if not ignore_decomps:
+            for decomp in self.decompositions_model.decomps:
+                if not decomp.empty():
+                    return False
+        return True
+
+
+

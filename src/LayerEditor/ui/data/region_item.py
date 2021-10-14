@@ -13,22 +13,23 @@ class RegionItem(IdObject):
     used_colors = [ QtGui.QColor(col) for col in _cols]
     id_next = 1
 
-    def __init__(self, color=None, name="", dim=-1, step=0.0, not_used=False, boundary=False, brep_shape_ids=[]):
+    def __init__(self, region_data):
         super(RegionItem, self).__init__()
-        if color is None:
-            color = self.get_distinct_color().name()
-        self.color = color
-        RegionItem.used_colors.append(QtGui.QColor(color))
+        if region_data.color == "":
+            self.color = self.get_distinct_color().name()
+        else:
+            self.color = region_data.color
+        RegionItem.used_colors.append(QtGui.QColor(self.color))
 
-        self.name = name
+        self.name = region_data.name
         """Region name"""
-        self.dim = dim
+        self.dim = region_data.dim
         """dimension (point = 0, well = 1, fracture = 2, bulk = 3)"""
-        self.boundary = boundary
+        self.boundary = region_data.boundary
         """Is boundary region"""
-        self.not_used = not_used
-        self.mesh_step = float(step)
-        self.brep_shape_ids = brep_shape_ids
+        self.not_used = region_data.not_used
+        self.mesh_step = float(region_data.mesh_step)
+        self.brep_shape_ids = region_data.brep_shape_ids
         """List of shape indexes - in BREP geometry """
 
         self.index = None

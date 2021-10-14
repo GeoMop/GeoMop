@@ -50,10 +50,10 @@ class MainFileMenu(QMenu):
 
         self.addSeparator()
 
-        # self._import_file_action = QAction('&Add Shape File ...', self)
-        # self._import_file_action.setStatusTip('Add shape file')
-        # self._import_file_action.triggered.connect(self._layer_editor.add_shape_file)
-        # self.addAction(self._import_file_action)
+        self._import_file_action = QAction('&Add Shape File ...', self)
+        self._import_file_action.setStatusTip('Add shape file')
+        self._import_file_action.triggered.connect(self._layer_editor.add_shape_file)
+        self.addAction(self._import_file_action)
 
         self.addSeparator()
 

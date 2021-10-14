@@ -6,7 +6,9 @@ import PyQt5.QtGui as QtGui
 
 from LayerEditor.ui.diagram_editor.diagram_scene import DiagramScene
 from LayerEditor.ui.layers_panel.layers_panel import LayerPanel
-from LayerEditor.ui.panels._shpfiles import ShpFiles
+from LayerEditor.ui.menus.mesh import MeshMenu
+from LayerEditor.ui.menus.edit import EditMenu
+from LayerEditor.ui.panels.shapes_panel import ShapesPanel
 from LayerEditor.ui.panels.surfaces import Surfaces
 from LayerEditor.ui.panels.regions_panel import RegionsPanel
 from LayerEditor.ui.tools.cursor import Cursor
@@ -70,28 +72,28 @@ class MainWindow(QtWidgets.QMainWindow):
         self.scroll_area2.setWidget(self.wg_surface_panel)
         self._vsplitter2.addWidget(self.scroll_area2)
 
-        #self.shp = ShpFiles(cfg.diagram.shp, self._vsplitter2)
-        #self._vsplitter2.addWidget(self.shp)
-        #if cfg.diagram.shp.is_empty():
-        #    self.shp.hide()
+        self.shp_panel = ShapesPanel(self._layer_editor.le_model.shapes_model, self._vsplitter2)
+        self._vsplitter2.addWidget(self.shp_panel)
+        if self._layer_editor.le_model.shapes_model.is_empty():
+            self.shp_panel.hide()
 
-        # if not cfg.diagram.shp.is_empty():
-        #     self.refresh_diagram_shp()
+        if not self._layer_editor.le_model.shapes_model.is_empty():
+            self.refresh_diagram_shp()
 
         # Menu bar
         self._menu = self.menuBar()
-        # self._edit_menu = EditMenu(self, self.diagramScene)
+        self._edit_menu = EditMenu(self)
         self._file_menu = MainFileMenu(self, self._layer_editor)
         # self._analysis_menu = AnalysisMenu(self, cfg.config)
         # self._settings_menu = MainSettingsMenu(self, self._layer_editor)
-        # self._mesh_menu = MeshMenu(self, self._layer_editor)
+        self._mesh_menu = MeshMenu(self, self._layer_editor)
         self.update_recent_files(0)
         if first:
             self._menu.addMenu(self._file_menu)
-            # self._menu.addMenu(self._edit_menu)
+            self._menu.addMenu(self._edit_menu)
             # self._menu.addMenu(self._analysis_menu)
             # self._menu.addMenu(self._settings_menu)
-            # self._menu.addMenu(self._mesh_menu)
+            self._menu.addMenu(self._mesh_menu)
 
         # status bar
         self._column = QtWidgets.QLabel(self)
@@ -115,39 +117,53 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # signals
         self.diagram_view.cursorChanged.connect(self._cursor_changed)
-        self.wg_surface_panel.first_surface_added.connect(self.diagram_view.set_init_area)
-        # self.shp.background_changed.connect(self.background_changed)
-        # self.shp.item_removed.connect(self.del_background_item)
-        # self.layers.viewInterfacesChanged.connect(self.refresh_view_data)
-        # self.layers.editInterfaceChanged.connect(self.refresh_curr_data)
-        # self.layers.topologyChanged.connect(self.set_topology)
-        # self.layers.refreshArea.connect(self._refresh_area)
-        # self.layers.clearDiagramSelection.connect(self.clear_diagram_selection)
+        self.wg_surface_panel.first_surface_added.connect(self._first_surface_added)
+        self.shp_panel.background_changed.connect(self.refresh_diagram_shp)
+        self.shp_panel.item_removed.connect(self.del_background_item)
 
         self._layer_editor.le_model.invalidate_scene.connect(self.update_scene)
         self._layer_editor.le_model.layers_changed.connect(self.layers_changed)
 
         self.wg_surface_panel.show_grid.connect(self._show_grid)
 
+    def _first_surface_added(self, rect):
+        if self._layer_editor.le_model.decompositions_empty():
+            self.diagram_view.set_init_area(rect)
+
     def update_recent_files(self, from_row=1):
         """Update recently opened files."""
         self._file_menu.update_recent_files(from_row)
 
-    # def refresh_diagram_shp(self):
-    #     """refresh diagrams shape files background layer"""
-    #     self.diagramScene.refresh_shp_backgrounds()
-    #     if not cfg.diagram.shp.is_empty():
-    #         if not self.shp.isVisible():
-    #             self.shp.show()
-    #         self.shp.reload()
-    #     else:
-    #         self.shp.hide()
-    #
-    #     if cfg.diagram.first_shp_object():
-    #         self.display_all()
-    #     else:
-    #         self._move()
-    #
+    def refresh_diagram_shp(self):
+        """refresh diagrams shape files background layer"""
+        rect = self.diagram_view.refresh_shp_backgrounds()
+        if not self._layer_editor.le_model.shapes_model.is_empty():
+            if not self.shp_panel.isVisible():
+                self.shp_panel.show()
+            self.shp_panel.reload()
+        else:
+            self.shp_panel.hide()
+
+        if self._layer_editor.le_model.decompositions_empty(ignore_shapes=True) and\
+                len(self._layer_editor.le_model.shapes_model.shapes) == 1 and\
+                self.wg_surface_panel.data.name == "":
+            dw = rect.width()/8
+            dh = rect.height()/8
+            rect.adjust(-dw, -dh, dw, dh)
+            self.diagram_view.set_init_area(rect)
+            self.diagram_view.fitInView(rect, QtCore.Qt.KeepAspectRatio)
+        else:
+            view_rect = self.diagram_view.mapToScene(self.diagram_view.viewport().geometry()).boundingRect()
+            if not rect.intersects(view_rect):
+                self.diagram_view.fitInView(rect, QtCore.Qt.KeepAspectRatio)
+
+    def del_background_item(self, idx_item):
+        """Remove background item"""
+        obj = self._layer_editor.le_model.shapes_model.shapes[idx_item].shpdata.object
+        obj.release_background()
+        self.diagram_view.scene().removeItem(obj)
+        del self._layer_editor.le_model.shapes_model.shapes[idx_item]
+
     def _cursor_changed(self, x, y):
         """Editor node change signal"""
         self._column.setText("x: {:5f}  y: {:5f}".format(x, -y))
@@ -168,7 +184,8 @@ class MainWindow(QtWidgets.QMainWindow):
             view_rect = self.diagram_view.sceneRect()
             if not view_rect.contains(rect):
                 view_rect = view_rect.united(rect)
-                self.diagram_view.fitInView(view_rect, QtCore.Qt.KeepAspectRatio)
+                self.diagram_view.set_init_area(view_rect)
+            self.diagram_view.fitInView(view_rect, QtCore.Qt.KeepAspectRatio)
         else:
             self.diagram_view.hide_grid()
 
