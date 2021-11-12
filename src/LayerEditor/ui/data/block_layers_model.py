@@ -55,7 +55,7 @@ class BlockLayersModel(AbstractModel, AbstractItem):
 
     @property
     def layer_names(self):
-        """Return unordered set of layer names in block."""
+        """ Generate a sequence of layer names in the block, arbitrary order."""
         for layer in self.items():
             yield layer.name
 
