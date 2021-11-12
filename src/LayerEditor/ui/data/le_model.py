@@ -105,16 +105,18 @@ class LEModel(QObject):
     def is_layer_name_unique(self, new_name):
         """ Is new layer name unique?
             :return: True if new name is unique, False if it is not unique"""
-        for name in self.layer_names():
-            if name == new_name:
-                return False
-        return True
+        return new_name not in self.layer_names()
 
     def get_default_layer_name(self, prefix):
-        """ Set default layer name to QLineEdit. """
+        """ Generate a unique layer name by adding a number after prefix."""
+        return self.get_default_name(prefix, self.layer_names(), False)
+
+    def get_default_name(self, prefix, existing_names, first_unchanged=True):
         lay_id = 1
         name = prefix + f"_{lay_id}"
-        while not self.is_layer_name_unique(name):
+        if first_unchanged and name not in existing_names:
+            return prefix
+        while name in existing_names:
             lay_id += 1
             name = prefix + f"_{lay_id}"
         return name

@@ -11,6 +11,7 @@ import shutil
 from LayerEditor.ui.data.le_model import LEModel
 from LayerEditor.ui.data.surface_item import SurfaceItem
 from LayerEditor.ui.data.surface_item_draft import SurfaceItemDraft
+from LayerEditor.ui.dialogs.surfaces.computing_info_dlg import ComputingInfoDlg
 from LayerEditor.widgets.line_edit import LineEdit
 from LayerEditor.widgets.text_validator import TextValidator
 from bgem.bspline import bspline_approx as ba
@@ -461,24 +462,10 @@ class Surfaces(QtWidgets.QWidget):
         self.update_forms()
 
     def _load_file(self, surface_data):
-        # save layer data first
-        if self.le_model.curr_file is None:
-            QtWidgets.QMessageBox.information(
-                self, 'Save layer data',
-                'Layer data file must be save first.')
-            self.save_fnc()
-        if self.le_model.curr_file is None:
-            return
-
         file, pattern = QtWidgets.QFileDialog.getOpenFileName(
             self, "Choose grid file", cfg.data_dir, "File (*.*)")
         if not file:
             return
-
-        file = self._check_file_path(file)
-        if not file:
-            return
-
         try:
             cfg.update_current_workdir(file)
             return surface_data.init_from_file(file)
@@ -521,12 +508,23 @@ class Surfaces(QtWidgets.QWidget):
 
     def apply(self):
         """Save changes to file and compute new elevation and error"""
-        msg = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Information,
-                                    "Computing...",
-                                    "Computing approximation.\nPlease wait.")
-        msg.setWindowFlags(QtCore.Qt.FramelessWindowHint)
-        msg.setStandardButtons(QtWidgets.QMessageBox.NoButton)
-        msg.setWindowModality(QtCore.Qt.WindowModal)
+        if self.le_model.curr_file is None:
+            self.save_fnc()
+        if self.le_model.curr_file is None:
+            return
+
+        file = self._check_file_path(self.data.grid_file)
+        if not file:
+            return
+
+        self.data.init_from_file(file)
+
+        msg = ComputingInfoDlg(logging.INFO)
+
+        # msg = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Information,
+        #                             "Computing...",
+        #                             "Computing approximation.\nPlease wait.")
+        # msg.setWindowFlags(QtCore.Qt.FramelessWindowHint)
         msg.show()
         QtWidgets.QApplication.processEvents()
 
@@ -536,15 +534,19 @@ class Surfaces(QtWidgets.QWidget):
         # handler.setLevel(logging.INFO)
         # log.addHandler(handler)
 
+
         self.data.compute_approximation()
 
-        QtWidgets.QApplication.processEvents()
-        msg.hide()
+        msg.exit_btn.setDisabled(False)
+        msg.exit_btn.setText("Done")
+        msg.setWindowTitle("Computation Done")
 
         new_surface = self.data.save_to_le_model(self.le_model)
         self.update_forms()
         self.le_model.gui_surface_selector.value = new_surface
         self.show_grid.emit(self.wg_view_button.isChecked())
+
+        msg.exec_()
 
     @classmethod
     def set_le_status(cls, le_obj, val):
