@@ -76,8 +76,10 @@ class GsSegment(QtWidgets.QGraphicsLineItem):
     def move_to(self, x, y):
         #self.pt.set_xy(x, y)
         displacement = np.array([x - self.pos().x(), -y + self.pos().y()])
-        if self.scene().decomposition.check_displacment([self.segment.vtxs[0], self.segment.vtxs[1]], displacement):
-            self.scene().decomposition.move_points([self.segment.vtxs[0], self.segment.vtxs[1]], displacement)
+        if self.scene().decomposition.poly_decomp.check_displacment([self.segment.vtxs[0],
+                                                                     self.segment.vtxs[1]], displacement):
+            self.scene().decomposition.poly_decomp.move_points([self.segment.vtxs[0],
+                                                                self.segment.vtxs[1]], displacement)
 
         if self.scene():
             self.scene().update_all_points()

@@ -56,6 +56,7 @@ class Selection(QObject):
             return 0
 
     def get_selected_shape_dim_id(self):
+        """Returns a list of selected shapes dims and ids [(dim, id), ...]"""
         r = []
         for g_item in self._selected:
             r.append((g_item.dim, g_item.shape_id))

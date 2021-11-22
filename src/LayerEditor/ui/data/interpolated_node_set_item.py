@@ -1,8 +1,9 @@
+from LayerEditor.ui.data.i_node_set_item import INodeSetItem
 from LayerEditor.ui.tools import undo
 from gm_base.geometry_files.format_last import InterpolatedNodeSet
 
 
-class InterpolatedNodeSetItem:
+class InterpolatedNodeSetItem(INodeSetItem):
     is_interpolated = True
     def __init__(self, itf_node_set1, itf_node_set2, interface):
         if itf_node_set1.interface.elevation > itf_node_set2.interface.elevation:
@@ -20,19 +21,19 @@ class InterpolatedNodeSetItem:
 
     def get_shapes(self):
         """Topology must be the same so shape should be too"""
-        return self.top_itf_node_set.decomposition.decomp.shapes
+        return self.top_itf_node_set.decomposition.poly_decomp.decomp.shapes
 
     @property
-    def block(self):
-        return self.top_itf_node_set.decomposition.block
+    def decomposition(self):
+        return self.top_itf_node_set.decomposition
 
     def save(self):
         return InterpolatedNodeSet(dict(surf_nodesets=(self.top_itf_node_set.save(),
                                                        self.bottom_itf_node_set.save()),
                                         interface_id=self.interface.index))
 
-    @undo.undoable
     def change_decomposition(self, top_decomp, bot_decomp):
+        """Needs to be called from a undo group."""
         self.top_itf_node_set.change_decomposition(top_decomp)
         self.bottom_itf_node_set.change_decomposition(bot_decomp)
 

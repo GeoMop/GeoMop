@@ -87,6 +87,6 @@ class WGLayer(QWidget):
         self.le_model.delete_layer_bot(self.layer)
 
     def del_block(self):
-        self.le_model.delete_block(self.layer.block)
+        self.le_model.remove(self.layer.block)
 
 

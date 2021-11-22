@@ -2,38 +2,36 @@ import random
 
 from PyQt5 import QtGui
 from PyQt5.QtGui import QColor
+
+from LayerEditor.ui.data.abstract_item import AbstractItem
 from LayerEditor.ui.tools import undo
 
 from LayerEditor.ui.tools.id_map import IdObject
 from gm_base.geometry_files import format_last
+from gm_base.geometry_files.format_last import Region
 
 
-class RegionItem(IdObject):
+class RegionItem(AbstractItem, Region):
     _cols = ["gray", "white"]
     used_colors = [ QtGui.QColor(col) for col in _cols]
-    id_next = 1
+    
+    def __init__(self):
+        AbstractItem.__init__(self)
+        Region.__init__(self, {})
 
-    def __init__(self, region_data):
-        super(RegionItem, self).__init__()
-        if region_data.color == "":
+    def deserialize(self, data):
+        if data.color == "":
             self.color = self.get_distinct_color().name()
         else:
-            self.color = region_data.color
+            self.color = data.color
         RegionItem.used_colors.append(QtGui.QColor(self.color))
 
-        self.name = region_data.name
-        """Region name"""
-        self.dim = region_data.dim
-        """dimension (point = 0, well = 1, fracture = 2, bulk = 3)"""
-        self.boundary = region_data.boundary
-        """Is boundary region"""
-        self.not_used = region_data.not_used
-        self.mesh_step = float(region_data.mesh_step)
-        self.brep_shape_ids = region_data.brep_shape_ids
-        """List of shape indexes - in BREP geometry """
-
-        self.index = None
-        """Reserved for referencing by index while saving. Should be cleared back to None after saving is finished"""
+        self.name = data.name
+        self.dim = data.dim
+        self.boundary = data.boundary
+        self.not_used = data.not_used
+        self.mesh_step = float(data.mesh_step)
+        self.brep_shape_ids = data.brep_shape_ids
 
     def get_distinct_color(self, tries=40):
         last_dist = 0
@@ -53,7 +51,7 @@ class RegionItem(IdObject):
                 last_dist = dist
         return winner
 
-    def save(self):
+    def serialize(self):
         return format_last.Region({ "color": self.color,
                                     "name": self.name,
                                     "dim": self.dim,

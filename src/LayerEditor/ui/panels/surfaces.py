@@ -10,6 +10,8 @@ import shutil
 
 from LayerEditor.ui.data.le_model import LEModel
 from LayerEditor.ui.data.surface_item import SurfaceItem
+from LayerEditor.ui.data.surface_item_draft import SurfaceItemDraft
+from LayerEditor.ui.dialogs.surfaces.computing_info_dlg import ComputingInfoDlg
 from LayerEditor.widgets.line_edit import LineEdit
 from LayerEditor.widgets.text_validator import TextValidator
 from bgem.bspline import bspline_approx as ba
@@ -39,7 +41,7 @@ class SurfacesComboBox(QtWidgets.QComboBox):
                                         lambda: self.itemText(self.currentIndex())))
 
     def unique_name_fnc(self, new_name):
-        for surf in self._parent.le_model.surfaces_model.surfaces:
+        for surf in self._parent.le_model.surfaces_model.items():
             if surf.name == new_name:
                 return False
         return True
@@ -52,7 +54,7 @@ class SurfacesComboBox(QtWidgets.QComboBox):
         if new_idx == -1:
             self.addItem(name, -1)
             new_idx = self.count() - 1
-        self.setCurrentIndex(new_idx)
+            self.setCurrentIndex(new_idx)
         self.blockSignals(False)
 
     def text_changed(self, new_name):
@@ -124,11 +126,10 @@ class Surfaces(QtWidgets.QWidget):
         self.save_fnc = save_fnc
         # Data class for the surface panel.
         # This is copy of one of surfaces in LEData or default SurfaceItem if no surface exists.
-        if le_model.gui_surface_selector.value is None:
-            self.data = SurfaceItem()
-        else:
+        self.data = SurfaceItemDraft()
+        if le_model.gui_surface_selector.value is not None:
             curr_surf = le_model.gui_surface_selector.value
-            self.data = self.data = SurfaceItem(curr_surf, copied_from=curr_surf)
+            self.data.update_from_surface(curr_surf)
         # Surfaces list in LEModel.
         self.le_model = le_model
 
@@ -144,6 +145,8 @@ class Surfaces(QtWidgets.QWidget):
 
         self.wg_view_button = WgShowButton("Switch visibilty of the surface grid.", parent=self)
         self.wg_view_button.toggled.connect(self.show_grid)
+        if self.le_model.gui_surface_selector.value is not None:
+            self.wg_view_button.setChecked(True)
 
         # surface combobox
         self.wg_surf_combo = SurfacesComboBox(self)
@@ -389,37 +392,41 @@ class Surfaces(QtWidgets.QWidget):
         Event for changed surface in combo box. Called also when new item is added.
         """
         if new_idx is None\
-                or not (0 < new_idx < len(self.le_model.surfaces_model.surfaces)):
+                or not (0 < new_idx < len(self.le_model.surfaces_model)):
             new_idx = self.wg_surf_combo.currentData()
 
         if not self.empty_forms():
-            idx = self.data.get_copied_from_index(self.le_model.surfaces_model.surfaces)
-            idx = idx if idx != -1 else len(self.le_model.surfaces_model.surfaces)
+            surfaces = self.le_model.surfaces_model.sorted_items_elevation()
+            idx = self.data.get_copied_from_index(surfaces)
+            idx = idx if idx != -1 else len(surfaces)
             self.wg_surf_combo.blockSignals(True)
             self.wg_surf_combo.setCurrentIndex(idx)
             self.wg_surf_combo.blockSignals(False)
             return
         if new_idx is not None:
-            new_surf = self.le_model.surfaces_model.surfaces[new_idx]
-            self.data = SurfaceItem(new_surf, copied_from=new_surf)
-            self.le_model.gui_surface_selector.value = self.le_model.surfaces_model.surfaces[new_idx]
+            surfaces = self.le_model.surfaces_model.sorted_items_elevation()
+            new_surf = surfaces[new_idx]
+            self.data = SurfaceItemDraft()
+            self.data.copy_from_surface_item(new_surf)
         self.update_forms()
         self.show_grid.emit(self.wg_view_button.isChecked())
 
     def rm_surface(self):
         assert self.data.copied_from is not None
         idx = self.wg_surf_combo.currentData()
-        assert self.data.get_index_from_list(self.le_model.surfaces_model.surface) == idx
+        assert self.data.get_index_from_list(self.le_model.surfaces_model.sorted_items_elevation()) == idx
         assert idx >= 0
-        assert idx < len(self.le_model.surfaces_model.surfaces)
+        assert idx < len(self.le_model.surfaces_model)
         if not self.le_model.delete_surface(idx):
             err_dialog = GMErrorDialog(self)
             err_dialog.open_error_dialog("Surface in use. Can not remove it.")
             return None
 
         # propose new idx
-        new_idx = min(idx, len(self.le_model.surfaces_model.surfaces) - 1)
-        self.data = SurfaceItem(self.e_model.surfaces_model.surfaces[new_idx], new_idx)
+        new_idx = min(idx, len(self.le_model.surfaces_model) - 1)
+        self.data = SurfaceItemDraft()
+        self.data.copy_from_surface_item(self.e_model.surfaces_model.sorted_items_elevation()[new_idx])
+
         self.update_forms()
         self.show_grid.emit(self.wg_view_button.isChecked())
 
@@ -429,12 +436,12 @@ class Surfaces(QtWidgets.QWidget):
         """
         if not self.empty_forms():
             return
-        new_data = SurfaceItem()
+        new_data = SurfaceItemDraft()
         new_data.file_skip_lines = self.data.file_skip_lines
         new_data.file_delimiter = self.data.file_delimiter
         data = self._load_file(new_data)
         if data:
-            if not self.le_model.surfaces_model.surfaces:
+            if not self.le_model.surfaces_model:
                 quad = new_data.get_actual_quad()
                 points = [QtCore.QPointF(point[0], -point[1]) for point in quad]
                 points.append(QtCore.QPointF(quad[0][0], -quad[0][1]))
@@ -455,24 +462,10 @@ class Surfaces(QtWidgets.QWidget):
         self.update_forms()
 
     def _load_file(self, surface_data):
-        # save layer data first
-        if self.le_model.curr_file is None:
-            QtWidgets.QMessageBox.information(
-                self, 'Save layer data',
-                'Layer data file must be save first.')
-            self.save_fnc()
-        if self.le_model.curr_file is None:
-            return
-
         file, pattern = QtWidgets.QFileDialog.getOpenFileName(
             self, "Choose grid file", cfg.data_dir, "File (*.*)")
         if not file:
             return
-
-        file = self._check_file_path(file)
-        if not file:
-            return
-
         try:
             cfg.update_current_workdir(file)
             return surface_data.init_from_file(file)
@@ -515,12 +508,23 @@ class Surfaces(QtWidgets.QWidget):
 
     def apply(self):
         """Save changes to file and compute new elevation and error"""
-        msg = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Information,
-                                    "Computing...",
-                                    "Computing approximation.\nPlease wait.")
-        msg.setWindowFlags(QtCore.Qt.FramelessWindowHint)
-        msg.setStandardButtons(QtWidgets.QMessageBox.NoButton)
-        msg.setWindowModality(QtCore.Qt.WindowModal)
+        if self.le_model.curr_file is None:
+            self.save_fnc()
+        if self.le_model.curr_file is None:
+            return
+
+        file = self._check_file_path(self.data.grid_file)
+        if not file:
+            return
+
+        self.data.init_from_file(file)
+
+        msg = ComputingInfoDlg(logging.INFO)
+
+        # msg = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Information,
+        #                             "Computing...",
+        #                             "Computing approximation.\nPlease wait.")
+        # msg.setWindowFlags(QtCore.Qt.FramelessWindowHint)
         msg.show()
         QtWidgets.QApplication.processEvents()
 
@@ -530,14 +534,19 @@ class Surfaces(QtWidgets.QWidget):
         # handler.setLevel(logging.INFO)
         # log.addHandler(handler)
 
+
         self.data.compute_approximation()
 
-        QtWidgets.QApplication.processEvents()
-        msg.hide()
+        msg.exit_btn.setDisabled(False)
+        msg.exit_btn.setText("Done")
+        msg.setWindowTitle("Computation Done")
 
-        self.data.save_to_le_model(self.le_model)
+        new_surface = self.data.save_to_le_model(self.le_model)
         self.update_forms()
+        self.le_model.gui_surface_selector.value = new_surface
         self.show_grid.emit(self.wg_view_button.isChecked())
+
+        msg.exec_()
 
     @classmethod
     def set_le_status(cls, le_obj, val):
@@ -631,8 +640,9 @@ class Surfaces(QtWidgets.QWidget):
             self.wg_view_button.setEnabled(True)
             self.wg_view_button.set_icon()
 
-            idx = self.data.get_copied_from_index(self.le_model.surfaces_model.surfaces)
-            self.wg_surf_combo.set_items(self.le_model.surfaces_model.surfaces, idx, self.data.name)
+            surfaces = self.le_model.surfaces_model.sorted_items_elevation()
+            idx = self.data.get_copied_from_index(surfaces)
+            self.wg_surf_combo.set_items(surfaces, idx, self.data.name)
             self.wg_surf_combo.setEnabled(True)
 
             self.wg_file_le.setText(self.data.grid_file)

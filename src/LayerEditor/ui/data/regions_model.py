@@ -1,45 +1,20 @@
+from LayerEditor.ui.data.abstract_model import AbstractModel
 from LayerEditor.ui.tools import undo
 
 from LayerEditor.ui.data.region_item import RegionItem
 from LayerEditor.ui.tools.id_map import IdMap
 
 
-class RegionsModel:
+class RegionsModel(AbstractModel):
     """Class for managing all regions"""
     NONE = None
-    def __init__(self, le_model, regions_data):
-        self.le_model = le_model
-        """Le Model needed for correct deleting of region"""
-        self.regions = IdMap()  # {region_id: Region}
-        """Needed for checking if some region is used in any shape in any decomposition"""
 
-        for data in regions_data:
-            reg = RegionItem(data)
-            self.regions.add(reg)
-        RegionItem.none = self.regions.get(0)
-
-    @undo.undoable
-    def add_region(self, reg):
-        self.regions.add(reg)
-        yield "Add new Region"
-        self.delete_region(reg)
-
-    @undo.undoable
-    def delete_region(self, reg):
-        del self.regions[reg]
-        yield "Delete Region"
-        self.add_region(reg)
+    def deserialize(self, data):
+        with undo.pause_undo():
+            for reg_data in data:
+                reg = RegionItem.create_from_data(reg_data)
+                self.add(reg)
+            RegionItem.none = self.collection.get(0)
 
     def get_region_names(self):
-        return [reg.name for reg in self.regions.values()]
-
-    def save(self):
-        regions_data = []
-        for idx, region in enumerate(self.regions.values()):
-            regions_data.append(region.save())
-            region.index = idx
-        return regions_data
-
-    def clear_indexing(self):
-        for region in self.regions.values():
-            region.index = None
+        return [reg.name for reg in self.items()]

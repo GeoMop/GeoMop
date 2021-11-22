@@ -1,4 +1,5 @@
 """Extends and improves `undo`"""
+from contextlib import contextmanager
 
 from bgem.external.undo import *
 from bgem.external.undo import _Group, _Action
@@ -77,3 +78,11 @@ def clear():
     global __savepoint
     stack().clear()
     __savepoint = None
+
+@contextmanager
+def pause_undo():
+    receiver = stack()._receiver
+    stack().setreceiver([])
+    yield
+    stack()._receiver = receiver
+

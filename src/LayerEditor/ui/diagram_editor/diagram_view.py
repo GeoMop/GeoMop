@@ -102,7 +102,9 @@ class DiagramView(QtWidgets.QGraphicsView):
 
     def update_view(self):
         if self.scene().block is not self.le_model.gui_block_selector.value:
-            self.setScene(DiagramScene(self.le_model.gui_block_selector.value, self.le_model.init_area, self))
+            self.setScene(DiagramScene(self.le_model.gui_block_selector.value,
+                                       self.le_model.init_area,
+                                       self))
 
     def set_init_area(self, rect: QRectF):
         self.le_model.init_area = rect

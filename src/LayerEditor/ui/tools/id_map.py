@@ -27,7 +27,6 @@ class IdMap():
         # List of free ids
         super().__init__()
 
-
     def get_new_id(self):
         if self._free_ids:
             return self._free_ids.pop()

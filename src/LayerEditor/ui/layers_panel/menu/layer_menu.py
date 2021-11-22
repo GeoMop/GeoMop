@@ -21,7 +21,7 @@ class LayerMenu(QMenu):
         self.addAction(self.del_layer_top)
         if (not wg_layer.top_delete or
                 wg_layer.layer.is_last_decomp(top=True) or
-                len(wg_layer.layer.block.layers_dict) == 1):
+                len(wg_layer.layer.block) == 1):
             self.del_layer_top.setDisabled(True)
 
         self.del_layer_bot = QAction('Delete Layer and Bottom Interface')
@@ -29,13 +29,13 @@ class LayerMenu(QMenu):
         self.addAction(self.del_layer_bot)
         if ( not wg_layer.bot_delete or
                 wg_layer.layer.is_last_decomp(top=False) or
-                len(wg_layer.layer.block.layers_dict) == 1):
+                len(wg_layer.layer.block) == 1):
             self.del_layer_bot.setDisabled(True)
 
         self.del_block_action = QAction('Delete Block', self)
         self.del_block_action.setStatusTip('Delete this block')
         self.addAction(self.del_block_action)
         blocks_model = le_model.blocks_model
-        n_blocks = len(blocks_model.blocks)
+        n_blocks = len(blocks_model)
         if n_blocks <= 1 or n_blocks - 1 > blocks_model.get_sorted_blocks().index(wg_layer.layer.block) > 0:
             self.del_block_action.setDisabled(True)
