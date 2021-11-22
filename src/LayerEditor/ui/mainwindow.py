@@ -219,8 +219,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.layers.update_layers_panel()
         self.wg_surface_panel.update_forms()
 
-    def change_curr_block(self):
-        old_block = self._layer_editor.le_model.gui_block_selector.old_value
+    def change_curr_block(self, old_block):
         old_block.selection.selection_changed.disconnect(self.wg_regions_panel.selection_changed)
 
         curr_block = self._layer_editor.le_model.gui_block_selector.value

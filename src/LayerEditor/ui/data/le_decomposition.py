@@ -87,7 +87,8 @@ class LEDecomposition(AbstractItem):
     def copy_itself(self):
         """ Make new decomposition with identical topology and nodeset as this.
             Ids will change, so everything that uses shape ids needs to be updated using old_to_new_id"""
-        receiver = undo.stack()._receiver   # bgem changes the receiver which is not desired this fixes it
+        receiver = undo.stack()._receiver   # this is usually called in undo Group.
+        # Since bgem also uses groups the current group needs to be saved or it would be lost when new group is created.
         nodes, topology = self.serialize()
 
         old_to_new_id = [{}, {}, {}]
@@ -97,7 +98,8 @@ class LEDecomposition(AbstractItem):
 
         cpy = LEDecomposition.create_from_data(nodes, topology, self.block)
 
-        undo.stack().setreceiver(receiver)  # bgem changes the receiver which is not desired this fixes it
+        undo.stack().setreceiver(receiver)  # Restore the original Group.
+        # There is no need for undo from bgem since we are making a copy.
         return cpy, old_to_new_id
 
     def serialize(self):
