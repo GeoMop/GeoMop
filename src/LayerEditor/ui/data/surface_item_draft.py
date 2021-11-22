@@ -77,6 +77,23 @@ class SurfaceItemDraft(format_last.Surface):
         self.xy_transform = xy_transform.tolist()
         self._changed_forms = True
 
+    def get_curr_quad(self):
+        """
+        Return quad, u_knots, v_knots for grid plot in mainwindow._show_grid."""
+        approx = self.approximation
+        if approx is not None:
+            ur = approx.u_basis.knots_idx_range
+            u_knots = [approx.u_basis.knots[i] / approx.u_basis.domain_size
+                       for i in range(ur[0] + 1, ur[1])]
+            vr = approx.v_basis.knots_idx_range
+            v_knots = [approx.v_basis.knots[i] / approx.v_basis.domain_size
+                       for i in range(vr[0] + 1, vr[1])]
+        else:
+            u_knots = []
+            v_knots = []
+        quad = self.get_actual_quad()
+        return quad, u_knots, v_knots
+
     def get_actual_quad(self):
         if self._quad is None:
             return None

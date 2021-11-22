@@ -11,6 +11,7 @@ from LayerEditor.ui.data.surface_item import SurfaceItem
 from LayerEditor.ui.data.tools.selector import Selector
 from LayerEditor.ui.diagram_editor.graphics_items.abstract_graphics_item import AbstractGraphicsItem
 from LayerEditor.ui.diagram_editor.graphics_items.diagram_item import DiagramItem
+from LayerEditor.ui.diagram_editor.graphics_items.grid import Grid
 from LayerEditor.ui.tools.cursor import Cursor
 
 from LayerEditor.ui.diagram_editor.graphics_items.gs_point import GsPoint
@@ -71,8 +72,9 @@ class DiagramScene(QtWidgets.QGraphicsScene):
             item = data_object.shpdata.object
 
         elif isinstance(data_object, SurfaceItem):
-            item = self.gs_surf_grid
-
+            item = Grid(*data_object.get_curr_quad())
+        else:
+            assert "Invalid data_object"
         return item
 
     def update_depth(self):

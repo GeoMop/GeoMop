@@ -80,3 +80,28 @@ class SurfaceItem(format_last.Surface, AbstractItem):
                                         tolerance=self.tolerance,
                                         xy_transform=self.xy_transform,
                                         nuv=self.nuv))
+
+    def get_curr_quad(self):
+        """
+        Return quad, u_knots, v_knots for grid plot in mainwindow._show_grid."""
+        approx = self.approximation
+        if approx is not None:
+            ur = approx.u_basis.knots_idx_range
+            u_knots = [approx.u_basis.knots[i] / approx.u_basis.domain_size
+                       for i in range(ur[0] + 1, ur[1])]
+            vr = approx.v_basis.knots_idx_range
+            v_knots = [approx.v_basis.knots[i] / approx.v_basis.domain_size
+                       for i in range(vr[0] + 1, vr[1])]
+        else:
+            u_knots = []
+            v_knots = []
+        quad = self.get_actual_quad()
+        return quad, u_knots, v_knots
+
+    def get_actual_quad(self):
+        quad = self.approximation.quad
+        if quad is None:
+            return None
+        quad_center = np.average(quad, axis=0)
+        xy_mat = np.array(self.xy_transform, dtype = float)
+        return np.dot((quad - quad_center), xy_mat[0:2, 0:2].T) + quad_center + xy_mat[0:2, 2]

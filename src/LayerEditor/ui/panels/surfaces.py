@@ -466,15 +466,6 @@ class Surfaces(QtWidgets.QWidget):
         self.update_forms()
 
     def _load_file(self, surface_data):
-        # save layer data first
-        if self.fnc_curr_file() is None:
-            QtWidgets.QMessageBox.information(
-                self, 'Save layer data',
-                'Layer data file must be save first.')
-            self.save_fnc()
-        if self.fnc_curr_file() is None:
-            return
-
         file, pattern = QtWidgets.QFileDialog.getOpenFileName(
             self, "Choose grid file", cfg.current_workdir, "File (*.*)")
         if not file:

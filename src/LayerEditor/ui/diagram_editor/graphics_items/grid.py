@@ -2,8 +2,10 @@ import PyQt5.QtWidgets as QtWidgets
 import PyQt5.QtGui as QtGui
 import PyQt5.QtCore as QtCore
 
+from LayerEditor.ui.diagram_editor.graphics_items.abstract_graphics_item import AbstractGraphicsItem
 
-class Grid(QtWidgets.QGraphicsPolygonItem):
+
+class Grid(AbstractGraphicsItem, QtWidgets.QGraphicsPolygonItem):
     """
     Represents a join of nodes in the diagram
     """
@@ -11,17 +13,29 @@ class Grid(QtWidgets.QGraphicsPolygonItem):
     STANDART_ZVALUE = 1000
     DASH_PATTERN = [10, 5]
     
-    def __init__(self, quad, u_knots, v_knots, parent=None):
-        polygon = QtGui.QPolygonF()        
-        for point in quad:
+    def __init__(self, data_object, parent=None):
+        self._data_object = data_object
+        polygon = QtGui.QPolygonF()
+        self.quad, self.u_knots, self.v_knots = data_object.get_curr_quad()
+        for point in self.quad:
             polygon.append(QtCore.QPointF(point[0], -point[1]))
-        polygon.append(QtCore.QPointF(quad[0][0], -quad[0][1]))
+        polygon.append(QtCore.QPointF(self.quad[0][0], -self.quad[0][1]))
         super(Grid, self).__init__(polygon)
-        self.quad = quad
-        self.u_knots = u_knots
-        self.v_knots = v_knots
         self.setZValue(self.STANDART_ZVALUE)
-        
+
+    def enable_editing(self):
+        pass
+
+    def disable_editing(self):
+        pass
+
+    def update_item(self):
+        pass
+
+    @property
+    def data_item(self):
+        return self._data_object
+
     def set_quad(self, quad, u_knots, v_knots):
         """Set quad"""
         self.quad = quad

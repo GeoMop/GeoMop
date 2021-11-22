@@ -35,12 +35,12 @@ class DiagramView(QtWidgets.QGraphicsView):
 
         self.setScene(DiagramScene(self.le_model.init_area, self))
 
-    def show_grid(self, quad, u_knots, v_knots):
+    def show_grid(self, data_item):
         """ Create grid of currently selected surface from surface panel.
             This object is shown in update of a scene."""
-        if quad is None:
+        if data_item is None:
             return
-        self.gs_surf_grid = Grid(quad, u_knots, v_knots)
+        self.gs_surf_grid = Grid(data_item)
         self.scene().update_scene()
         return self.gs_surf_grid.boundingRect()
 
