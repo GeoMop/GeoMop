@@ -6,6 +6,8 @@ import sys
 import os
 import signal
 
+sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
+
 from LayerEditor.exceptions.data_inconsistent_exception import DataInconsistentException
 from LayerEditor.ui.data.le_model import LEModel
 from LayerEditor.ui.diagram_editor.diagram_view import DiagramView
@@ -14,8 +16,6 @@ from LayerEditor.ui.tools import undo
 from LayerEditor.ui.tools.cursor import Cursor
 from gm_base.geometry_files.format_last import UserSupplement
 from gm_base.geomop_dialogs import GMErrorDialog
-
-sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 
 from LayerEditor.ui.mainwindow import MainWindow
 import PyQt5.QtWidgets as QtWidgets
