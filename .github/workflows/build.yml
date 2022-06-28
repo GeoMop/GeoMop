@@ -93,19 +93,19 @@ jobs:
     - name: Initialize submodules
       run: |
         submodules/initialize.sh
-     - name: Download prerequisites
-       run: |
-         wget -r -np -nd -nv -R "index.html*" -e robots=off -P build/win_x86 https://geomop.nti.tul.cz/prerequisites/
-         cd build/win_x86
-         unzip gmsh-3.0.5-Windows64.zip
-         mv gmsh-3.0.5-Windows gmsh
-     - name: Create Windows installer
-       run: |
-         mkdir -p dist
-         docker run -i -u $(id -u):$(id -u) -v $(pwd):/nsis-project flow123d/nsis-3.05-1 /nsis-project/win_x86.nsi
-         # Use an NSIS Docker image, no sources available
+    - name: Download prerequisites
+      run: |
+        wget -r -np -nd -nv -R "index.html*" -e robots=off -P build/win_x86 https://geomop.nti.tul.cz/prerequisites/
+        cd build/win_x86
+        unzip gmsh-3.0.5-Windows64.zip
+        mv gmsh-3.0.5-Windows gmsh
+    - name: Create Windows installer
+      run: |
+        mkdir -p dist
+        docker run -i -u $(id -u):$(id -u) -v $(pwd):/nsis-project flow123d/nsis-3.05-1 /nsis-project/win_x86.nsi
+        # Use an NSIS Docker image, no sources available
 
-     - uses: actions/upload-artifact@v1
-       with:
-         name: win_install
-         path: dist
+    - uses: actions/upload-artifact@v1
+      with:
+        name: win_install
+        path: dist
