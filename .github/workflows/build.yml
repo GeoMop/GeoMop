@@ -76,7 +76,7 @@ jobs:
       - name: Create debian package
         run: |
           mkdir -p dist
-          export VERSION=$(head -n 1 VERSION)
+          export VERSION=$(sed -n "/^version: */p" version.yml | sed "s/version: //"s)
           cd build
           make debian
       - uses: actions/upload-artifact@v1
@@ -102,6 +102,7 @@ jobs:
     - name: Create Windows installer
       run: |
         mkdir -p dist
+        docker pull flow123d/nsis-3.05-1:latest
         docker run -i -u $(id -u):$(id -u) -v $(pwd):/nsis-project flow123d/nsis-3.05-1 /nsis-project/win_x86.nsi
         # Use an NSIS Docker image, no sources available
 
