@@ -1,0 +1,4 @@
+version: 2.0.0
+build:
+date:
+flow123d_version: 3.9.0

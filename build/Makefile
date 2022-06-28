@@ -23,8 +23,7 @@ copy: clean
 	cp $(GITMESAMPLEDIR)/YamlFiles/flow_vtk.yaml $(PKGMESAMPLEDIR)/YamlFiles/
 	cp $(GITMESAMPLEDIR)/YamlFiles/flow_vtk_source.yaml $(PKGMESAMPLEDIR)/YamlFiles/
 	cp -r $(GITDIR)/src $(PKGDIR)/
-	cp -r $(GITDIR)/submodules/intersections $(PKGDIR)/src
-	cp -r $(GITDIR)/submodules/yaml_converter $(PKGDIR)/src
+		cp -r $(GITDIR)/submodules/yaml_converter $(PKGDIR)/src
 	find $(PKGDIR)/src | grep -E "(__pycache__|\.pyc|\.pyo$$)" | xargs rm -rf
 
 orig: copy

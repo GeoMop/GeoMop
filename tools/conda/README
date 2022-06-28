@@ -1,7 +1,0 @@
-This directory contains development and possibly production conda environments and related tools and scripts.
-This is also the right place to specify dependencies of individual contexts/scripts.
-
-Getting started
-===============
-
-1. Install 'minconda' = conda virtual envrironment management util + bootstrap environment with Python and basic utils

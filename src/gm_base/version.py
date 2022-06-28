@@ -5,6 +5,7 @@ Module contains version.
 """
 
 import os
+from ruamel.yaml import YAML
 
 __root_path__ = (os.path.split(os.path.dirname(os.path.realpath(__file__)))[0])
 
@@ -26,18 +27,18 @@ class Version:
     def __init__(self):
         """Initializes the class."""
         try:
-            with open(Version.VERSION_FILE_PATH) as version_file:
-                lines = version_file.readlines()
+            yaml = YAML(typ='safe')  # default, if not specfied, is 'rt' (round-trip)
+            content = yaml.load(Version.VERSION_FILE_PATH)
         except FileNotFoundError:
             lines = []
 
-        self.version = lines[0].strip() if len(lines) > 0 else ''
+        self.version = content['version']
         """text version geomop pressentation"""
-        self.build = lines[1].strip() if len(lines) > 1 else ''
+        self.build = content['build']
         """text build geomop pressentation"""
-        self.date = lines[2].strip() if len(lines) > 2 else ''
+        self.date = content['date']
         """text date geomop pressentation"""
 
     CHANGELOG_FILE_PATH = get_root_file_path('CHANGELOG.md')
-    VERSION_FILE_PATH = get_root_file_path('VERSION')
+    VERSION_FILE_PATH = get_root_file_path('version.yml')
 

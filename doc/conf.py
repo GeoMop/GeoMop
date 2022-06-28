@@ -15,6 +15,7 @@
 import sys
 import os
 import sphinx_rtd_theme
+from ruamel.yaml import YAML
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
@@ -84,7 +85,7 @@ else:
 #source_encoding = 'utf-8-sig'
 
 # General information about the project.
-copyright = u'2015, TUL'
+copyright = u'2022, TUL'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -92,12 +93,13 @@ copyright = u'2015, TUL'
 
 def get_version():
     version_file_path = os.path.join(
-        os.path.split(os.path.dirname(os.path.realpath(__file__)))[0], 'VERSION')
+        os.path.split(os.path.dirname(os.path.realpath(__file__)))[0], 'version.yml')
     try:
-        with open(version_file_path) as version_file:
-            return version_file.readline()
+        yaml = YAML(typ='safe')  # default, if not specfied, is 'rt' (round-trip)
+        content = yaml.load(version_file_path)
+        return content.version
     except FileNotFoundError:
-        return '0.1.1'
+        return '0.0.0'
 
 # The short X.Y version.
 version = get_version()
