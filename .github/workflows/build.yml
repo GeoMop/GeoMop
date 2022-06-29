@@ -103,7 +103,7 @@ jobs:
       run: |
         mkdir -p dist
         docker pull flow123d/nsis-3.05-1:latest
-        docker run -i -u $(id -u):$(id -u) -v $(pwd):/nsis-project flow123d/nsis-3.05-1 /nsis-project/win_x86.nsi
+        docker run -i -u $(id -u):$(id -u) -v $(pwd)/build/windows:/nsis-project flow123d/nsis-3.05-1 /nsis-project/win_x86.nsi
         # Use an NSIS Docker image, no sources available
 
     - uses: actions/upload-artifact@v1
