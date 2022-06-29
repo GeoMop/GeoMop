@@ -37,13 +37,14 @@ jobs:
         echo $DOCKER_PASSWORD | docker login -u $DOCKER_USER --password-stdin
     - name: Build
       run: |
-        cd build/dockerfiles && docker build \
-        	 --build-arg base_image=flow123d/flow123d:$(images_version) \
-             --build-arg source_image=flow123d/install-gnu:$(images_version) \
-             --tag flow123d/geomop-base-gnu:$(images_version) \
-                .
-
-        docker push flow123d/geomop-base-gnu:$(images_version)
+        geomop_version=$(sed -n "/^version: */p" version.yml | sed "s/version: //"s)
+        flow123d_version=$(sed -n "/^flow123d_version: */p" version.yml | sed "s/flow123d_version: //"s)
+        result_image=flow123d/geomop-${{ matrix.environment }}:${geomop_version}
+        docker build \
+        	 --build-arg base_image=flow123d/flow123d-${{ matrix.environment }}:${flow123d_version} \
+             --tag ${result_image} \
+             build/dockerfiles
+        docker push ${result_image}
 
         make flow-dev-${{ matrix.environment }}
         make img-install-${{ matrix.environment }}
