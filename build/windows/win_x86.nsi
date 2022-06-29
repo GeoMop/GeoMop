@@ -2,6 +2,8 @@
 # 
 #--------------------------------
 
+# Unicode target
+Unicode True
 
 # Maximum compression.
 SetCompressor /SOLID lzma
@@ -13,7 +15,7 @@ SetCompressor /SOLID lzma
 !include MultiUser.nsh
 
 # Define directories.
-!define GIT_DIR "."
+!define GIT_DIR "..\.."
 !define SRC_DIR "${GIT_DIR}\src"
 !define BUILD_DIR "${GIT_DIR}\build\win_x86"
 !define DATA_DIR "${GIT_DIR}\data"
@@ -33,8 +35,8 @@ SetCompressor /SOLID lzma
 
 
 # Read version information from file.
-!searchparse /file "${GIT_DIR}\VERSION" '' VERSION ''
-
+#!searchparse /file "${GIT_DIR}\VERSION" '' VERSION ''
+!define VERSION "2.0.0"
 
 Name "GeoMop ${VERSION}"
 Caption "GeoMop ${VERSION} Setup"
@@ -90,8 +92,8 @@ Function .onInit
                   Abort
       InstallPython:
         SetOutPath $INSTDIR\prerequisites
-        File "${BUILD_DIR}\python-3.6.7-amd64.exe"
-        ExecWait 'python-3.6.7-amd64.exe'
+        File "${BUILD_DIR}\python-3.10.5-amd64.exe"
+        ExecWait 'python-3.10.5-amd64.exe'
 
         # Check installation.
         Goto CheckPython
@@ -121,9 +123,10 @@ Section "Runtime Environment" SecRuntime
 
   # Install virtualenv.
   SetOutPath $INSTDIR\prerequisites
-  File "${BUILD_DIR}\virtualenv-16.1.0-py2.py3-none-any.whl"
-  ExecWait '"$PYTHON_EXE" -m pip install "$INSTDIR\prerequisites\virtualenv-16.1.0-py2.py3-none-any.whl"'
-  ExecWait '"$PYTHON_EXE" -m virtualenv "$INSTDIR\env"'
+  #File "${BUILD_DIR}\virtualenv-16.1.0-py2.py3-none-any.whl"
+  #ExecWait '"$PYTHON_EXE" -m pip install "$INSTDIR\prerequisites\virtualenv-16.1.0-py2.py3-none-any.whl"'
+  #ExecWait '"$PYTHON_EXE" -m virtualenv "$INSTDIR\env"'
+  ExecWait '"$PYTHON_EXE" -m venv "$INSTDIR\env"'
 
   # Copy PyQt5 and other Python packages.
   SetOutPath $INSTDIR
@@ -133,7 +136,7 @@ Section "Runtime Environment" SecRuntime
   File /r /x *~ /x __pycache__ /x pylintrc /x *.pyc "${SRC_DIR}\gm_base"
 
   # Copy LICENSE, CHANGELOG, VERSION.
-  File "${GIT_DIR}\VERSION"
+  File "${GIT_DIR}\version.yml"
   File "${GIT_DIR}\CHANGELOG.md"
   File "${GIT_DIR}\LICENSE"
 
@@ -144,62 +147,16 @@ Section "Runtime Environment" SecRuntime
   # Set the varible with path to python virtual environment scripts.
   StrCpy $PYTHON_SCRIPTS "$INSTDIR\env\Scripts"
 
-  # Install Markdown.
-  SetOutPath $INSTDIR\prerequisites
-  File "${BUILD_DIR}\Markdown-3.0.1-py2.py3-none-any.whl"
-  ExecWait '"$PYTHON_SCRIPTS\python.exe" -m pip install "$INSTDIR\prerequisites\Markdown-3.0.1-py2.py3-none-any.whl"'
-
-  # Install PyYAML.
-  SetOutPath $INSTDIR\prerequisites
-  File "${BUILD_DIR}\PyYAML-3.13-cp36-cp36m-win_amd64.whl"
-  ExecWait '"$PYTHON_SCRIPTS\python.exe" -m pip install "$INSTDIR\prerequisites\PyYAML-3.13-cp36-cp36m-win_amd64.whl"'
-
-  # Install PyQt5.
-  SetOutPath $INSTDIR\prerequisites
-  File "${BUILD_DIR}\PyQt5_sip-4.19.13-cp36-none-win_amd64.whl"
-  ExecWait '"$PYTHON_SCRIPTS\python.exe" -m pip install "$INSTDIR\prerequisites\PyQt5_sip-4.19.13-cp36-none-win_amd64.whl"'
-  File "${BUILD_DIR}\PyQt5-5.11.3-5.11.2-cp35.cp36.cp37.cp38-none-win_amd64.whl"
-  ExecWait '"$PYTHON_SCRIPTS\python.exe" -m pip install "$INSTDIR\prerequisites\PyQt5-5.11.3-5.11.2-cp35.cp36.cp37.cp38-none-win_amd64.whl"'
-  File "${BUILD_DIR}\QScintilla-2.10.8-5.11.2-cp35.cp36.cp37.cp38-none-win_amd64.whl"
-  ExecWait '"$PYTHON_SCRIPTS\python.exe" -m pip install "$INSTDIR\prerequisites\QScintilla-2.10.8-5.11.2-cp35.cp36.cp37.cp38-none-win_amd64.whl"'
-
-  # Install NumPy.
-  SetOutPath $INSTDIR\prerequisites
-  File "${BUILD_DIR}\numpy-1.13.1+mkl-cp36-cp36m-win_amd64.whl"
-  ExecWait '"$PYTHON_SCRIPTS\python.exe" -m pip install "$INSTDIR\prerequisites\numpy-1.13.1+mkl-cp36-cp36m-win_amd64.whl"'
-
-  # Install SciPy.
-  SetOutPath $INSTDIR\prerequisites
-  File "${BUILD_DIR}\scipy-0.18.1-cp36-cp36m-win_amd64.whl"
-  ExecWait '"$PYTHON_SCRIPTS\python.exe" -m pip install "$INSTDIR\prerequisites\scipy-0.18.1-cp36-cp36m-win_amd64.whl"'
-
-  # Install pyshp.
-  SetOutPath $INSTDIR\prerequisites
-  File "${BUILD_DIR}\pyshp-1.2.10.tar.gz"
-  ExecWait '"$PYTHON_SCRIPTS\python.exe" -m pip install "$INSTDIR\prerequisites\pyshp-1.2.10.tar.gz"'
-
-  # Install ruamel.yaml.
-  SetOutPath $INSTDIR\prerequisites
-  File "${BUILD_DIR}\ruamel.yaml-0.15.58.tar.gz"
-  ExecWait '"$PYTHON_SCRIPTS\python.exe" -m pip install "$INSTDIR\prerequisites\ruamel.yaml-0.15.58.tar.gz"'
-
-  # Install psutil.
-  SetOutPath $INSTDIR\prerequisites
-  File "${BUILD_DIR}\psutil-5.4.8-cp36-cp36m-win_amd64.whl"
-  ExecWait '"$PYTHON_SCRIPTS\python.exe" -m pip install "$INSTDIR\prerequisites\psutil-5.4.8-cp36-cp36m-win_amd64.whl"'
-
-  # Install pyDes.
-  SetOutPath $INSTDIR\prerequisites
-  File "${BUILD_DIR}\pyDes-2.0.1.tar.gz"
-  ExecWait '"$PYTHON_SCRIPTS\python.exe" -m pip install "$INSTDIR\prerequisites\pyDes-2.0.1.tar.gz"'
+  # Install python packages.
+  ExecWait '"$PYTHON_SCRIPTS\python.exe" -m pip install Markdown PyYAML PyQt5 QScintilla numpy scipy pyshp ruamel.yaml psutil pyDes'
 
   # Install gmsh.
   SetOutPath $INSTDIR
   File /r "${BUILD_DIR}\gmsh"
 
   # Install intersections.
-  SetOutPath $INSTDIR
-  File /r "${GIT_DIR}\submodules\intersections"
+  #SetOutPath $INSTDIR
+  #File /r "${GIT_DIR}\submodules\intersections"
 
   # Install yaml_converter.
   SetOutPath $INSTDIR
