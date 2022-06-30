@@ -21,7 +21,7 @@ SetCompressor /SOLID lzma
 !define DATA_DIR "${GIT_DIR}\data"
 
 !define PYTHON_MAJOR   "3"
-!define PYTHON_MINOR   "6"
+!define PYTHON_MINOR   "10"
 
 # The following are derived from the above.
 !define PYTHON_VERS    "${PYTHON_MAJOR}.${PYTHON_MINOR}"
@@ -148,6 +148,7 @@ Section "Runtime Environment" SecRuntime
   StrCpy $PYTHON_SCRIPTS "$INSTDIR\env\Scripts"
 
   # Install python packages.
+  ExecWait '"$PYTHON_SCRIPTS\python.exe" -m pip install --upgrade pip'
   ExecWait '"$PYTHON_SCRIPTS\python.exe" -m pip install Markdown PyYAML PyQt5 QScintilla numpy scipy pyshp ruamel.yaml psutil pyDes'
 
   # Install gmsh.
