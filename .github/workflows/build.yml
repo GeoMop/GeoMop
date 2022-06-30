@@ -25,7 +25,7 @@ jobs:
     strategy:
       max-parallel: 2
       matrix:
-        environment: ['gnu', 'intel']
+        environment: ['gnu'] #, 'intel']
     steps:
     - name: Checkout
       uses: actions/checkout@v2
@@ -37,8 +37,8 @@ jobs:
         echo $DOCKER_PASSWORD | docker login -u $DOCKER_USER --password-stdin
     - name: Build
       run: |
-        geomop_version=$(sed -n "/^version: */p" version.yml | sed "s/version: //"s)
-        flow123d_version=$(sed -n "/^flow123d_version: */p" version.yml | sed "s/flow123d_version: //"s)
+        geomop_version=$(sed -n "/^version: */p" version.yml | sed "s/version: //")
+        flow123d_version=$(sed -n "/^flow123d_version: */p" version.yml | sed "s/flow123d_version: //")
         result_image=flow123d/geomop-${{ matrix.environment }}:${geomop_version}
         docker build \
         	 --build-arg base_image=flow123d/flow123d-${{ matrix.environment }}:${flow123d_version} \
@@ -77,7 +77,7 @@ jobs:
       - name: Create debian package
         run: |
           mkdir -p dist
-          export VERSION=$(sed -n "/^version: */p" version.yml | sed "s/version: //"s)
+          export VERSION=$(sed -n "/^version: */p" version.yml | sed "s/version: //")
           cd build
           make debian
       - uses: actions/upload-artifact@v1

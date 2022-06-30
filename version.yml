@@ -1,4 +1,7 @@
 version: 2.0.0
+flow123d_version: 3.9.0
+# following should be generated during build
 build:
 date:
-flow123d_version: 3.9.0
+
+

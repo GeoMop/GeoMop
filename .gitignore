@@ -14,10 +14,10 @@ __pycache__/
 # Distribution / packaging
 .Python
 env/
-build/*
-!build/Makefile
-!build/debian
-!build/scripts
+build/conda
+#!build/Makefile
+#!build/debian
+#!build/scripts
 develop-eggs/
 dist/
 downloads/
