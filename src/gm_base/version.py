@@ -28,7 +28,8 @@ class Version:
         """Initializes the class."""
         try:
             yaml = YAML(typ='safe')  # default, if not specfied, is 'rt' (round-trip)
-            content = yaml.load(Version.VERSION_FILE_PATH)
+            with open(Version.VERSION_FILE_PATH, 'r') as f:
+                content = yaml.load(f)
         except FileNotFoundError:
             lines = []
 

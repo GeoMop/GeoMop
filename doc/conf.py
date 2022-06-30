@@ -96,8 +96,9 @@ def get_version():
         os.path.split(os.path.dirname(os.path.realpath(__file__)))[0], 'version.yml')
     try:
         yaml = YAML(typ='safe')  # default, if not specfied, is 'rt' (round-trip)
-        content = yaml.load(version_file_path)
-        return content.version
+        with open(version_file_path, 'r') as f:
+            content = yaml.load(f)
+        return content['version']
     except FileNotFoundError:
         return '0.0.0'
 
