@@ -36,7 +36,6 @@ SetCompressor /SOLID lzma
 
 # Read version information from file.
 #!searchparse /file "${GIT_DIR}\VERSION" '' VERSION ''
-!define VERSION "2.0.0"
 
 Name "GeoMop ${VERSION}"
 Caption "GeoMop ${VERSION} Setup"
