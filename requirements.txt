@@ -1,8 +1,8 @@
-Markdown==2.6.2
+Markdown #==2.6.2
 PyYAML
-numpy==1.22.0
-scipy==0.18.1 # we need exactly this version, because we use modified files from it in calibration
-pyshp==1.2.10
+numpy #==1.22.0
+scipy  # ==18.1 # we need exactly this version, because we use modified files from it in calibration
+pyshp #==1.2.10
 paramiko
 psutil
 pyDes
@@ -14,5 +14,6 @@ plotly
 matplotlib
 bgem
 
-# pip3
-# setuptools
+# documentation build
+sphinx_rtd_theme
+numpydoc
