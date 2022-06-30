@@ -21,7 +21,7 @@ SetCompressor /SOLID lzma
 !define DATA_DIR "${GIT_DIR}\data"
 
 !define PYTHON_MAJOR   "3"
-!define PYTHON_MINOR   "10"
+!define PYTHON_MINOR   "9"
 
 # The following are derived from the above.
 !define PYTHON_VERS    "${PYTHON_MAJOR}.${PYTHON_MINOR}"
@@ -92,8 +92,8 @@ Function .onInit
                   Abort
       InstallPython:
         SetOutPath $INSTDIR\prerequisites
-        File "${BUILD_DIR}\python-3.10.5-amd64.exe"
-        ExecWait 'python-3.10.5-amd64.exe'
+        File "${BUILD_DIR}\python-3.9.13-amd64.exe"
+        ExecWait 'python-3.9.13-amd64.exe'
 
         # Check installation.
         Goto CheckPython
