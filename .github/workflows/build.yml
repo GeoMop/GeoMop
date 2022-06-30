@@ -93,6 +93,7 @@ jobs:
       uses: actions/checkout@v2
     - name: Initialize submodules
       run: |
+        cp .gitmodules_https .gitmodules
         submodules/initialize.sh
     - name: Download prerequisites
       run: |
