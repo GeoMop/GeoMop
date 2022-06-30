@@ -149,7 +149,7 @@ Section "Runtime Environment" SecRuntime
 
   # Install python packages.
   ExecWait '"$PYTHON_SCRIPTS\python.exe" -m pip install --upgrade pip'
-  ExecWait '"$PYTHON_SCRIPTS\python.exe" -m pip install Markdown PyYAML PyQt5 QScintilla numpy scipy pyshp ruamel.yaml psutil pyDes bgem'
+  ExecWait '"$PYTHON_SCRIPTS\python.exe" -m pip install Markdown PyYAML PyQt5 PyQtWebEngine QScintilla numpy scipy pyshp ruamel.yaml psutil pyDes bgem'
 
   # Install gmsh.
   SetOutPath $INSTDIR
