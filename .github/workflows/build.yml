@@ -136,10 +136,10 @@ jobs:
     - name: sphinx build
       run: |
         cd doc && make html
-    - uses: actions/upload-artifact@v1
+    - uses: actions/upload-artifact@v2
       with:
         name: html
-        path: doc/html
+        path: doc/html/
 
   upload:
     #needs: [build-linux, build-windows, build-doc]
