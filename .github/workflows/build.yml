@@ -116,7 +116,7 @@ jobs:
         name: win_install
         path: dist/*
         
-  build_doc:
+  build-doc:
     name: build generated HTML documentation
     runs-on: ubuntu-latest
     steps:
@@ -133,9 +133,8 @@ jobs:
         name: html
         path: doc/html
 
-        
   upload:
-    needs: [build_linux, build_windows, build_doc]
+    needs: [build-linux, build-windows, build-doc]
     name: upload packages and doc to astra storage
     runs-on: ubuntu-latest
     steps:
