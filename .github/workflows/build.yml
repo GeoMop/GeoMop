@@ -75,7 +75,7 @@ jobs:
       - name: Install packages
         run: |
           sudo apt-get update
-          sudo apt-get install -y debhelper devscripts
+          sudo apt-get install -y debhelper devscripts build-essential lintian
       - name: Create debian package
         run: |
           mkdir -p dist
@@ -110,11 +110,11 @@ jobs:
         export VERSION=$(sed -n "/^version: */p" version.yml | sed "s/version: //")
         docker run -i -u $(id -u):$(id -u) -v $(pwd):/nsis-project flow123d/nsis-3.05-1 -DVERSION=$VERSION /nsis-project/build/windows/win_x86.nsi
         # Use an NSIS Docker image, no sources available
-
+        ls -l dist
     - uses: actions/upload-artifact@v1
       with:
         name: win_install
-        path: dist/*
+        path: dist/geomop_2.0.0_x86_64.exe
         
   build-doc:
     name: build generated HTML documentation
@@ -125,6 +125,12 @@ jobs:
     - name: Initialize submodules
       run: |
         submodules/initialize.sh
+    - name: Set up Python
+      uses: actions/setup-python@v1
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
     - name: sphinx build
       run: |
         cd doc && make html

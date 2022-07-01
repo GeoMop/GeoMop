@@ -135,3 +135,7 @@ testing/Geometry/test_data/*.geo
 
 # Temporary rule, remove whole conda experiments as we are sure that we use just docker.
 tools/conda
+
+build/debian/changelog
+build/geomop-*/
+build/geomop_*
