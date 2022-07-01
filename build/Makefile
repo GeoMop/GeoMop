@@ -14,7 +14,7 @@ clean: version
 
 copy: clean
 	mkdir $(PKGDIR)
-	cp -t $(PKGDIR)/ $(GITDIR)/CHANGELOG.md $(GITDIR)/VERSION $(GITDIR)/requirements.txt
+	cp -t $(PKGDIR)/ $(GITDIR)/changes.md $(GITDIR)/version.yml $(GITDIR)/requirements.txt
 	mkdir $(PKGDIR)/sample
 	mkdir $(PKGMESAMPLEDIR)
 	cp -r $(GITMESAMPLEDIR)/ConFiles $(PKGMESAMPLEDIR)
