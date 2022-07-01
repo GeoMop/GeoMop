@@ -59,13 +59,13 @@ modules.ME.rst:
 modules.JP.rst:
 	sphinx-apidoc -fo ./aut/JobPanel -s .rstb ../src/JobPanel/
 
-modules.common.rst:
-	sphinx-apidoc -fo ./aut/common -s .rstd ../src/common/
+modules.gm_base.rst:
+	sphinx-apidoc -fo ./aut/gm_base -s .rstd ../src/gm_base
 
 modules.AN.rst:
 	sphinx-apidoc -fo ./aut/Analysis -s .rste ../src/Analysis/
 
-autogen_src: modules.LE.rst modules.common.rst modules.JP.rst modules.ME.rst modules.AN.rst
+autogen_src: modules.LE.rst modules.gm_base.rst modules.JP.rst modules.ME.rst modules.AN.rst
 
 html: autogen_src
 	$(SPHINXBUILD) -b html -t ME $(ALLSPHINXOPTS) $(BUILDDIR)/html
@@ -76,9 +76,9 @@ html: autogen_src
 	cp $(BUILDDIR)/html/py-modindex.html $(BUILDDIR)/html/py-modindexJP.html
 	cp $(BUILDDIR)/html/genindex.html $(BUILDDIR)/html/genindexJP.html
 	rm $(BUILDDIR)/doctrees/environment.pickle
-	$(SPHINXBUILD) -b html -t common $(ALLSPHINXOPTS) $(BUILDDIR)/html
-	cp $(BUILDDIR)/html/py-modindex.html $(BUILDDIR)/html/py-modindexCommon.html
-	cp $(BUILDDIR)/html/genindex.html $(BUILDDIR)/html/genindexCommon.html
+	$(SPHINXBUILD) -b html -t gm_base $(ALLSPHINXOPTS) $(BUILDDIR)/html
+	cp $(BUILDDIR)/html/py-modindex.html $(BUILDDIR)/html/py-modindexGMBase.html
+	cp $(BUILDDIR)/html/genindex.html $(BUILDDIR)/html/genindexGMBase.html
 	rm $(BUILDDIR)/doctrees/environment.pickle
 	$(SPHINXBUILD) -b html -t AN $(ALLSPHINXOPTS) $(BUILDDIR)/html
 	cp $(BUILDDIR)/html/py-modindex.html $(BUILDDIR)/html/py-modindexAN.html
