@@ -5,15 +5,16 @@ name: GeoMop - Build installations
 # - GeoMop Windows installation
 
 on:
-  push:
-    branches:
-      - main
-      # Release branches
-      - "[0-9]+.[0-9]+.X"  
-  pull_request:
-    branches:
-      - main
-      - "[0-9]+.[0-9]+.X"
+  [push]
+  #push:
+    #branches:
+      #- master
+      #Release branches
+      #- "[0-9]+.[0-9]+.X"  
+  #pull_request:
+    #branches:
+      #- master
+      #- "[0-9]+.[0-9]+.X"
 env:
   DOCKER_USER: ${{secrets.DOCKER_HUB_FLOW123D_USERNAME}}
   DOCKER_PASSWORD: ${{secrets.DOCKER_HUB_FLOW123D_TOKEN}}
