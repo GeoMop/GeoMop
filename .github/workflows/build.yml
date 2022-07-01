@@ -5,10 +5,16 @@ name: GeoMop - Build installations
 # - GeoMop Windows installation
 
 on:
-  push:
-#    branches:
-#      - release*
-
+  [push]
+  #push:
+    #branches:
+      #- master
+      #Release branches
+      #- "[0-9]+.[0-9]+.X"  
+  #pull_request:
+    #branches:
+      #- master
+      #- "[0-9]+.[0-9]+.X"
 env:
   DOCKER_USER: ${{secrets.DOCKER_HUB_FLOW123D_USERNAME}}
   DOCKER_PASSWORD: ${{secrets.DOCKER_HUB_FLOW123D_TOKEN}}
@@ -20,7 +26,7 @@ env:
       
 jobs:
   build-images:
-    name: build GeoMop docker images
+    name: build GeoMop docker images and upload to DockerHub
     runs-on: ubuntu-latest
     strategy:
       max-parallel: 2
@@ -46,20 +52,16 @@ jobs:
              build/dockerfiles
         docker push ${result_image}
 
-        make flow-dev-${{ matrix.environment }}
-        make img-install-${{ matrix.environment }}
-        make push-${{ matrix.environment }}
-
     - name: Read images_version file
       id: getversion
       run: echo "::set-output name=version::$(cat images_version)"
-    - name: Release
-      uses: avakar/tag-and-release@v1
-      with:
-          tag_name: v${{ steps.getversion.outputs.version }}
-          release_name: release_${{ steps.getversion.outputs.version }}
-      env:
-          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+    #- name: Release
+      #uses: avakar/tag-and-release@v1
+      #with:
+          #tag_name: v${{ steps.getversion.outputs.version }}
+          #release_name: release_${{ steps.getversion.outputs.version }}
+      #env:
+          #GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
 
   build-linux:
     name: build GeoMop Debian installaion
@@ -83,7 +85,7 @@ jobs:
       - uses: actions/upload-artifact@v1
         with:
           name: lin_install
-          path: dist
+          path: dist/*
 
   build-windows:
     name: build GeoMop Windows installaion
@@ -112,4 +114,65 @@ jobs:
     - uses: actions/upload-artifact@v1
       with:
         name: win_install
+        path: dist/*
+        
+  build_doc:
+    name: build generated HTML documentation
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+    - name: Initialize submodules
+      run: |
+        submodules/initialize.sh
+    - name: sphinx build
+      run: |
+        cd doc && make html
+    - uses: actions/upload-artifact@v1
+      with:
+        name: html
+        path: doc/html
+
+        
+  upload:
+    needs: [build_linux, build_windows, build_doc]
+    name: upload packages and doc to astra storage
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/download-artifact@v2
+      with:
+        name: html
         path: dist
+    - uses: actions/download-artifact@v2
+      with:
+        name: win_install
+        path: dist
+    - uses: actions/download-artifact@v2
+      with:
+        name: linux_install
+        path: dist
+        
+    - run: |
+        ls -l
+        ls -l dist
+        
+    - name: SSH
+      uses: appleboy/scp-action@master
+      with:
+        host: ${{ secrets.SSH_STORAGE_HOST }}
+        username: ${{ secrets.SSH_STORAGE_USER }}
+        #key: ${{ secrets.PUBLISH_KEY }}
+        password: ${{ secrets.SSH_STORAGE_PASS }}
+        #passphrase: ${{ secrets.PUBLISH_PASSPHRASE }}
+        port: 22
+        #source: "publish_${environment}/doxygen, 
+                 #publish_${environment}/flow123d_3.9.0_doc.pdf,
+                 #publish_${environment}/flow123d_3.9.0_linux_install.json,
+                 #publish_${environment}/flow123d_3.9.0_linux_install.tar.gz,
+                 #publish_${environment}/flow123d_3.9.0_windows_install.exe,
+                 #publish_${environment}/flow123d_3.9.0_windows_install.json,
+                 #publish_${environment}/htmldoc,
+                 #publish_${environment}/imagename"
+        source: "${{ steps.vars.outputs.pubdir }}/*"
+        target: "~/geomop_packages/${{ steps.vars.outputs.relver }}"
+        strip_components: 1
