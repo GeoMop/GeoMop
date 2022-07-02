@@ -136,7 +136,7 @@ Section "Runtime Environment" SecRuntime
 
   # Copy LICENSE, CHANGELOG, VERSION.
   File "${GIT_DIR}\version.yml"
-  File "${GIT_DIR}\CHANGELOG.md"
+  File "${GIT_DIR}\changes.md"
   File "${GIT_DIR}\LICENSE"
 
   # Copy documentation
@@ -151,8 +151,8 @@ Section "Runtime Environment" SecRuntime
   ExecWait '"$PYTHON_SCRIPTS\python.exe" -m pip install Markdown PyYAML PyQt5 PyQtWebEngine QScintilla numpy scipy pyshp ruamel.yaml psutil pyDes bgem'
 
   # Install gmsh.
-  SetOutPath $INSTDIR
-  File /r "${BUILD_DIR}\gmsh"
+  #SetOutPath $INSTDIR
+  #File /r "${BUILD_DIR}\gmsh"
 
   # Install intersections.
   #SetOutPath $INSTDIR
