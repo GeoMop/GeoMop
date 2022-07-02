@@ -101,9 +101,9 @@ jobs:
         submodules/initialize.sh
     - name: Download prerequisites
       run: |
-        wget -P build/win_x86 https://geomop.nti.tul.cz/prerequisites/python-3.9.13-amd64.exe
-        wget -P build/win_x86 https://geomop.nti.tul.cz/prerequisites/Geomop 1.1.0 reference guide.pdf
-        wget -P build/win_x86 https://geomop.nti.tul.cz/prerequisites/flow123d_3.0.1_windows_install.exe
+        wget -nv -P build/win_x86 https://geomop.nti.tul.cz/prerequisites/python-3.9.13-amd64.exe
+        wget -nv -P build/win_x86 "https://geomop.nti.tul.cz/prerequisites/Geomop 1.1.0 reference guide.pdf"
+        wget -nv -P build/win_x86 https://geomop.nti.tul.cz/prerequisites/flow123d_3.0.1_windows_install.exe
     - name: Create Windows installer
       run: |
         mkdir -p dist
