@@ -159,10 +159,10 @@ jobs:
       with:
         name: geomop_2.0.0_x86_64.exe
         path: dist
-    - uses: actions/download-artifact@v3
-      with:
-        name: linux_install
-        path: dist
+#    - uses: actions/download-artifact@v3
+#      with:
+#        name: linux_install
+#        path: dist
         
     - run: |
         ls -l
@@ -185,6 +185,6 @@ jobs:
                  #publish_${environment}/flow123d_3.9.0_windows_install.json,
                  #publish_${environment}/htmldoc,
                  #publish_${environment}/imagename"
-        source: "${{ steps.vars.outputs.pubdir }}/*"
+        source: dist/
         target: "~/geomop_packages/${{ steps.vars.outputs.relver }}"
         strip_components: 1
