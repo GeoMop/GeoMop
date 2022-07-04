@@ -76,6 +76,12 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y debhelper devscripts build-essential lintian
+    - name: Set up Python
+      uses: actions/setup-python@v1
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install ruamel.yaml
       - name: Create debian package
         continue-on-error: True
         run: |
@@ -86,7 +92,6 @@ jobs:
       - uses: actions/upload-artifact@v1
         continue-on-error: True
         with:
-          name: lin_install
           path: dist/*
 
   build-windows:
@@ -115,7 +120,6 @@ jobs:
         ls -l dist
     - uses: actions/upload-artifact@v1
       with:
-        name: win_install
         path: dist/geomop_2.0.0_x86_64.exe
         
   build-doc:
@@ -137,9 +141,8 @@ jobs:
       run: |
         cd doc && make html
     - uses: actions/upload-artifact@v2
-      with:
-        name: html
-        path: doc/html/
+      with:        
+        path: doc/_built/html/*
 
   upload:
     #needs: [build-linux, build-windows, build-doc]
@@ -148,15 +151,6 @@ jobs:
     steps:
     - uses: actions/download-artifact@v2
       with:
-        name: html
-        path: dist
-    - uses: actions/download-artifact@v2
-      with:
-        name: win_install
-        path: dist
-    - uses: actions/download-artifact@v2
-      with:
-        name: linux_install
         path: dist
         
     - run: |

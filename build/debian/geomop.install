@@ -1,7 +1,7 @@
 src usr/share/geomop
 sample usr/share/geomop
-VERSION usr/share/geomop
-CHANGELOG.md usr/share/geomop
+version.yml usr/share/geomop
+changes.md usr/share/geomop
 requirements.txt usr/share/geomop
 scripts/geomop-me usr/bin
 scripts/geomop-me.desktop usr/share/applications
