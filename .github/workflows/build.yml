@@ -83,10 +83,9 @@ jobs:
           export VERSION=$(sed -n "/^version: */p" version.yml | sed "s/version: //")
           cd build
           make debian
-      - uses: actions/upload-artifact@v1
-        continue-on-error: True
+      - uses: actions/upload-artifact@v3
         with:
-          #name: lin_install
+          name: lin_install
           path: dist/*
 
   build-windows:
@@ -112,9 +111,9 @@ jobs:
         docker run -i -u $(id -u):$(id -u) -v $(pwd):/nsis-project flow123d/nsis-3.05-1 -DVERSION=$VERSION /nsis-project/build/windows/win_x86.nsi
         # Use an NSIS Docker image, no sources available
         ls -l dist
-    - uses: actions/upload-artifact@v1
+    - uses: actions/upload-artifact@v3
       with:
-        #name: win_install
+        name: win_install
         path: dist/geomop_2.0.0_x86_64.exe
         
   build-doc:
@@ -135,9 +134,9 @@ jobs:
     - name: sphinx build
       run: |
         cd doc && make html
-    - uses: actions/upload-artifact@v2
+    - uses: actions/upload-artifact@v3
       with:
-        #name: html
+        name: html
         path: doc/html/
 
   upload:
