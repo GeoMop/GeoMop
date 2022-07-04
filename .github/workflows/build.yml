@@ -76,6 +76,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y debhelper devscripts build-essential lintian
+          sudo pip3 install ruamel.yaml
       - name: Create debian package
         continue-on-error: True
         run: |
@@ -113,7 +114,7 @@ jobs:
         ls -l dist
     - uses: actions/upload-artifact@v3
       with:
-        name: win_install
+        name: geomop_2.0.0_x86_64.exe
         path: dist/geomop_2.0.0_x86_64.exe
         
   build-doc:
@@ -137,25 +138,25 @@ jobs:
     - uses: actions/upload-artifact@v3
       with:
         name: html
-        path: doc/html/
+        path: doc/_build/html/
 
   upload:
     #needs: [build-linux, build-windows, build-doc]
     name: upload packages and doc to astra storage
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/download-artifact@v2
-#      with:
-#        name: html
-#        path: dist
-#    - uses: actions/download-artifact@v2
-#      with:
-#        name: win_install
-#        path: dist
-#    - uses: actions/download-artifact@v2
-#      with:
-#        name: linux_install
-#        path: dist
+    - uses: actions/download-artifact@v3
+      with:
+        name: html
+        path: dist
+    - uses: actions/download-artifact@v3
+      with:
+        name: geomop_2.0.0_x86_64.exe
+        path: dist
+    - uses: actions/download-artifact@v3
+      with:
+        name: linux_install
+        path: dist
         
     - run: |
         ls -l
