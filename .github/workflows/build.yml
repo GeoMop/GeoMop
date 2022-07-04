@@ -89,9 +89,10 @@ jobs:
           export VERSION=$(sed -n "/^version: */p" version.yml | sed "s/version: //")
           cd build
           make debian
-      - uses: actions/upload-artifact@v1
+      - uses: actions/upload-artifact@v3
         continue-on-error: True
         with:
+          name: lin_install
           path: dist/*
 
   build-windows:
@@ -106,10 +107,9 @@ jobs:
         submodules/initialize.sh
     - name: Download prerequisites
       run: |
-        wget -r -np -nd -nv -R "index.html*" -e robots=off -P build/win_x86 https://geomop.nti.tul.cz/prerequisites/
-        cd build/win_x86
-        unzip gmsh-4.9.1-Windows64.zip
-        mv gmsh-4.9.1-Windows64 gmsh
+        wget -nv -P build/win_x86 https://geomop.nti.tul.cz/prerequisites/python-3.9.13-amd64.exe
+        wget -nv -P build/win_x86 "https://geomop.nti.tul.cz/prerequisites/Geomop 1.1.0 reference guide.pdf"
+        wget -nv -P build/win_x86 https://geomop.nti.tul.cz/prerequisites/flow123d_3.0.1_windows_install.exe
     - name: Create Windows installer
       run: |
         mkdir -p dist
@@ -118,8 +118,9 @@ jobs:
         docker run -i -u $(id -u):$(id -u) -v $(pwd):/nsis-project flow123d/nsis-3.05-1 -DVERSION=$VERSION /nsis-project/build/windows/win_x86.nsi
         # Use an NSIS Docker image, no sources available
         ls -l dist
-    - uses: actions/upload-artifact@v1
+    - uses: actions/upload-artifact@v3
       with:
+        name: geomop_2.0.0_x86_64.exe
         path: dist/geomop_2.0.0_x86_64.exe
         
   build-doc:
@@ -140,17 +141,27 @@ jobs:
     - name: sphinx build
       run: |
         cd doc && make html
-    - uses: actions/upload-artifact@v2
+    - uses: actions/upload-artifact@v3
       with:        
         path: doc/_built/html/*
+        path: doc/_build/html/
 
   upload:
-    #needs: [build-linux, build-windows, build-doc]
+    needs: [build-linux, build-windows, build-doc]
     name: upload packages and doc to astra storage
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/download-artifact@v2
+    - uses: actions/download-artifact@v3
       with:
+        name: html
+        path: dist
+    - uses: actions/download-artifact@v3
+      with:
+        name: geomop_2.0.0_x86_64.exe
+        path: dist
+    - uses: actions/download-artifact@v3
+      with:
+        name: linux_install
         path: dist
         
     - run: |
