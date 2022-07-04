@@ -86,7 +86,7 @@ jobs:
       - uses: actions/upload-artifact@v1
         continue-on-error: True
         with:
-          name: lin_install
+          #name: lin_install
           path: dist/*
 
   build-windows:
@@ -114,7 +114,7 @@ jobs:
         ls -l dist
     - uses: actions/upload-artifact@v1
       with:
-        name: win_install
+        #name: win_install
         path: dist/geomop_2.0.0_x86_64.exe
         
   build-doc:
@@ -137,7 +137,7 @@ jobs:
         cd doc && make html
     - uses: actions/upload-artifact@v2
       with:
-        name: html
+        #name: html
         path: doc/html/
 
   upload:
@@ -146,17 +146,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/download-artifact@v2
-      with:
-        name: html
-        path: dist
-    - uses: actions/download-artifact@v2
-      with:
-        name: win_install
-        path: dist
-    - uses: actions/download-artifact@v2
-      with:
-        name: linux_install
-        path: dist
+#      with:
+#        name: html
+#        path: dist
+#    - uses: actions/download-artifact@v2
+#      with:
+#        name: win_install
+#        path: dist
+#    - uses: actions/download-artifact@v2
+#      with:
+#        name: linux_install
+#        path: dist
         
     - run: |
         ls -l
