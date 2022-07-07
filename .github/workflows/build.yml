@@ -51,6 +51,7 @@ jobs:
              --tag ${result_image} \
              build/dockerfiles
         docker push ${result_image}
+        
 
     - name: Read images_version file
       id: getversion
@@ -154,7 +155,7 @@ jobs:
     - uses: actions/download-artifact@v3
       with:
         name: html
-        path: dist
+        path: dist/html
     - uses: actions/download-artifact@v3
       with:
         name: geomop_2.0.0_x86_64.exe
@@ -164,9 +165,13 @@ jobs:
 #        name: linux_install
 #        path: dist
         
-    - run: |
+    - id: vars
+      run: |
         ls -l
         ls -l dist
+        geomop_version=$(sed -n "/^version: */p" version.yml | sed "s/version: //")
+        echo "::set-output name=relver::${geomop_version}"    
+
         
     - name: SSH
       uses: appleboy/scp-action@master
@@ -185,6 +190,10 @@ jobs:
                  #publish_${environment}/flow123d_3.9.0_windows_install.json,
                  #publish_${environment}/htmldoc,
                  #publish_${environment}/imagename"
-        source: dist/
+        source: |
+           dist/geomop_${{ steps.vars.outputs.relver }}_x86_64.exe
+           html
+           
+        
         target: "~/geomop_packages/${{ steps.vars.outputs.relver }}"
         strip_components: 1
