@@ -46,6 +46,7 @@ jobs:
         geomop_version=$(sed -n "/^version: */p" version.yml | sed "s/version: //")
         flow123d_version=$(sed -n "/^flow123d_version: */p" version.yml | sed "s/flow123d_version: //")
         result_image=flow123d/geomop-${{ matrix.environment }}:${geomop_version}
+        cp version.yml build/dockerfiles
         docker build \
         	 --build-arg base_image=flow123d/flow123d-${{ matrix.environment }}:${flow123d_version} \
              --tag ${result_image} \
