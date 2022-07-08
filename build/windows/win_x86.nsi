@@ -28,6 +28,7 @@ SetCompressor /SOLID lzma
 !define PYTHON_HK      "Software\Python\PythonCore\${PYTHON_VERS}\InstallPath"
 !define PYTHON_HK_64   "Software\Wow6432Node\Python\PythonCore\${PYTHON_VERS}\InstallPath"
 
+!define FLOW_VER "3.9.0"
 
 # Include the tools we use.
 !include MUI2.nsh
@@ -140,8 +141,8 @@ Section "Runtime Environment" SecRuntime
   File "${GIT_DIR}\LICENSE"
 
   # Copy documentation
-  SetOutPath $INSTDIR\doc
-  File "${BUILD_DIR}\Geomop 1.1.0 reference guide.pdf"
+  #SetOutPath $INSTDIR\doc
+  #File "${BUILD_DIR}\Geomop 1.1.0 reference guide.pdf"
 
   # Set the varible with path to python virtual environment scripts.
   StrCpy $PYTHON_SCRIPTS "$INSTDIR\env\Scripts"
@@ -196,8 +197,8 @@ Section "Flow123d" SecFlow
   #SetOutPath "$INSTDIR\flow123d"
   #ExecWait '"$INSTDIR\flow123d\install.bat"'
   SetOutPath $INSTDIR\prerequisites
-  File "${BUILD_DIR}\flow123d_3.0.1_windows_install.exe"
-  ExecShellWait "" '"$INSTDIR\prerequisites\flow123d_3.0.1_windows_install.exe"'
+  File "${BUILD_DIR}\flow123d_${FLOW_VER}_windows_install.exe
+  ExecShellWait "" '"$INSTDIR\prerequisites\flow123d_${FLOW_VER}_windows_install.exe"'
 
 SectionEnd
 
@@ -418,7 +419,7 @@ SectionEnd
 # Section description text.
 !insertmacro MUI_FUNCTION_DESCRIPTION_BEGIN
 !insertmacro MUI_DESCRIPTION_TEXT ${SecRuntime} \
-"The runtime environment for GeoMop - Python 3.6 with PyQt5."
+"The runtime environment for GeoMop - Python  with PyQt5."
 !insertmacro MUI_DESCRIPTION_TEXT ${SecFlow} \
 "Flow123d with support for GeoMop."
 !insertmacro MUI_DESCRIPTION_TEXT ${SecJobsScheduler} \
