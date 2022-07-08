@@ -172,16 +172,24 @@ jobs:
         geomop_version=$(sed -n "/^version: */p" version.yml | sed "s/version: //")
         echo "::set-output name=relver::${geomop_version}"    
 
+    - name: SCP upload to Share        
+      run: |
+          #cd ${{ steps.vars.outputs.pubdir }}
+          relver=${{ steps.vars.outputs.relver }}
+          sshpass -p ${{ secrets.SSH_STORAGE_PASS }} scp -r  \
+            dist/geomop_${relver}_x86_64.exe
+            html
+            ${{ secrets.SSH_STORAGE_USER }}@${{ secrets.SSH_STORAGE_HOST }}:geomop_packages/${relver}
         
-    - name: SSH
-      uses: appleboy/scp-action@master
-      with:
-        host: ${{ secrets.SSH_STORAGE_HOST }}
-        username: ${{ secrets.SSH_STORAGE_USER }}
+    #- name: SSH
+      #uses: appleboy/scp-action@master
+      #with:
+        #host: ${{ secrets.SSH_STORAGE_HOST }}
+        #username: ${{ secrets.SSH_STORAGE_USER }}
         #key: ${{ secrets.PUBLISH_KEY }}
-        password: ${{ secrets.SSH_STORAGE_PASS }}
+        #password: ${{ secrets.SSH_STORAGE_PASS }}
         #passphrase: ${{ secrets.PUBLISH_PASSPHRASE }}
-        port: 22
+        #port: 22
         #source: "publish_${environment}/doxygen, 
                  #publish_${environment}/flow123d_3.9.0_doc.pdf,
                  #publish_${environment}/flow123d_3.9.0_linux_install.json,
@@ -190,10 +198,10 @@ jobs:
                  #publish_${environment}/flow123d_3.9.0_windows_install.json,
                  #publish_${environment}/htmldoc,
                  #publish_${environment}/imagename"
-        source: |
-           dist/geomop_${{ steps.vars.outputs.relver }}_x86_64.exe
-           html
+        #source: |
+           #dist/geomop_${{ steps.vars.outputs.relver }}_x86_64.exe
+           #html
            
         
-        target: "~/geomop_packages/${{ steps.vars.outputs.relver }}"
-        strip_components: 1
+        #target: "~/geomop_packages/${{ steps.vars.outputs.relver }}"
+        #strip_components: 1
