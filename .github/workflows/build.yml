@@ -169,7 +169,8 @@ jobs:
 #        name: linux_install
 #        path: dist
     - uses: actions/download-artifact@v3
-        name: version.yml
+      with:
+        name: version
     - id: vars
       run: |
         ls -l
