@@ -185,7 +185,7 @@ jobs:
           relver=${{ steps.vars.outputs.relver }}
           sshpass -p ${{ secrets.SSH_STORAGE_PASS }} scp -r  \
             dist/geomop_${relver}_x86_64.exe \
-            html \
+            dist/html \
             ${{ secrets.SSH_STORAGE_USER }}@${{ secrets.SSH_STORAGE_HOST }}:geomop_packages/${relver}
         
     #- name: SSH
