@@ -92,6 +92,10 @@ jobs:
           cd build
           make debian
       - uses: actions/upload-artifact@v3
+        with:         
+          name: version
+          path: version.yml
+      - uses: actions/upload-artifact@v3
         continue-on-error: True
         with:
           name: lin_install
@@ -143,7 +147,7 @@ jobs:
       run: |
         cd doc && make html
     - uses: actions/upload-artifact@v3
-      with:        
+      with:  
         name: html
         path: doc/_build/html/
 
@@ -164,7 +168,8 @@ jobs:
 #      with:
 #        name: linux_install
 #        path: dist
-        
+    - uses: actions/download-artifact@v3
+        name: version.yml
     - id: vars
       run: |
         ls -l
