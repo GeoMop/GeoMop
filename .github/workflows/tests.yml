@@ -13,7 +13,7 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-
+    # TODO: use testing/metacentrum/install.sh
     - name: Initialize submodules
       run: |
         cp .gitmodules_https .gitmodules
@@ -59,11 +59,11 @@ jobs:
         git clone https://github.com/GeoMop/GeoMop.git &&
         cd GeoMop &&
         git checkout $GITHUB_SHA &&
-        bash ./tools/meta_install/test_install.sh"
+        bash ./testing/metacentrum/test_install.sh"
 
     - name: Run tests
       run: |
-        echo "metacentrum:${{secrets.METACENTRUM_USERNAME}}:${{secrets.METACENTRUM_PASSWORD}}" > ~/.ssh/passwords
+        #echo "metacentrum:${{secrets.METACENTRUM_USERNAME}}:${{secrets.METACENTRUM_PASSWORD}}" > ~/.ssh/passwords
         pip install pytest pytest-qt
         cd testing
         pytest

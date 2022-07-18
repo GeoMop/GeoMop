@@ -1,7 +1,9 @@
 GITDIR=..
 PKGNAME=geomop
 
-PKGDIR=$(PKGNAME)-$$VERSION
+VERSION=$(shell python update_version.py)
+
+PKGDIR=$(PKGNAME)-${VERSION}
 
 PKGMESAMPLEDIR=$(PKGDIR)/sample/ModelEditor
 GITMESAMPLEDIR=$(GITDIR)/sample/ModelEditor
@@ -12,7 +14,7 @@ clean: version
 
 copy: clean
 	mkdir $(PKGDIR)
-	cp -t $(PKGDIR)/ $(GITDIR)/CHANGELOG.md $(GITDIR)/VERSION $(GITDIR)/requirements.txt
+	cp -t $(PKGDIR)/ $(GITDIR)/changes.md $(GITDIR)/version.yml $(GITDIR)/requirements.txt
 	mkdir $(PKGDIR)/sample
 	mkdir $(PKGMESAMPLEDIR)
 	cp -r $(GITMESAMPLEDIR)/ConFiles $(PKGMESAMPLEDIR)
@@ -37,11 +39,9 @@ debian: orig
 	mv *.deb $(GITDIR)/dist
 
 version:
-	echo $$VERSION > $(GITDIR)/VERSION
-	git rev-parse HEAD >> $(GITDIR)/VERSION
-	date -R >> $(GITDIR)/VERSION
-	sed -i "1s/.*/Version: $$VERSION/" debian/control
-	echo "geomop ($$VERSION-1) UNRELEASED; urgency=medium" > debian/changelog
+	#echo $(VERSION)
+	#cat debian/control_template | sed "1s/.*/Version: $(VERSION)/" > debian/control
+	echo "geomop ($(VERSION)) UNRELEASED; urgency=medium" > debian/changelog
 	echo "\n  * Release." >> debian/changelog
-	echo "\n -- Tomas Krizek <tomas.krizek1@tul.cz>  $$(date -R)" >> debian/changelog
+	echo "\n -- Jan Březina <jan.brezina@tul.cz>  $$(date -R)" >> debian/changelog
 

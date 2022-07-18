@@ -4,7 +4,7 @@
 # You can set these variables from the command line.
 SPHINXOPTS    =
 SPHINXBUILD   = sphinx-build
-PAPER         =
+PAPER         = a4
 BUILDDIR      = _build
 
 # User-friendly check for sphinx-build
@@ -46,9 +46,12 @@ help:
 	@echo "  linkcheck  to check all external links for integrity"
 	@echo "  doctest    to run all doctests embedded in the documentation (if enabled)"
 
+	
+	
 clean:
-	rm -rf $(BUILDDIR)/*
-	rm -rf aut/* 
+	rm -rf $(BUILDDIR)
+	rm -rf aut 
+
 
 modules.LE.rst:
 	sphinx-apidoc -fo ./aut/LayerEditor -s .rsta ../src/LayerEditor/
@@ -59,35 +62,40 @@ modules.ME.rst:
 modules.JP.rst:
 	sphinx-apidoc -fo ./aut/JobPanel -s .rstb ../src/JobPanel/
 
-modules.common.rst:
-	sphinx-apidoc -fo ./aut/common -s .rstd ../src/common/
+modules.gm_base.rst:
+	sphinx-apidoc -fo ./aut/gm_base -s .rstd ../src/gm_base
 
 modules.AN.rst:
 	sphinx-apidoc -fo ./aut/Analysis -s .rste ../src/Analysis/
 
-autogen_src: modules.LE.rst modules.common.rst modules.JP.rst modules.ME.rst modules.AN.rst
+autogen_src: modules.LE.rst modules.gm_base.rst modules.JP.rst modules.ME.rst modules.AN.rst
 
 html: autogen_src
 	$(SPHINXBUILD) -b html -t ME $(ALLSPHINXOPTS) $(BUILDDIR)/html
-	cp $(BUILDDIR)/html/py-modindex.html $(BUILDDIR)/html/py-modindexME.html
-	cp $(BUILDDIR)/html/genindex.html $(BUILDDIR)/html/genindexME.html
-	rm $(BUILDDIR)/doctrees/environment.pickle
+	#cp $(BUILDDIR)/html/py-modindex.html $(BUILDDIR)/html/py-modindexME.html
+	#cp $(BUILDDIR)/html/genindex.html $(BUILDDIR)/html/genindexME.html
+	#rm $(BUILDDIR)/doctrees/environment.pickle
+	
 	$(SPHINXBUILD) -b html -t JP $(ALLSPHINXOPTS) $(BUILDDIR)/html
-	cp $(BUILDDIR)/html/py-modindex.html $(BUILDDIR)/html/py-modindexJP.html
-	cp $(BUILDDIR)/html/genindex.html $(BUILDDIR)/html/genindexJP.html
-	rm $(BUILDDIR)/doctrees/environment.pickle
-	$(SPHINXBUILD) -b html -t common $(ALLSPHINXOPTS) $(BUILDDIR)/html
-	cp $(BUILDDIR)/html/py-modindex.html $(BUILDDIR)/html/py-modindexCommon.html
-	cp $(BUILDDIR)/html/genindex.html $(BUILDDIR)/html/genindexCommon.html
-	rm $(BUILDDIR)/doctrees/environment.pickle
+	#cp $(BUILDDIR)/html/py-modindex.html $(BUILDDIR)/html/py-modindexJP.html
+	#cp $(BUILDDIR)/html/genindex.html $(BUILDDIR)/html/genindexJP.html
+	#rm $(BUILDDIR)/doctrees/environment.pickle
+	
+	$(SPHINXBUILD) -b html -t gm_base $(ALLSPHINXOPTS) $(BUILDDIR)/html
+	#cp $(BUILDDIR)/html/py-modindex.html $(BUILDDIR)/html/py-modindexGMBase.html
+	#cp $(BUILDDIR)/html/genindex.html $(BUILDDIR)/html/genindexGMBase.html
+	#rm $(BUILDDIR)/doctrees/environment.pickle
+	
 	$(SPHINXBUILD) -b html -t AN $(ALLSPHINXOPTS) $(BUILDDIR)/html
-	cp $(BUILDDIR)/html/py-modindex.html $(BUILDDIR)/html/py-modindexAN.html
-	cp $(BUILDDIR)/html/genindex.html $(BUILDDIR)/html/genindexAN.html
-	rm $(BUILDDIR)/doctrees/environment.pickle
+	#cp $(BUILDDIR)/html/py-modindex.html $(BUILDDIR)/html/py-modindexAN.html
+	#cp $(BUILDDIR)/html/genindex.html $(BUILDDIR)/html/genindexAN.html
+	#rm $(BUILDDIR)/doctrees/environment.pickle
+	
 	$(SPHINXBUILD) -b html -t LE $(ALLSPHINXOPTS) $(BUILDDIR)/html
-	cp $(BUILDDIR)/html/py-modindex.html $(BUILDDIR)/html/py-modindexLE.html
-	cp $(BUILDDIR)/html/genindex.html $(BUILDDIR)/html/genindexLE.html
-	rm $(BUILDDIR)/doctrees/environment.pickle
+	#cp $(BUILDDIR)/html/py-modindex.html $(BUILDDIR)/html/py-modindexLE.html
+	#cp $(BUILDDIR)/html/genindex.html $(BUILDDIR)/html/genindexLE.html
+	#rm $(BUILDDIR)/doctrees/environment.pickle
+	
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html
 	@echo
 	@echo "Build finished. The HTML pages are in $(BUILDDIR)/html."

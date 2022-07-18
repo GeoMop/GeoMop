@@ -18,7 +18,7 @@ class InfoTextGenerator:
     @classmethod
     def init(cls, json_text):
         """Initializes the class with format information."""
-        data = json.loads(json_text, encoding="utf-8")
+        data = json.loads(json_text)
         assert 'ist_nodes' in data
         for item in data['ist_nodes']:
             if 'id' in item:

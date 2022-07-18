@@ -46,11 +46,13 @@ jobs:
         geomop_version=$(sed -n "/^version: */p" version.yml | sed "s/version: //")
         flow123d_version=$(sed -n "/^flow123d_version: */p" version.yml | sed "s/flow123d_version: //")
         result_image=flow123d/geomop-${{ matrix.environment }}:${geomop_version}
+        cp version.yml build/dockerfiles
         docker build \
         	 --build-arg base_image=flow123d/flow123d-${{ matrix.environment }}:${flow123d_version} \
              --tag ${result_image} \
              build/dockerfiles
         docker push ${result_image}
+        
 
     - name: Read images_version file
       id: getversion
@@ -75,14 +77,26 @@ jobs:
       - name: Install packages
         run: |
           sudo apt-get update
-          sudo apt-get install -y debhelper devscripts
+          sudo apt-get install -y debhelper devscripts build-essential lintian
+      - name: Set up Python
+        uses: actions/setup-python@v1
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install ruamel.yaml
       - name: Create debian package
+        continue-on-error: True
         run: |
           mkdir -p dist
           export VERSION=$(sed -n "/^version: */p" version.yml | sed "s/version: //")
           cd build
           make debian
-      - uses: actions/upload-artifact@v1
+      - uses: actions/upload-artifact@v3
+        with:         
+          name: version
+          path: version.yml
+      - uses: actions/upload-artifact@v3
+        continue-on-error: True
         with:
           name: lin_install
           path: dist/*
@@ -95,26 +109,26 @@ jobs:
       uses: actions/checkout@v2
     - name: Initialize submodules
       run: |
+        cp .gitmodules_https .gitmodules
         submodules/initialize.sh
     - name: Download prerequisites
       run: |
-        wget -r -np -nd -nv -R "index.html*" -e robots=off -P build/win_x86 https://geomop.nti.tul.cz/prerequisites/
-        cd build/win_x86
-        unzip gmsh-3.0.5-Windows64.zip
-        mv gmsh-3.0.5-Windows gmsh
+        wget -nv -P build/win_x86 https://geomop.nti.tul.cz/prerequisites/python-3.9.13-amd64.exe
+        wget -nv -P build/win_x86 http://flow.nti.tul.cz/packages/3.9.0/flow123d_3.9.0_windows_install.exe
     - name: Create Windows installer
       run: |
         mkdir -p dist
         docker pull flow123d/nsis-3.05-1:latest
-        docker run -i -u $(id -u):$(id -u) -v $(pwd)/build/windows:/nsis-project flow123d/nsis-3.05-1 /nsis-project/win_x86.nsi
+        export VERSION=$(sed -n "/^version: */p" version.yml | sed "s/version: //")
+        docker run -i -u $(id -u):$(id -u) -v $(pwd):/nsis-project flow123d/nsis-3.05-1 -DVERSION=$VERSION /nsis-project/build/windows/win_x86.nsi
         # Use an NSIS Docker image, no sources available
-
-    - uses: actions/upload-artifact@v1
+        ls -l dist
+    - uses: actions/upload-artifact@v3
       with:
-        name: win_install
-        path: dist/*
+        name: geomop_2.0.0_x86_64.exe
+        path: dist/geomop_2.0.0_x86_64.exe
         
-  build_doc:
+  build-doc:
     name: build generated HTML documentation
     runs-on: ubuntu-latest
     steps:
@@ -123,46 +137,66 @@ jobs:
     - name: Initialize submodules
       run: |
         submodules/initialize.sh
+    - name: Set up Python
+      uses: actions/setup-python@v1
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
     - name: sphinx build
       run: |
         cd doc && make html
-    - uses: actions/upload-artifact@v1
-      with:
+    - uses: actions/upload-artifact@v3
+      with:  
         name: html
-        path: doc/html
+        path: doc/_build/html/
 
-        
   upload:
-    needs: [build_linux, build_windows, build_doc]
+    needs: [build-linux, build-windows, build-doc]
     name: upload packages and doc to astra storage
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/download-artifact@v2
+    - uses: actions/download-artifact@v3
       with:
         name: html
-        path: dist
-    - uses: actions/download-artifact@v2
+        path: dist/html
+    - uses: actions/download-artifact@v3
       with:
-        name: win_install
+        name: geomop_2.0.0_x86_64.exe
         path: dist
-    - uses: actions/download-artifact@v2
+#    - uses: actions/download-artifact@v3
+#      with:
+#        name: linux_install
+#        path: dist
+    - uses: actions/download-artifact@v3
       with:
-        name: linux_install
-        path: dist
-        
-    - run: |
+        name: version
+    - id: vars
+      run: |
         ls -l
         ls -l dist
+        geomop_version=$(sed -n "/^version: */p" version.yml | sed "s/version: //")
+        echo "::set-output name=relver::${geomop_version}"    
+
+    - name: SCP upload to Share        
+      run: |
+          ls -l
+          #cd ${{ steps.vars.outputs.pubdir }}
+          relver=${{ steps.vars.outputs.relver }}
+          sshpass -p ${{ secrets.SSH_STORAGE_PASS }} scp -r -o StrictHostKeyChecking=no \
+            dist/geomop_${relver}_x86_64.exe \
+            dist/html \
+            ${{ secrets.SSH_STORAGE_USER }}@${{ secrets.SSH_STORAGE_HOST }}:geomop_packages/${relver}
         
-    - name: SSH
-      uses: appleboy/scp-action@master
-      with:
-        host: ${{ secrets.SSH_STORAGE_HOST }}
-        username: ${{ secrets.SSH_STORAGE_USER }}
+    #- name: SSH
+      #uses: appleboy/scp-action@master
+      #with:
+        #host: ${{ secrets.SSH_STORAGE_HOST }}
+        #username: ${{ secrets.SSH_STORAGE_USER }}
         #key: ${{ secrets.PUBLISH_KEY }}
-        password: ${{ secrets.SSH_STORAGE_PASS }}
+        #password: ${{ secrets.SSH_STORAGE_PASS }}
         #passphrase: ${{ secrets.PUBLISH_PASSPHRASE }}
-        port: 22
+        #port: 22
         #source: "publish_${environment}/doxygen, 
                  #publish_${environment}/flow123d_3.9.0_doc.pdf,
                  #publish_${environment}/flow123d_3.9.0_linux_install.json,
@@ -171,6 +205,10 @@ jobs:
                  #publish_${environment}/flow123d_3.9.0_windows_install.json,
                  #publish_${environment}/htmldoc,
                  #publish_${environment}/imagename"
-        source: "${{ steps.vars.outputs.pubdir }}/*"
-        target: "~/geomop_packages/${{ steps.vars.outputs.relver }}"
-        strip_components: 1
+        #source: |
+           #dist/geomop_${{ steps.vars.outputs.relver }}_x86_64.exe
+           #html
+           
+        
+        #target: "~/geomop_packages/${{ steps.vars.outputs.relver }}"
+        #strip_components: 1
