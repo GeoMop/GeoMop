@@ -225,18 +225,6 @@ Section "Analysis" SecAnalysis
 SectionEnd
 
 
-Section "Geometry" SecGeometry
-
-  # Section is mandatory.
-  SectionIn RO
-
-  RMDir /r "$INSTDIR\Geometry"
-  SetOutPath $INSTDIR
-  File /r /x *~ /x __pycache__ /x pylintrc /x *.pyc "${SRC_DIR}\Geometry"
-
-SectionEnd
-
-
 Section "JobPanel" SecJobPanel
 
   # Section is mandatory.
@@ -309,11 +297,11 @@ Section "-Batch files" SecBatchFiles
     FileWrite $0 '"$PYTHON_SCRIPTS\python.exe" "$INSTDIR\ModelEditor\model_editor.py" %*$\r$\n'
     FileClose $0
 
-  IfFileExists "$INSTDIR\Geometry\geometry.py" 0 +6
+  IfFileExists "$INSTDIR\LayerEditor\geometry.py" 0 +6
     FileOpen $0 "geometry.bat" w
     FileWrite $0 "@echo off$\r$\n"
     FileWrite $0 'set "PYTHONPATH=$INSTDIR"$\r$\n'
-    FileWrite $0 '"$PYTHON_SCRIPTS\python.exe" "$INSTDIR\Geometry\geometry.py" %*$\r$\n'
+    FileWrite $0 '"$PYTHON_SCRIPTS\python.exe" "$INSTDIR\LayerEditor\geometry.py" %*$\r$\n'
     FileClose $0
 
   IfFileExists "$INSTDIR\gmsh\gmsh.exe" 0 +5
@@ -426,8 +414,6 @@ SectionEnd
 "Remove jobs scheduler."
 !insertmacro MUI_DESCRIPTION_TEXT ${SecAnalysis} \
 "Module Analysis."
-!insertmacro MUI_DESCRIPTION_TEXT ${SecGeometry} \
-"Module Geometry."
 !insertmacro MUI_DESCRIPTION_TEXT ${SecJobPanel} \
 "The job panel."
 !insertmacro MUI_DESCRIPTION_TEXT ${SecLayerEditor} \
