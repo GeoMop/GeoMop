@@ -1,5 +1,5 @@
 from LayerEditor.ui.data.abstract_item import AbstractItem
-from gm_base.polygons import polygons_io
+from LayerEditor import polygons_io
 from bgem.polygons.polygons import PolygonDecomposition
 
 from LayerEditor.ui.tools import undo
