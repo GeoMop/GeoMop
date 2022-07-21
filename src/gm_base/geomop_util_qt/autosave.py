@@ -7,11 +7,13 @@ import psutil
 import codecs
 import time
 from PyQt5 import QtCore, QtWidgets
+from LayerEditor.data import cfg
+from LayerEditor.ui.tools import undo
 
 
 class Autosave:
 
-    AUTOSAVE_INTERVAL = 1000
+    AUTOSAVE_INTERVAL = 5000
     # in miliseconds
     DEFAULT_FILENAME = "Untitled.yaml"
 
@@ -23,8 +25,9 @@ class Autosave:
         """
         self.curr_filename_fnc = curr_filename_fnc
         self.text = string_to_save_fnc
-        self.content_hash = None
+        self.content_hash = hash(self.text())
         self.autosave_timer = QtCore.QTimer()
+        self.savepoint = None
         """timer for periodical saving"""
         #self.autosave_timer.setSingleShot(True)
         self.autosave_timer.timeout.connect(self._autosave)
@@ -49,12 +52,15 @@ class Autosave:
 
     def _autosave(self):
         """Periodically saves specified string (current file)."""
-        content = self.text()
-        content_hash = hash(content)
-        if self.content_hash != content_hash:
-            self.content_hash = content_hash
-            with codecs.open(self.backup_filename(), 'w', 'utf-8') as file_d:
-                file_d.write(content)
+        if undo.has_changed(self.savepoint):
+            cfg.save()
+            content = self.text()
+            content_hash = hash(content)
+            self.savepoint = undo.stack()._undos[-1]
+            if self.content_hash != content_hash:
+                self.content_hash = content_hash
+                with codecs.open(self.backup_filename(), 'w', 'utf-8') as file_d:
+                    file_d.write(content)
 
     def restore_backup(self):
         """When new file is opened, check if there is backup file and ask user if it should be recovered.
@@ -88,3 +94,6 @@ class Autosave:
 
     def start_autosave(self):
         self.autosave_timer.start(self.AUTOSAVE_INTERVAL)
+
+    def update_content(self):
+        self.content_hash = hash(self.text())

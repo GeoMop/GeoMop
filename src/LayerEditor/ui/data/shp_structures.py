@@ -5,6 +5,7 @@ import struct
 import os
 import os.path
 
+
 class ShpLine():
     """
     Line from shape file 
@@ -54,7 +55,8 @@ class ShpData():
         self.min = None
         self.max = None
 
-class ShpDisp():
+
+class ShapeItem():
     """
     Shape file displayed settings.
     """
@@ -79,8 +81,7 @@ class ShpDisp():
         ]
         
     _last_color = -1
-    
-    
+
     def __init__(self, file):
         self.file = file
         """paths to shp file"""
@@ -301,52 +302,54 @@ class ShpDisp():
         self.refreshed = False
         
 
-class ShpFiles():
+class ShapesModel:
     """
     Shape files, that is displazed in background.
     """
-    def __init__(self):
-        self.datas = []
+    def __init__(self, model_data):
+        self.shapes = []
         """Data for shp files"""
         self.boundrect = None
         """shape file bounding rect in QRectF variable or None"""
+        self.deserialize(model_data)
     
     def _shp_rect(self):
         """compute shape file bounding rect"""
         rec = None
-        for shp in self.datas:
+        for shp in self.shapes:
             if rec is None:
                 rec = QtCore.QRectF(shp.shpdata.min, shp.shpdata.max)
             else:
-                rec = rec.united(QtCore.QRectF(shp.shpdata.min, shp.shpdata.max))                
+                rec = rec.united(QtCore.QRectF(shp.shpdata.min, shp.shpdata.max))
         return rec
     
     def is_empty(self):
         """Is set some shapefile"""
-        return len(self.datas)==0
+        return len(self.shapes) == 0
         
     def is_file_open(self, file):
         """Is shapefile already opened"""
-        for data in self.datas:
+        for data in self.shapes:
             if data.file == file:
                 return True
         return False
         
     def add_file(self, file):
         """Add new shapefile"""
-        disp = ShpDisp(file)         
-        self.datas.append(disp) 
+        disp = ShapeItem(file)
+        self.shapes.append(disp)
         self.boundrect = self._shp_rect()
         return disp
 
     def del_file(self, idx):
         """Delete existing shapefile according to file index"""
-        del self.datas[idx]
+        del self.shapes[idx]
         self.boundrect = self._shp_rect()
         
     def serialize(self):
         """Set shp persistent variable to dictionary"""
-        for disp in self.datas:
+        result = []
+        for disp in self.shapes:
             shp = {}
             shp['file'] = disp.file
             shp['attr'] = disp.attr
@@ -356,7 +359,8 @@ class ShpFiles():
             for i in range(0, len(disp.av_show)):
                 shp['show'].append(disp.av_show[i])
                 shp['highlight'].append(disp.av_highlight[i])
-            yield shp
+            result.append(shp)
+        return result
         
     def deserialize(self, shps):
         """Get shp persistent variable from dictionary"""
@@ -370,3 +374,4 @@ class ShpFiles():
                     if i<len(shp['show'] ):
                         disp.set_show(i, shp['show'] [i])
                         disp.set_highlight(i, shp['highlight'][i])
+

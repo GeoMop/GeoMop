@@ -1,5 +1,5 @@
 import sys
-#print("PPATH: ", sys.path)
+
 import bgem.bspline.bspline as bs
 import gm_base.geometry_files.format_last as gs
 
