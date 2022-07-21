@@ -20,7 +20,7 @@ this_source_dir = os.path.dirname(os.path.realpath(__file__))
 #     if str.startswith(prefix):
 #         return str[len(prefix):]
 #     return str
-import Geometry.geometry as geometry
+import LayerEditor.geometry as geometry
 
 
 def float_line_cmp(l1, l2, tol=1e-6):

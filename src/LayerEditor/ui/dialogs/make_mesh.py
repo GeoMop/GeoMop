@@ -106,7 +106,7 @@ class MakeMeshDlg(QtWidgets.QDialog):
             cmd = geometry_bat
         else:
             cmd = "python3"
-            args.append(os.path.join(cfg.geomop_root, "Geometry", "geometry.py"))
+            args.append(os.path.join(cfg.geomop_root, "LayerEditor", "geometry.py"))
         if self._step_checkbox.isChecked():
             args.append("--mesh-step")
             args.append(self._step_edit.text())
