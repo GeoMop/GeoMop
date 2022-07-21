@@ -1,5 +1,5 @@
 import gm_base.geometry_files.bspline_io as bspline_io
-import bspline as bs
+import bgem.bspline.bspline as bs
 import numpy as np
 
 def test_bspline_io():

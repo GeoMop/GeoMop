@@ -8,6 +8,7 @@ from Analysis.pipeline.pipeline_processor import *
 import Analysis.pipeline.action_types as action
 from .pomfce import *
 import shutil
+import pytest
 
 
 this_source_dir = os.path.dirname(os.path.realpath(__file__))
@@ -90,6 +91,7 @@ def test_calibration_termination_criteria():
     assert tt(t, m) == 3
 
 
+@pytest.mark.skip
 def test_calibration(request, change_dir_back):
     def clear_backup():
         shutil.rmtree("backup", ignore_errors=True)
