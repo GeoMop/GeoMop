@@ -33,9 +33,7 @@ python -m venv "$GEOMOP_INST/env"
 
 
 echo "Upgrading pip..."
-# Don't working
-#"$GEOMOP_INST/env/bin/pip" install --upgrade pip
-"$GEOMOP_INST/env/bin/easy_install" -U pip
+"$GEOMOP_INST/env/bin/pip" install --upgrade pip
 
 
 echo "Instaling python packages..."
@@ -90,7 +88,7 @@ done
 
 
 echo "Creating installation.json..."
-GEOMOP_VER=$(head -n 1 "$CWD/../../VERSION")
+GEOMOP_VER=$(sed -n "/^version: */p" "$CWD/../../version.yml" | sed "s/version: //")
 GEOMOP_REV=$(git rev-parse HEAD)
 cat > "$GEOMOP_INST/installation.json.tmp" << EOF
 {
