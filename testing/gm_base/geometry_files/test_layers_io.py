@@ -22,7 +22,7 @@ class TestGeometryStructures:
         """
         # normalize reference file
         with open(f_ref) as f:
-            data = json.loads(f.read(), encoding="utf-8")
+            data = json.loads(f.read())
         with open(f_ref, 'w') as f:
             json.dump(data, f, indent=4, sort_keys=True)
 

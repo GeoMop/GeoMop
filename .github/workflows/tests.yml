@@ -63,7 +63,7 @@ jobs:
 
     - name: Run tests
       run: |
-        #echo "metacentrum:${{secrets.METACENTRUM_USERNAME}}:${{secrets.METACENTRUM_PASSWORD}}" > ~/.ssh/passwords
+        echo "metacentrum:${{secrets.METACENTRUM_USERNAME}}:${{secrets.METACENTRUM_PASSWORD}}" > ~/.ssh/passwords
         pip install pytest pytest-qt
         cd testing
         pytest
