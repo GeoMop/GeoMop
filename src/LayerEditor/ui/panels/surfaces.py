@@ -66,7 +66,8 @@ class SurfFormData(GL.Surface):
             self.__dict__[key] = val
         self._idx = idx
         try:
-            self._approx_maker = ba.SurfaceApprox.approx_from_file(self.grid_file, self.file_delimiter, self.file_skip_lines)
+            surf_point_set = ba.SurfacePointSet.from_file(self.grid_file, self.file_delimiter, self.file_skip_lines)
+            self._approx_maker = ba.SurfaceApprox(surf_point_set)
         except:
             return None
 
@@ -77,10 +78,10 @@ class SurfFormData(GL.Surface):
         return self
 
     def init_from_file(self, file):
-        self._approx_maker = ba.SurfaceApprox.approx_from_file(file, self.file_delimiter,
-                                                               self.file_skip_lines)
+        surf_point_set = ba.SurfacePointSet.from_file(file, self.file_delimiter, self.file_skip_lines)
+        self._approx_maker = ba.SurfaceApprox(surf_point_set)
         self.grid_file = file
-        self._quad = self._approx_maker.compute_default_quad()
+        self._quad = surf_point_set.compute_default_quad()
         self._changed_forms = True
         return self
 
@@ -135,10 +136,10 @@ class SurfFormData(GL.Surface):
         return np.dot((self._quad - quad_center), xy_mat[0:2, 0:2].T) + quad_center + xy_mat[0:2, 2]
 
     def compute_approximation(self):
-        self.approximation = self._approx_maker.compute_adaptive_approximation(
+        self.approximation = self._approx_maker.compute_approximation(
             quad = self._quad,
             nuv = self.nuv,
-            adapt_type="std_dev",
+            adapt_type="l2",
             std_dev=self.tolerance)
         self.update_from_z_surf()
         self.approx_error = self._approx_maker.error
