@@ -44,3 +44,10 @@ The package consists of the four separated graphical applications:
   
 - TODO: use [pytest-qt](http://pytest-qt.readthedocs.io/en/latest/intro.html) to test function of Qt widgets  
   
+## Authors
+
+doc. Mgr. Jan Březina, Ph.D. <sup>1</sup> \
+Ing. Radek Srb <sup>1</sup> \
+Ing. Martin Špetlík <sup>1</sup>
+
+<sup>1</sup> Ústav nových technologií a aplikované informatiky, Fakulta mechatroniky, informatiky a mezioborových studií, Technická univerzita v Liberci
