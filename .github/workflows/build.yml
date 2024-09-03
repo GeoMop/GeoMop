@@ -156,19 +156,19 @@ jobs:
     name: upload packages and doc to astra storage
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/download-artifact@v3
+    - uses: actions/download-artifact@v4.1.7
       with:
         name: html
         path: dist/html
-    - uses: actions/download-artifact@v3
+    - uses: actions/download-artifact@v4.1.7
       with:
         name: geomop_2.0.0_x86_64.exe
         path: dist
-#    - uses: actions/download-artifact@v3
+#    - uses: actions/download-artifact@v4.1.7
 #      with:
 #        name: linux_install
 #        path: dist
-    - uses: actions/download-artifact@v3
+    - uses: actions/download-artifact@v4.1.7
       with:
         name: version
     - id: vars
